@@ -89,7 +89,7 @@ export default function ClubListPage() {
                 {showCreateForm ? '취소' : '+ 클럽 만들기'}
               </button>
             )}
-            {!isApprovedLeader && !leaderApp && user?.role !== 'admin' && (
+            {!isApprovedLeader && (!leaderApp || leaderApp?.status === 'rejected') && user?.role !== 'admin' && (
               <button onClick={() => { setShowLeaderForm(s => !s); setError('') }} style={{
                 padding: '7px 14px', border: 'none', borderRadius: 100,
                 background: showLeaderForm ? C.surfaceAlt : C.surfaceHigh,
