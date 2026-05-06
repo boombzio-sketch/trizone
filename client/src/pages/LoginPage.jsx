@@ -88,11 +88,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {mode === 'register' && (
-          <div style={{ marginTop: 16, padding: 14, background: C.successBg, border: `1px solid ${C.successBorder}`, borderRadius: 12, fontSize: 12, color: C.text2, lineHeight: 1.6 }}>
-            💡 처음 가입하는 사람이 자동으로 <strong style={{ color: C.success }}>클럽장(관리자)</strong>이 됩니다.
-          </div>
-        )}
       </div>
     </div>
   )
