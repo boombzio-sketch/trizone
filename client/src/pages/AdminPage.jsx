@@ -16,7 +16,7 @@ export default function AdminPage() {
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '14px 16px 0' }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>⚙️ 관리</div>
         <div style={{ display: 'flex', gap: 0 }}>
-          {[['pending','훈련 승인'],['memberships','가입 신청'],['members','회원 관리']].map(([k,l]) => (
+          {[['pending','훈련 승인'],['memberships','클럽 가입'],['leaderApps','클럽장 신청'],['members','회원 관리']].map(([k,l]) => (
             <button key={k} onClick={() => setTab(k)} style={{
               padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer',
               fontSize: 13, fontWeight: 700,
@@ -28,6 +28,7 @@ export default function AdminPage() {
       </div>
       {tab === 'pending' && <PendingTab />}
       {tab === 'memberships' && <MembershipsTab />}
+      {tab === 'leaderApps' && <LeaderAppsTab />}
       {tab === 'members' && <MembersTab user={user} />}
     </div>
   )
@@ -113,6 +114,55 @@ function PendingTab() {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function LeaderAppsTab() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.getClubLeaderApps()
+      .then(setItems)
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handle(userId, status) {
+    await api.setClubLeaderAppStatus(userId, status)
+    setItems(prev => prev.filter(m => m.user_id !== userId))
+  }
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳</div>
+
+  if (items.length === 0) return (
+    <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>✅</div>
+      <div style={{ fontSize: 14, fontWeight: 600 }}>대기 중인 클럽장 신청이 없습니다</div>
+    </div>
+  )
+
+  return (
+    <div>
+      <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>클럽장 신청 대기 {items.length}건</div>
+      {items.map(m => (
+        <div key={m.user_id} style={{ margin: '8px 12px', background: C.surface, borderRadius: 16, padding: 14, border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: m.message ? 10 : 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: m.avatar_color+'22', border: `2px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: m.avatar_color, flexShrink: 0 }}>
+              {m.nickname?.charAt(0)}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{m.nickname}</div>
+              <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>{m.applied_at?.slice(0,10)} 신청</div>
+            </div>
+          </div>
+          {m.message && <div style={{ background: C.surfaceAlt, borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: C.text2, fontStyle: 'italic' }}>"{m.message}"</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => handle(m.user_id, 'rejected')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700 }}>✕ 거절</button>
+            <button onClick={() => handle(m.user_id, 'approved')} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700 }}>✓ 승인 (클럽장)</button>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

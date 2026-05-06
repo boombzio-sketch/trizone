@@ -40,6 +40,24 @@ router.delete('/members/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// 클럽장 신청 목록
+router.get('/club-leader-apps', (req, res) => {
+  const rows = prepare(`
+    SELECT cla.*, u.nickname, u.avatar_color
+    FROM club_leader_applications cla JOIN users u ON cla.user_id=u.id
+    WHERE cla.status='pending' ORDER BY cla.applied_at ASC
+  `).all();
+  res.json(rows);
+});
+
+// 클럽장 신청 승인/거절
+router.put('/club-leader-apps/:userId/status', (req, res) => {
+  const { status } = req.body;
+  if (!['approved','rejected'].includes(status)) return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
+  prepare('UPDATE club_leader_applications SET status=? WHERE user_id=?').run(status, req.params.userId);
+  res.json({ ok: true });
+});
+
 // 클럽 가입 신청 목록
 router.get('/memberships', (req, res) => {
   const rows = prepare(`

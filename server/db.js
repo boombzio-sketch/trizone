@@ -47,8 +47,31 @@ async function initDb() {
       description TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS clubs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      region TEXT DEFAULT '',
+      leader_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS club_leader_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
+      message TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending',
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS announcements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS club_announcements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      club_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       body TEXT DEFAULT '',
@@ -89,25 +112,84 @@ async function initDb() {
       created_by INTEGER NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
-    CREATE TABLE IF NOT EXISTS club_memberships (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL UNIQUE,
-      status TEXT DEFAULT 'pending',
-      message TEXT DEFAULT '',
-      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
   `);
 
+  // club_info 초기 데이터
   const clubCheck = db.exec("SELECT id FROM club_info LIMIT 1");
   if (!clubCheck.length || !clubCheck[0].values.length) {
     db.run("INSERT INTO club_info (name, description) VALUES (?, ?)",
-      ['서울철인클럽', '수영·사이클·런 통합 훈련 동호회']);
+      ['KTA CREW', '코리아 트라이애슬론 아카데미 크루']);
   }
-  // 마이그레이션
+
+  // ── 마이그레이션 ──────────────────────────────────────────
+
+  // 1. workout_logs 컬럼
   try { db.run("ALTER TABLE workout_logs ADD COLUMN status TEXT DEFAULT 'approved'") } catch {}
   try { db.run("ALTER TABLE workout_logs ADD COLUMN photo TEXT DEFAULT ''") } catch {}
-  // 기존 유저 전원 클럽 승인 처리
-  db.run("INSERT OR IGNORE INTO club_memberships (user_id, status) SELECT id, 'approved' FROM users")
+
+  // 2. club_memberships 재구성 (club_id + 복합 UNIQUE)
+  try {
+    const cols = db.exec("PRAGMA table_info(club_memberships)");
+    const hasClubId = cols.length > 0 && cols[0].values.some(r => r[1] === 'club_id');
+    if (!hasClubId) {
+      db.run(`CREATE TABLE IF NOT EXISTS club_memberships (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        club_id INTEGER NOT NULL DEFAULT 1,
+        user_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        message TEXT DEFAULT '',
+        applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(club_id, user_id)
+      )`);
+    }
+  } catch {}
+
+  // 기존 단일 club_memberships 테이블이 user_id UNIQUE인 경우 재생성
+  try {
+    const idx = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='club_memberships'");
+    if (idx.length && idx[0].values[0][0] && !idx[0].values[0][0].includes('club_id')) {
+      db.run(`CREATE TABLE club_memberships_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        club_id INTEGER NOT NULL DEFAULT 1,
+        user_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        message TEXT DEFAULT '',
+        applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(club_id, user_id)
+      )`);
+      db.run("INSERT OR IGNORE INTO club_memberships_new (id, club_id, user_id, status, message, applied_at) SELECT id, 1, user_id, status, message, applied_at FROM club_memberships");
+      db.run("DROP TABLE club_memberships");
+      db.run("ALTER TABLE club_memberships_new RENAME TO club_memberships");
+    }
+  } catch {}
+
+  // 3. clubs 테이블에 기존 club_info 마이그레이션
+  try {
+    const cnt = db.exec("SELECT COUNT(*) FROM clubs");
+    if (cnt[0].values[0][0] === 0) {
+      const old = db.exec("SELECT name, description FROM club_info LIMIT 1");
+      if (old.length && old[0].values.length) {
+        const [name, desc] = old[0].values[0];
+        const adminU = db.exec("SELECT id FROM users WHERE role='admin' LIMIT 1");
+        const leaderId = adminU[0]?.values[0]?.[0] || null;
+        db.run("INSERT INTO clubs (id, name, description, region, leader_id) VALUES (1, ?, ?, '', ?)", [name, desc, leaderId]);
+      }
+    }
+  } catch {}
+
+  // 4. club_announcements에 기존 announcements 마이그레이션
+  try {
+    const cnt = db.exec("SELECT COUNT(*) FROM club_announcements");
+    if (cnt[0].values[0][0] === 0) {
+      db.run("INSERT INTO club_announcements (club_id, user_id, title, body, created_at) SELECT 1, user_id, title, body, created_at FROM announcements");
+    }
+  } catch {}
+
+  // 5. 기존 유저 club_id=1에 승인 처리
+  db.run("INSERT OR IGNORE INTO club_memberships (club_id, user_id, status) SELECT 1, id, 'approved' FROM users");
+
+  // 6. admin 유저 클럽장 신청 자동 승인
+  db.run("INSERT OR IGNORE INTO club_leader_applications (user_id, status) SELECT id, 'approved' FROM users WHERE role='admin'");
 
   saveDb();
   console.log('✅ DB 초기화 완료');

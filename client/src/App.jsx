@@ -8,6 +8,8 @@ import ClubPage from './pages/ClubPage.jsx'
 import MyPage from './pages/MyPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import RacePage from './pages/RacePage.jsx'
+import ClubListPage from './pages/ClubListPage.jsx'
+import ClubDetailPage from './pages/ClubDetailPage.jsx'
 import Layout from './components/Layout.jsx'
 
 function PrivateRoute({ children }) {
@@ -29,6 +31,8 @@ export default function App() {
             <Route path="club" element={<ClubPage />} />
             <Route path="my" element={<MyPage />} />
             <Route path="races" element={<RacePage />} />
+            <Route path="clubs" element={<ClubListPage />} />
+            <Route path="clubs/:id" element={<ClubDetailPage />} />
             <Route path="admin" element={<AdminPage />} />
           </Route>
         </Routes>

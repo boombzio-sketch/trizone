@@ -51,10 +51,29 @@ export const api = {
   updateRace: (id, body) => request(`/races/${id}`, { method: 'PUT', body }),
   deleteRace: (id) => request(`/races/${id}`, { method: 'DELETE' }),
 
-  // 클럽 멤버십
+  // 클럽 멤버십 (구 단일 클럽)
   getMyMembership: () => request('/club/membership'),
   joinClub: (message) => request('/club/join', { method: 'POST', body: { message } }),
   leaveClub: () => request('/club/leave', { method: 'DELETE' }),
+
+  // 다중 클럽
+  getClubs: (region) => request(`/clubs${region && region !== '전체' ? `?region=${encodeURIComponent(region)}` : ''}`),
+  getClub: (id) => request(`/clubs/${id}`),
+  createClub: (body) => request('/clubs', { method: 'POST', body }),
+  updateClub: (id, body) => request(`/clubs/${id}`, { method: 'PUT', body }),
+  getMyLeaderApp: () => request('/clubs/my-leader-app'),
+  applyClubLeader: (message) => request('/clubs/my-leader-app', { method: 'POST', body: { message } }),
+  getClubMembership: (id) => request(`/clubs/${id}/membership`),
+  joinClubById: (id, message) => request(`/clubs/${id}/join`, { method: 'POST', body: { message } }),
+  leaveClubById: (id) => request(`/clubs/${id}/leave`, { method: 'DELETE' }),
+  getClubMembers: (id) => request(`/clubs/${id}/members`),
+  getClubPendingMembers: (id) => request(`/clubs/${id}/pending-members`),
+  setClubMemberStatus: (clubId, userId, status) => request(`/clubs/${clubId}/members/${userId}/status`, { method: 'PUT', body: { status } }),
+  getClubAnnouncements: (id) => request(`/clubs/${id}/announcements`),
+  postClubAnnouncement: (id, body) => request(`/clubs/${id}/announcements`, { method: 'POST', body }),
+  deleteClubAnnouncement: (clubId, annId) => request(`/clubs/${clubId}/announcements/${annId}`, { method: 'DELETE' }),
+  getClubLeaderApps: () => request('/admin/club-leader-apps'),
+  setClubLeaderAppStatus: (userId, status) => request(`/admin/club-leader-apps/${userId}/status`, { method: 'PUT', body: { status } }),
 
   // 관리자
   getAdminMembers: () => request('/admin/members'),
