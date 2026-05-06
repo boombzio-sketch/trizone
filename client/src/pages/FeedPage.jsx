@@ -368,7 +368,6 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
             <span style={{ fontSize: 16 }}>💬</span> {f.comment_count || 0}
           </button>
           <div style={{ flex: 1 }} />
-          <div style={{ fontSize: 11, color: C.text3, padding: '7px 12px', fontWeight: 700 }}>{(f.score||0).toFixed(1)}pt</div>
         </div>
 
         {/* 댓글 */}
