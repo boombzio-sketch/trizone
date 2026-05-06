@@ -168,7 +168,7 @@ export default function ClubListPage() {
           <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 14 }}>새 클럽 만들기</div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelSt}>클럽명 *</label>
-            <input value={createForm.name} onChange={e => setCreateForm(p => ({...p, name: e.target.value}))} placeholder="예: 부산 트라이클럽" required style={iSt} />
+            <input value={createForm.name} onChange={e => setCreateForm(p => ({...p, name: e.target.value}))} placeholder="예: 트라이클럽" required style={iSt} />
           </div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelSt}>지역 *</label>
