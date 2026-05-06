@@ -63,6 +63,13 @@ export default function ClubDetailPage() {
     const statsMap = {}
     stats.forEach(s => { statsMap[s.user_id] = s })
     setTrainingStats(statsMap)
+    // 모든 훈련의 참가자 목록 미리 로드
+    const participantMap = {}
+    await Promise.all(tr.map(async t => {
+      const rows = await api.getTrainingParticipants(id, t.id)
+      participantMap[t.id] = rows
+    }))
+    setTrainingParticipants(participantMap)
   }
 
   async function handleTrainingSubmit(e) {
@@ -97,13 +104,17 @@ export default function ClubDetailPage() {
     setTrainings(prev => prev.map(t => t.id === tid ? { ...t, my_status: null, participant_count: Math.max(0,(t.participant_count||1)-1) } : t))
   }
 
-  async function toggleExpandTraining(tid) {
-    if (expandedTraining === tid) { setExpandedTraining(null); return }
-    setExpandedTraining(tid)
+  async function loadTrainingParticipants(tid) {
     if (!trainingParticipants[tid]) {
       const rows = await api.getTrainingParticipants(id, tid)
       setTrainingParticipants(prev => ({ ...prev, [tid]: rows }))
     }
+  }
+
+  async function toggleExpandTraining(tid) {
+    if (expandedTraining === tid) { setExpandedTraining(null); return }
+    setExpandedTraining(tid)
+    await loadTrainingParticipants(tid)
   }
 
   async function handleAttendance(tid, userId, current) {
@@ -423,18 +434,14 @@ export default function ClubDetailPage() {
                     )}
                     {t.my_status === 'attended' && <span style={{ fontSize: 10, fontWeight: 700, color: C.success, background: C.successBg, borderRadius: 5, padding: '2px 7px' }}>✓ 참석</span>}
                     {t.my_status === 'absent' && <span style={{ fontSize: 10, fontWeight: 700, color: C.error, background: C.errorBg, borderRadius: 5, padding: '2px 7px' }}>✗ 불참</span>}
-                    <div style={{ flex: 1 }} />
-                    <button onClick={() => toggleExpandTraining(t.id)} style={{ fontSize: 11, color: C.text2, background: 'none', border: 'none', cursor: 'pointer' }}>
-                      참가자 {isExpanded ? '▲' : '▼'}
-                    </button>
                   </div>
                 </div>
 
-                {/* 참가자 목록 */}
-                {isExpanded && (
-                  <div style={{ background: C.surfaceAlt, borderTop: `1px solid ${C.border}`, padding: '10px 16px' }}>
+                {/* 참가자 목록 (항상 표시) */}
+                <div style={{ background: C.surfaceAlt, borderTop: `1px solid ${C.border}`, padding: '10px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6 }}>참가자 {parts.length}명</div>
                     {parts.length === 0 ? (
-                      <div style={{ fontSize: 12, color: C.text2 }}>참가자가 없습니다.</div>
+                      <div style={{ fontSize: 12, color: C.text2 }}>신청자가 없습니다.</div>
                     ) : parts.map(p => (
                       <div key={p.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: p.avatar_color+'22', border: `1.5px solid ${p.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: p.avatar_color, flexShrink: 0 }}>{p.nickname?.charAt(0)}</div>
@@ -451,7 +458,6 @@ export default function ClubDetailPage() {
                       </div>
                     ))}
                   </div>
-                )}
               </div>
             )
           })}
