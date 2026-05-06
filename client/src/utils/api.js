@@ -45,12 +45,19 @@ export const api = {
   deleteAnnouncement: (id) => request(`/club/announcements/${id}`, { method: 'DELETE' }),
   setMemberRole: (id, role) => request(`/club/members/${id}/role`, { method: 'PUT', body: { role } }),
 
+  // 클럽 멤버십
+  getMyMembership: () => request('/club/membership'),
+  joinClub: (message) => request('/club/join', { method: 'POST', body: { message } }),
+  leaveClub: () => request('/club/leave', { method: 'DELETE' }),
+
   // 관리자
   getAdminMembers: () => request('/admin/members'),
   setAdminMemberRole: (id, role) => request(`/admin/members/${id}/role`, { method: 'PUT', body: { role } }),
   deleteAdminMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
   getPendingWorkouts: () => request('/admin/pending'),
   setWorkoutStatus: (id, status) => request(`/admin/workouts/${id}/status`, { method: 'PUT', body: { status } }),
+  getPendingMemberships: () => request('/admin/memberships'),
+  setMembershipStatus: (userId, status) => request(`/admin/memberships/${userId}/status`, { method: 'PUT', body: { status } }),
 }
 
 export function setToken(token) {

@@ -40,7 +40,29 @@ router.delete('/members/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// 승인 대기 기록 목록
+// 클럽 가입 신청 목록
+router.get('/memberships', (req, res) => {
+  const rows = prepare(`
+    SELECT cm.id, cm.user_id, cm.status, cm.message, cm.applied_at,
+           u.nickname, u.avatar_color, u.created_at as user_created_at
+    FROM club_memberships cm
+    JOIN users u ON cm.user_id = u.id
+    WHERE cm.status = 'pending'
+    ORDER BY cm.applied_at ASC
+  `).all();
+  res.json(rows);
+});
+
+// 가입 승인/거절
+router.put('/memberships/:userId/status', (req, res) => {
+  const { status } = req.body;
+  if (!['approved', 'rejected'].includes(status))
+    return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
+  prepare('UPDATE club_memberships SET status=? WHERE user_id=?').run(status, req.params.userId);
+  res.json({ ok: true });
+});
+
+// 훈련 기록 승인 대기 목록
 router.get('/pending', (req, res) => {
   const rows = prepare(`
     SELECT w.id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,

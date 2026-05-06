@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { api } from '../utils/api'
 import { C } from '../utils/theme'
 
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
@@ -16,6 +17,112 @@ async function req(path, options = {}) {
 
 export default function ClubPage() {
   const { user } = useAuth()
+  const [membership, setMembership] = useState(null)
+  const [loadingMembership, setLoadingMembership] = useState(true)
+
+  useEffect(() => {
+    api.getMyMembership()
+      .then(setMembership)
+      .finally(() => setLoadingMembership(false))
+  }, [])
+
+  if (loadingMembership) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳</div>
+
+  // 관리자는 항상 전체 화면
+  if (user?.role === 'admin' || membership?.status === 'approved') {
+    return <ClubContent user={user} membership={membership} onLeave={() => setMembership({ status: 'left' })} />
+  }
+  if (membership?.status === 'pending') {
+    return <PendingView onCancel={async () => {
+      // 신청 취소는 없으므로 안내만
+    }} />
+  }
+  return <JoinView status={membership?.status} onJoined={() => setMembership({ status: 'pending' })} />
+}
+
+// ── 가입 신청 화면 ──────────────────────────────────
+function JoinView({ status, onJoined }) {
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleJoin() {
+    setLoading(true); setError('')
+    try {
+      await api.joinClub(message)
+      onJoined()
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
+  }
+
+  return (
+    <div style={{ padding: 20 }}>
+      <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🏊🚴🏃</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 8 }}>클럽에 가입해보세요</div>
+        <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.7, marginBottom: 24 }}>
+          가입 신청 후 클럽장 승인을 받으면<br />클럽 기록과 랭킹에 참여할 수 있습니다.
+        </div>
+
+        {status === 'rejected' && (
+          <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 12, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: C.error }}>
+            이전 가입 신청이 거절되었습니다. 다시 신청할 수 있습니다.
+          </div>
+        )}
+        {status === 'left' && (
+          <div style={{ background: C.warnBg, border: `1px solid ${C.warnBorder}`, borderRadius: 12, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: C.warn }}>
+            클럽을 탈퇴했습니다. 재가입 신청이 가능합니다.
+          </div>
+        )}
+
+        <div style={{ textAlign: 'left', marginBottom: 14 }}>
+          <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            가입 인사 (선택)
+          </label>
+          <textarea
+            value={message} onChange={e => setMessage(e.target.value)}
+            placeholder="간단한 자기소개를 남겨보세요."
+            rows={3}
+            style={{ width: '100%', padding: '12px 14px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'none' }}
+          />
+        </div>
+
+        {error && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: C.error }}>{error}</div>}
+
+        <button onClick={handleJoin} disabled={loading} style={{
+          width: '100%', padding: '14px', border: 'none', borderRadius: 14,
+          background: loading ? C.surfaceHigh : C.accent,
+          color: loading ? C.text2 : '#fff',
+          fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
+        }}>
+          {loading ? '신청 중...' : '🙋 가입 신청하기'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── 승인 대기 화면 ──────────────────────────────────
+function PendingView() {
+  return (
+    <div style={{ padding: 20 }}>
+      <div style={{ background: C.surface, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 10 }}>승인 대기 중</div>
+        <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.8 }}>
+          가입 신청이 접수되었습니다.<br />
+          클럽장이 승인하면 클럽 활동을 시작할 수 있습니다.
+        </div>
+        <div style={{ marginTop: 24, padding: '12px 16px', background: C.warnBg, border: `1px solid ${C.warnBorder}`, borderRadius: 12, fontSize: 12, color: C.warn }}>
+          승인 전에도 훈련 기록은 입력 가능합니다.
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── 클럽 메인 화면 (승인된 회원) ──────────────────────
+function ClubContent({ user, membership, onLeave }) {
   const [clubInfo, setClubInfo]   = useState(null)
   const [members, setMembers]     = useState([])
   const [announcements, setAnn]   = useState([])
@@ -28,11 +135,16 @@ export default function ClubPage() {
   const [editDesc, setEditDesc]   = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [editMsg, setEditMsg]     = useState('')
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [leavingLoading, setLeavingLoading] = useState(false)
 
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
-    const [c, m, a, d] = await Promise.all([req('/club/info'), req('/club/members'), req('/club/announcements'), req('/ranking/dashboard')])
+    const [c, m, a, d] = await Promise.all([
+      req('/club/info'), req('/club/members'),
+      req('/club/announcements'), req('/ranking/dashboard'),
+    ])
     setClubInfo(c); setMembers(m); setAnn(a); setDashboard(d)
   }
 
@@ -46,7 +158,8 @@ export default function ClubPage() {
       setClubInfo(await req('/club/info'))
       setEditMsg('✅ 저장됐습니다!')
       setTimeout(() => setShowEditClub(false), 900)
-    } catch(e) { setEditMsg('❌ ' + e.message) } finally { setEditSaving(false) }
+    } catch(e) { setEditMsg('❌ ' + e.message) }
+    finally { setEditSaving(false) }
   }
 
   async function postAnn() {
@@ -59,6 +172,15 @@ export default function ClubPage() {
     if (!confirm('공지를 삭제할까요?')) return
     await req('/club/announcements/' + id, { method: 'DELETE' })
     setAnn(prev => prev.filter(x => x.id !== id))
+  }
+
+  async function handleLeave() {
+    setLeavingLoading(true)
+    try {
+      await api.leaveClub()
+      onLeave()
+    } catch(e) { alert(e.message) }
+    finally { setLeavingLoading(false) }
   }
 
   const heatmap = buildHeatmap(dashboard?.heatmap || [], dashboard?.from)
@@ -74,14 +196,37 @@ export default function ClubPage() {
               <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{clubInfo.name}</div>
               <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{clubInfo.description || '소개 없음'} · 회원 {clubInfo.member_count}명</div>
             </div>
-            {user?.role === 'admin' && (
-              <button onClick={openEdit} style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, background: C.accentBg, color: C.accent, border: `1px solid ${C.accentBorder}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer' }}>✏️ 수정</button>
-            )}
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              {user?.role === 'admin' && (
+                <button onClick={openEdit} style={{ fontSize: 11, fontWeight: 700, background: C.accentBg, color: C.accent, border: `1px solid ${C.accentBorder}`, borderRadius: 10, padding: '7px 12px', cursor: 'pointer' }}>✏️ 수정</button>
+              )}
+              {user?.role !== 'admin' && (
+                <button onClick={() => setShowLeaveConfirm(true)} style={{ fontSize: 11, fontWeight: 700, background: C.errorBg, color: C.error, border: `1px solid ${C.errorBorder}`, borderRadius: 10, padding: '7px 12px', cursor: 'pointer' }}>탈퇴</button>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* 클럽 정보 수정 폼 */}
+      {/* 탈퇴 확인 */}
+      {showLeaveConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>클럽 탈퇴</div>
+            <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.7, marginBottom: 20 }}>
+              클럽을 탈퇴하면 클럽 기록과 랭킹에서 제외됩니다.<br />재가입 신청은 언제든 가능합니다.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowLeaveConfirm(false)} style={{ flex: 1, padding: '11px', background: C.surfaceAlt, color: C.text2, border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+              <button onClick={handleLeave} disabled={leavingLoading} style={{ flex: 1, padding: '11px', background: C.error, color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                {leavingLoading ? '처리 중...' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 클럽 정보 수정 */}
       {showEditClub && (
         <div style={{ margin: '12px 14px', background: C.surface, border: `1px solid ${C.accentBorder}`, borderRadius: 16, padding: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 14 }}>클럽 정보 수정</div>
@@ -107,7 +252,7 @@ export default function ClubPage() {
         </div>
       )}
 
-      {/* 이번 주 훈련 히트맵 */}
+      {/* 이번 주 훈련 현황 */}
       {dashboard && (
         <div style={{ padding: '14px 14px 12px', borderBottom: `1px solid ${C.border}` }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.07em' }}>이번 주 훈련 현황</div>
@@ -176,7 +321,7 @@ export default function ClubPage() {
 
       {/* 회원 목록 */}
       <div style={{ padding: '14px 14px 8px' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>👥 회원 목록</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>👥 클럽 회원 ({members.length}명)</div>
         {members.map(m => (
           <div key={m.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.border}`, gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: '50%', background: m.avatar_color+'22', border: `2px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: m.avatar_color, flexShrink: 0 }}>

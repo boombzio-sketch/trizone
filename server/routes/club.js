@@ -3,10 +3,10 @@ const { prepare } = require('../db');
 const { authMiddleware, adminMiddleware } = require('../middleware');
 const db = { prepare };
 
-// 클럽 정보 조회
+// 클럽 정보
 router.get('/info', authMiddleware, (req, res) => {
   const info = db.prepare('SELECT * FROM club_info LIMIT 1').get();
-  const memberCount = db.prepare('SELECT COUNT(*) as cnt FROM users').get();
+  const memberCount = db.prepare("SELECT COUNT(*) as cnt FROM club_memberships WHERE status='approved'").get();
   res.json({ ...info, member_count: memberCount.cnt });
 });
 
@@ -17,14 +17,45 @@ router.put('/info', authMiddleware, adminMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// 회원 목록
+// 내 가입 상태
+router.get('/membership', authMiddleware, (req, res) => {
+  const m = db.prepare('SELECT * FROM club_memberships WHERE user_id=?').get(req.user.id);
+  res.json(m || { status: null });
+});
+
+// 가입 신청
+router.post('/join', authMiddleware, (req, res) => {
+  const { message } = req.body;
+  const existing = db.prepare('SELECT * FROM club_memberships WHERE user_id=?').get(req.user.id);
+  if (existing?.status === 'approved') return res.status(400).json({ error: '이미 클럽 회원입니다.' });
+  if (existing?.status === 'pending') return res.status(400).json({ error: '이미 가입 신청 중입니다.' });
+
+  if (existing) {
+    db.prepare("UPDATE club_memberships SET status='pending', message=?, applied_at=CURRENT_TIMESTAMP WHERE user_id=?")
+      .run(message || '', req.user.id);
+  } else {
+    db.prepare("INSERT INTO club_memberships (user_id, status, message) VALUES (?, 'pending', ?)")
+      .run(req.user.id, message || '');
+  }
+  res.json({ ok: true });
+});
+
+// 클럽 탈퇴
+router.delete('/leave', authMiddleware, (req, res) => {
+  if (req.user.role === 'admin') return res.status(400).json({ error: '클럽장은 탈퇴할 수 없습니다.' });
+  db.prepare("UPDATE club_memberships SET status='left' WHERE user_id=?").run(req.user.id);
+  res.json({ ok: true });
+});
+
+// 승인된 회원 목록
 router.get('/members', authMiddleware, (req, res) => {
   const members = db.prepare(`
     SELECT u.id, u.nickname, u.role, u.avatar_color, u.created_at,
            COUNT(w.id) as total_workouts,
            COALESCE(SUM(w.distance_km), 0) as total_km
     FROM users u
-    LEFT JOIN workout_logs w ON u.id = w.user_id
+    JOIN club_memberships cm ON cm.user_id = u.id AND cm.status = 'approved'
+    LEFT JOIN workout_logs w ON u.id = w.user_id AND w.status = 'approved'
     GROUP BY u.id
     ORDER BY u.role DESC, u.nickname
   `).all();
