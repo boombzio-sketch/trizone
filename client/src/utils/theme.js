@@ -41,6 +41,10 @@ export const C = {
   gold: '#F59E0B',
   goldBg: 'rgba(245,158,11,0.15)',
   goldBorder: 'rgba(245,158,11,0.3)',
+
+  warn: '#FB923C',
+  warnBg: 'rgba(251,146,60,0.12)',
+  warnBorder: 'rgba(251,146,60,0.3)',
 }
 
 export const sportC   = t => ({ swim: C.swim,       bike: C.bike,       run: C.run,       brick: C.brick       }[t] || C.accent)

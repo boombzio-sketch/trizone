@@ -15,6 +15,10 @@ async function req(path, opts = {}) {
   return data
 }
 
+const STATUS_LABEL = { pending: '승인대기', approved: '승인', rejected: '반려' }
+const STATUS_COLOR = { pending: C.warn, approved: C.success, rejected: C.error }
+const STATUS_BG    = { pending: C.warnBg, approved: C.successBg, rejected: C.errorBg }
+
 export default function FeedPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('following')
@@ -45,7 +49,7 @@ export default function FeedPage() {
     }, 300)
   }, [searchQ])
 
-  async function toggleLike(workoutId) {
+  async function toggleStar(workoutId) {
     const data = await req('/social/like/' + workoutId, { method: 'POST' })
     setFeeds(prev => prev.map(f =>
       f.id === workoutId ? { ...f, like_count: data.count, my_like: data.liked ? 1 : null } : f
@@ -122,14 +126,14 @@ export default function FeedPage() {
             {tab === 'following' ? '아직 팔로우한 사람이 없어요.\n🔍 검색으로 클럽원을 찾아 팔로우해보세요!' : '아직 훈련 기록이 없습니다.'}
           </div>
         ) : feeds.map(f => (
-          <FeedCard key={f.id} feed={f} myId={user?.id} onLike={() => toggleLike(f.id)} openComments={openComments} setOpenComments={setOpenComments} />
+          <FeedCard key={f.id} feed={f} myId={user?.id} onStar={() => toggleStar(f.id)} openComments={openComments} setOpenComments={setOpenComments} />
         ))}
       </div>
     </div>
   )
 }
 
-function FeedCard({ feed: f, myId, onLike, openComments, setOpenComments }) {
+function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments }) {
   const sc = SPORT_COLOR[f.sport_type] || C.accent
   const isOpen = openComments === f.id
   const [comments, setComments] = useState([])
@@ -155,6 +159,7 @@ function FeedCard({ feed: f, myId, onLike, openComments, setOpenComments }) {
   }
 
   const segs = f.sport_type === 'brick' ? (() => { try { return JSON.parse(f.brick_segments || '[]') } catch { return [] } })() : null
+  const status = f.status || 'approved'
 
   return (
     <div style={{ margin: '0 12px 10px' }}>
@@ -171,8 +176,20 @@ function FeedCard({ feed: f, myId, onLike, openComments, setOpenComments }) {
             </div>
             <div style={{ fontSize: 10, color: C.text3, marginTop: 1 }}>{f.logged_at}</div>
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: sc }}>{SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: sc }}>{SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
+              {STATUS_LABEL[status]}
+            </span>
+          </div>
         </div>
+
+        {/* 사진 */}
+        {f.photo && (
+          <div style={{ margin: '0 14px 10px' }}>
+            <img src={f.photo} alt="훈련 사진" style={{ width: '100%', borderRadius: 12, display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+          </div>
+        )}
 
         {/* 훈련 내용 */}
         <div style={{ margin: '0 14px 10px', background: C.surfaceAlt, borderRadius: 14, padding: '14px 16px' }}>
@@ -202,8 +219,8 @@ function FeedCard({ feed: f, myId, onLike, openComments, setOpenComments }) {
 
         {/* 액션 */}
         <div style={{ display: 'flex', padding: '2px 6px 10px', alignItems: 'center' }}>
-          <button onClick={onLike} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: f.my_like ? '#F43F5E' : C.text2, fontWeight: 700 }}>
-            <span style={{ fontSize: 16 }}>{f.my_like ? '❤️' : '🤍'}</span> {f.like_count || 0}
+          <button onClick={onStar} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: f.my_like ? C.gold : C.text2, fontWeight: 700 }}>
+            <span style={{ fontSize: 18 }}>{f.my_like ? '⭐' : '☆'}</span> {f.like_count || 0}
           </button>
           <button onClick={toggleComments} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: isOpen ? C.accent : C.text2, fontWeight: 700 }}>
             <span style={{ fontSize: 16 }}>💬</span> {f.comment_count || 0}

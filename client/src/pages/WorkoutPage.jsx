@@ -4,6 +4,26 @@ import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration, parseDuration } f
 import { C } from '../utils/theme'
 
 const SPORTS = ['swim', 'bike', 'run', 'brick']
+const STATUS_LABEL = { pending: '승인대기', approved: '승인', rejected: '반려' }
+const STATUS_COLOR = { pending: C.warn, approved: C.success, rejected: C.error }
+const STATUS_BG    = { pending: C.warnBg, approved: C.successBg, rejected: C.errorBg }
+
+async function compressImage(file, maxW = 1024, quality = 0.78) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.src = url
+  })
+}
 
 export default function WorkoutPage() {
   const [tab, setTab] = useState('log')
@@ -11,6 +31,7 @@ export default function WorkoutPage() {
   const [form, setForm] = useState({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
   const [brick, setBrick] = useState([{ sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
   const [transitTime, setTransitTime] = useState('')
+  const [photo, setPhoto] = useState(null)
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -25,33 +46,36 @@ export default function WorkoutPage() {
 
   function today() { return new Date().toISOString().slice(0,10) }
 
+  async function handlePhotoChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    const base64 = await compressImage(file)
+    setPhoto(base64)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError(''); setLoading(true)
     try {
       const dur = parseDuration(form.time)
       const dist = parseFloat(form.distance) || 0
-      let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo }
+      let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo, photo: photo || '' }
       if (sport === 'swim') body.pool_type = form.pool_type
-      else if (sport === 'bike') {
-        body.course_type = form.course_type
-        body.elevation_m = parseInt(form.elevation) || 0
-        body.avg_power_w = parseInt(form.power) || 0
-      } else if (sport === 'brick') {
+      else if (sport === 'bike') { body.course_type = form.course_type; body.elevation_m = parseInt(form.elevation)||0; body.avg_power_w = parseInt(form.power)||0 }
+      else if (sport === 'brick') {
         const segments = brick.map(b => ({ sport: b.sport, distance_km: parseFloat(b.distance)||0, duration_sec: parseDuration(b.time) }))
         body.brick_segments = segments
         body.distance_km = segments.reduce((s,b) => s+b.distance_km, 0)
         body.duration_sec = segments.reduce((s,b) => s+b.duration_sec, 0) + parseDuration(transitTime)
       }
       await api.addWorkout(body)
-      setSuccess('✅ 기록이 저장되었습니다!')
+      setSuccess('✅ 기록이 저장되었습니다! 클럽장 승인 후 클럽 기록에 반영됩니다.')
       setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
       setBrick([{ sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
-      setTransitTime('')
-      setTimeout(() => { setSuccess(''); setTab('log') }, 1200)
-    } catch(err) {
-      setError(err.message)
-    } finally { setLoading(false) }
+      setTransitTime(''); setPhoto(null)
+      setTimeout(() => { setSuccess(''); setTab('log') }, 2000)
+    } catch(err) { setError(err.message) }
+    finally { setLoading(false) }
   }
 
   async function handleDelete(id) {
@@ -63,7 +87,6 @@ export default function WorkoutPage() {
 
   return (
     <div>
-      {/* 탭 */}
       <div style={{ display: 'flex', background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 14px' }}>
         {[['log','📋 기록 목록'],['add','➕ 기록 추가']].map(([k,l]) => (
           <button key={k} onClick={() => setTab(k)} style={{
@@ -91,7 +114,7 @@ export default function WorkoutPage() {
               <button key={s} type="button" onClick={() => setSport(s)} style={{
                 padding: '12px 4px', border: 'none', borderRadius: 14,
                 background: sport===s ? SPORT_COLOR[s]+'18' : C.surfaceAlt,
-                outline: sport===s ? `2px solid ${SPORT_COLOR[s]}` : `2px solid transparent`,
+                outline: sport===s ? `2px solid ${SPORT_COLOR[s]}` : '2px solid transparent',
                 color: sport===s ? SPORT_COLOR[s] : C.text2,
                 fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
@@ -166,8 +189,22 @@ export default function WorkoutPage() {
             <textarea placeholder="오늘 훈련 소감을 적어보세요" value={form.memo} onChange={e => setForm({...form, memo: e.target.value})} rows={2} style={{ ...inputSt(sc), resize: 'none' }} />
           </Field>
 
+          {/* 사진 업로드 */}
+          <Field label="📷 사진 (선택)">
+            {photo && (
+              <div style={{ position: 'relative', marginBottom: 8 }}>
+                <img src={photo} alt="미리보기" style={{ width: '100%', borderRadius: 12, maxHeight: 200, objectFit: 'cover', display: 'block' }} />
+                <button type="button" onClick={() => setPhoto(null)} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              </div>
+            )}
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', background: C.surfaceAlt, border: `1px dashed ${C.borderLight}`, borderRadius: 12, cursor: 'pointer', color: C.text2, fontSize: 13, fontWeight: 600 }}>
+              📷 {photo ? '사진 변경' : '사진 선택'}
+              <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
+            </label>
+          </Field>
+
           {error && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.error }}>{error}</div>}
-          {success && <div style={{ background: C.successBg, border: `1px solid ${C.successBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.success, textAlign: 'center', fontWeight: 700 }}>{success}</div>}
+          {success && <div style={{ background: C.successBg, border: `1px solid ${C.successBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: C.success, fontWeight: 600, lineHeight: 1.5 }}>{success}</div>}
 
           <button type="submit" disabled={loading} style={{
             width: '100%', padding: 15, border: 'none', borderRadius: 14,
@@ -186,6 +223,7 @@ export default function WorkoutPage() {
 function LogItem({ log, onDelete }) {
   const sc = SPORT_COLOR[log.sport_type] || C.text2
   const segs = log.sport_type === 'brick' ? JSON.parse(log.brick_segments || '[]') : null
+  const status = log.status || 'approved'
   return (
     <div style={{ margin: '8px 12px', background: C.surface, borderRadius: 14, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
       <div style={{ padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -195,6 +233,9 @@ function LogItem({ log, onDelete }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: sc }}>{SPORT_LABEL[log.sport_type]}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
+              {STATUS_LABEL[status]}
+            </span>
             <span style={{ fontSize: 11, color: C.text2 }}>{log.logged_at}</span>
           </div>
           {segs ? (
@@ -211,6 +252,9 @@ function LogItem({ log, onDelete }) {
           <button onClick={() => onDelete(log.id)} style={{ fontSize: 11, color: C.text3, background: 'none', border: 'none', cursor: 'pointer' }}>🗑️</button>
         </div>
       </div>
+      {log.photo && (
+        <img src={log.photo} alt="훈련 사진" style={{ width: '100%', display: 'block', maxHeight: 180, objectFit: 'cover' }} />
+      )}
     </div>
   )
 }

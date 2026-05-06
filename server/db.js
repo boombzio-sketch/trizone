@@ -80,6 +80,10 @@ async function initDb() {
     db.run("INSERT INTO club_info (name, description) VALUES (?, ?)",
       ['서울철인클럽', '수영·사이클·런 통합 훈련 동호회']);
   }
+  // 마이그레이션: 기존 컬럼 추가 (이미 있으면 무시)
+  try { db.run("ALTER TABLE workout_logs ADD COLUMN status TEXT DEFAULT 'approved'") } catch {}
+  try { db.run("ALTER TABLE workout_logs ADD COLUMN photo TEXT DEFAULT ''") } catch {}
+
   saveDb();
   console.log('✅ DB 초기화 완료');
 }

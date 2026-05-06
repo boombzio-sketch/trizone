@@ -40,4 +40,27 @@ router.delete('/members/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// 승인 대기 기록 목록
+router.get('/pending', (req, res) => {
+  const rows = prepare(`
+    SELECT w.id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
+           w.memo, w.score, w.brick_segments, w.photo, w.status, w.created_at,
+           u.nickname, u.avatar_color
+    FROM workout_logs w
+    JOIN users u ON w.user_id = u.id
+    WHERE w.status = 'pending'
+    ORDER BY w.created_at DESC
+  `).all();
+  res.json(rows);
+});
+
+// 기록 승인/반려
+router.put('/workouts/:id/status', (req, res) => {
+  const { status } = req.body;
+  if (!['approved', 'rejected'].includes(status))
+    return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
+  prepare('UPDATE workout_logs SET status = ? WHERE id = ?').run(status, req.params.id);
+  res.json({ ok: true });
+});
+
 module.exports = router;

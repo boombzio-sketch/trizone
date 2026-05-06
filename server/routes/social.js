@@ -57,7 +57,9 @@ router.get('/following/:userId', authMiddleware, (req, res) => {
 router.get('/feed', authMiddleware, (req, res) => {
   const { offset = 0 } = req.query
   const rows = db.prepare(`
-    SELECT w.*, u.nickname, u.avatar_color,
+    SELECT w.id, w.user_id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
+           w.memo, w.pace, w.score, w.brick_segments, w.status, w.photo,
+           u.nickname, u.avatar_color,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
       (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
       (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
@@ -75,7 +77,9 @@ router.get('/feed', authMiddleware, (req, res) => {
 router.get('/feed/all', authMiddleware, (req, res) => {
   const { offset = 0 } = req.query
   const rows = db.prepare(`
-    SELECT w.*, u.nickname, u.avatar_color,
+    SELECT w.id, w.user_id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
+           w.memo, w.pace, w.score, w.brick_segments, w.status, w.photo,
+           u.nickname, u.avatar_color,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
       (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
       (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
