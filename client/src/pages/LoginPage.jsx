@@ -43,7 +43,7 @@ export default function LoginPage() {
           <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.05em', color: C.text }}>
             TRI<span style={{ color: C.accent }}>ZONE</span>
           </div>
-          <div style={{ fontSize: 13, color: C.text2, marginTop: 6 }}>철인3종 훈련 관리 플랫폼</div>
+          <div style={{ fontSize: 13, color: C.text2, marginTop: 6 }}>철인3종 커뮤니티</div>
         </div>
 
         {/* 탭 */}
