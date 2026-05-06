@@ -20,6 +20,7 @@ initDb().then(() => {
   app.use('/api/club',    require('./routes/club'));
   app.use('/api/users',   require('./routes/users'));
   app.use('/api/social',  require('./routes/social'));
+  app.use('/api/admin',   require('./routes/admin'));
   app.get('/api/health',  (req, res) => res.json({ ok: true }));
 
   app.listen(PORT, () => {

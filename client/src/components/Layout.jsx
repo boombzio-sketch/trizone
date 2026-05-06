@@ -1,4 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth.jsx'
 
 const tabs = [
   { to: '/',        icon: '🏠', label: '피드' },
@@ -9,6 +10,7 @@ const tabs = [
 ]
 
 export default function Layout() {
+  const { user } = useAuth()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: '#080B10' }}>
       <header style={{
@@ -45,6 +47,19 @@ export default function Layout() {
             {t.label}
           </NavLink>
         ))}
+        {user?.role === 'admin' && (
+          <NavLink to="/admin"
+            style={({ isActive }) => ({
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '7px 4px', gap: 2, fontSize: 9, fontWeight: 600,
+              color: isActive ? '#CC64FF' : '#3A4A5A',
+              textDecoration: 'none', transition: 'color 0.15s',
+            })}
+          >
+            <span style={{ fontSize: 18 }}>⚙️</span>
+            관리
+          </NavLink>
+        )}
       </nav>
     </div>
   )

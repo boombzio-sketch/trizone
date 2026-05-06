@@ -44,6 +44,11 @@ export const api = {
   postAnnouncement: (body) => request('/club/announcements', { method: 'POST', body }),
   deleteAnnouncement: (id) => request(`/club/announcements/${id}`, { method: 'DELETE' }),
   setMemberRole: (id, role) => request(`/club/members/${id}/role`, { method: 'PUT', body: { role } }),
+
+  // 관리자
+  getAdminMembers: () => request('/admin/members'),
+  setAdminMemberRole: (id, role) => request(`/admin/members/${id}/role`, { method: 'PUT', body: { role } }),
+  deleteAdminMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
 }
 
 export function setToken(token) {

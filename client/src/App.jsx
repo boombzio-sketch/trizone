@@ -6,6 +6,7 @@ import RankingPage from './pages/RankingPage.jsx'
 import WorkoutPage from './pages/WorkoutPage.jsx'
 import ClubPage from './pages/ClubPage.jsx'
 import MyPage from './pages/MyPage.jsx'
+import AdminPage from './pages/AdminPage.jsx'
 import Layout from './components/Layout.jsx'
 
 function PrivateRoute({ children }) {
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="workout" element={<WorkoutPage />} />
             <Route path="club" element={<ClubPage />} />
             <Route path="my" element={<MyPage />} />
+            <Route path="admin" element={<AdminPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
