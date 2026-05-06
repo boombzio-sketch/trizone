@@ -45,6 +45,11 @@ export const api = {
   deleteAnnouncement: (id) => request(`/club/announcements/${id}`, { method: 'DELETE' }),
   setMemberRole: (id, role) => request(`/club/members/${id}/role`, { method: 'PUT', body: { role } }),
 
+  // 대회
+  getRaces: () => request('/races'),
+  addRace: (body) => request('/races', { method: 'POST', body }),
+  deleteRace: (id) => request(`/races/${id}`, { method: 'DELETE' }),
+
   // 클럽 멤버십
   getMyMembership: () => request('/club/membership'),
   joinClub: (message) => request('/club/join', { method: 'POST', body: { message } }),

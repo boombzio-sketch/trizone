@@ -75,6 +75,20 @@ async function initDb() {
       body TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS races (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      date DATE NOT NULL,
+      location TEXT NOT NULL,
+      distance TEXT NOT NULL,
+      entry_fee INTEGER DEFAULT 0,
+      reg_url TEXT DEFAULT '',
+      capacity INTEGER DEFAULT 0,
+      reg_start DATE DEFAULT '',
+      reg_end DATE DEFAULT '',
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS club_memberships (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL UNIQUE,
