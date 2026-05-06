@@ -37,6 +37,7 @@ export default function AdminPage() {
 function PendingTab() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [photoModal, setPhotoModal] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -62,12 +63,24 @@ function PendingTab() {
 
   return (
     <div>
+      {/* 사진 전체보기 모달 */}
+      {photoModal && (
+        <div onClick={() => setPhotoModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <img src={photoModal} alt="원본 사진" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: 12, objectFit: 'contain' }} />
+          <button onClick={() => setPhotoModal(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
+        </div>
+      )}
+
       <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>
         승인 대기 {items.length}건
       </div>
       {items.map(w => {
         const sc = SPORT_COLOR[w.sport_type] || C.accent
         const segs = w.sport_type === 'brick' ? (() => { try { return JSON.parse(w.brick_segments||'[]') } catch { return [] } })() : null
+        const photos = (() => { try { return JSON.parse(w.photos||'[]') } catch { return [] } })()
+        const displayPhoto = photos.length > 0 ? photos[w.cover_photo_index||0] : w.photo || null
+        const totalKm = segs ? segs.reduce((s,seg) => s+(seg.distance_km||0), 0) : (w.distance_km||0)
+
         return (
           <div key={w.id} style={{ margin: '8px 12px', background: C.surface, borderRadius: 16, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
             <div style={{ padding: '12px 14px' }}>
@@ -79,7 +92,7 @@ function PendingTab() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{w.nickname}</div>
                   <div style={{ fontSize: 10, color: C.text2 }}>{w.logged_at} · {SPORT_ICON[w.sport_type]} {SPORT_LABEL[w.sport_type]}</div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: C.accent }}>{(w.score||0).toFixed(1)}pt</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{totalKm.toFixed(2)}km</div>
               </div>
 
               <div style={{ background: C.surfaceAlt, borderRadius: 10, padding: '10px 12px', marginBottom: 10 }}>
@@ -87,19 +100,31 @@ function PendingTab() {
                   segs.map((s,i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text2, marginBottom: 3 }}>
                       <span>{SPORT_ICON[s.sport]} {SPORT_LABEL[s.sport]}</span>
-                      <span style={{ fontWeight: 700, color: C.text }}>{s.distance_km}km · {formatDuration(s.duration_sec)}</span>
+                      <span style={{ fontWeight: 700, color: C.text }}>{(s.distance_km||0).toFixed(2)}km · {formatDuration(s.duration_sec)}</span>
                     </div>
                   ))
                 ) : (
                   <div style={{ fontSize: 13, color: C.text, fontWeight: 700 }}>
-                    {w.distance_km}km · {formatDuration(w.duration_sec)}
+                    {(w.distance_km||0).toFixed(2)}km · {formatDuration(w.duration_sec)}
                   </div>
                 )}
                 {w.memo && <div style={{ fontSize: 11, color: C.text2, marginTop: 6, fontStyle: 'italic' }}>{w.memo}</div>}
               </div>
 
-              {w.photo && (
-                <img src={w.photo} alt="훈련 사진" style={{ width: '100%', borderRadius: 10, maxHeight: 160, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
+              {displayPhoto && (
+                <div style={{ position: 'relative', marginBottom: 10 }}>
+                  <img
+                    src={displayPhoto} alt="훈련 사진"
+                    onClick={() => setPhotoModal(displayPhoto)}
+                    style={{ width: '100%', borderRadius: 10, maxHeight: 200, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
+                  />
+                  {photos.length > 1 && (
+                    <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', borderRadius: 6, fontSize: 10, fontWeight: 700, color: '#fff', padding: '2px 8px' }}>📷 {photos.length}</div>
+                  )}
+                  <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.55)', borderRadius: 6, fontSize: 10, color: '#fff', padding: '2px 8px', cursor: 'pointer' }} onClick={() => setPhotoModal(displayPhoto)}>
+                    원본 보기
+                  </div>
+                </div>
               )}
 
               <div style={{ display: 'flex', gap: 8 }}>

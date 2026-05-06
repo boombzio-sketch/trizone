@@ -104,7 +104,10 @@ router.put('/memberships/:userId/status', (req, res) => {
 router.get('/pending', (req, res) => {
   const rows = prepare(`
     SELECT w.id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
-           w.memo, w.score, w.brick_segments, w.photo, w.status, w.created_at,
+           w.memo, w.score, w.brick_segments, w.photo,
+           COALESCE(w.photos, '[]') as photos,
+           COALESCE(w.cover_photo_index, 0) as cover_photo_index,
+           w.status, w.created_at,
            u.nickname, u.avatar_color
     FROM workout_logs w
     JOIN users u ON w.user_id = u.id
