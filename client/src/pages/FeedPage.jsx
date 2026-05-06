@@ -28,7 +28,22 @@ const VIS_OPTIONS = [
   { key: 'followers', label: '팔로워', icon: '👤', color: C.brick },
   { key: 'private',   label: '비공개', icon: '🔒', color: C.text2 },
 ]
-const VIS_MAP = Object.fromEntries(VIS_OPTIONS.map(v => [v.key, v]))
+const VIS_MAP = {
+  ...Object.fromEntries(VIS_OPTIONS.map(v => [v.key, v])),
+  club_followers: { key: 'club_followers', label: '클럽+팔로워', icon: '👥', color: C.accent },
+}
+
+function toggleVis(current, key) {
+  if (key === 'public' || key === 'private') return key
+  const hasClu = current === 'club' || current === 'club_followers'
+  const hasFol = current === 'followers' || current === 'club_followers'
+  if (key === 'club') {
+    const next = !hasClu
+    return next && hasFol ? 'club_followers' : next ? 'club' : hasFol ? 'followers' : 'public'
+  }
+  const next = !hasFol
+  return hasClu && next ? 'club_followers' : next ? 'followers' : hasClu ? 'club' : 'public'
+}
 
 export default function FeedPage() {
   const { user } = useAuth()
@@ -198,18 +213,25 @@ function EditModal({ feed, onSave, onClose }) {
         <div style={{ marginBottom: 20 }}>
           <label style={labelSt}>공개 범위</label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
-            {VIS_OPTIONS.map(v => (
-              <button key={v.key} type="button" onClick={() => setVisibility(v.key)} style={{
-                padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
-                background: visibility === v.key ? v.color + '20' : C.surfaceAlt,
-                outline: visibility === v.key ? `2px solid ${v.color}` : '2px solid transparent',
-                color: visibility === v.key ? v.color : C.text2,
-                fontSize: 11, fontWeight: 700,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-              }}>
-                <span style={{ fontSize: 18 }}>{v.icon}</span>{v.label}
-              </button>
-            ))}
+            {VIS_OPTIONS.map(v => {
+              const active = v.key === 'club'
+                ? visibility === 'club' || visibility === 'club_followers'
+                : v.key === 'followers'
+                ? visibility === 'followers' || visibility === 'club_followers'
+                : visibility === v.key
+              return (
+                <button key={v.key} type="button" onClick={() => setVisibility(toggleVis(visibility, v.key))} style={{
+                  padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
+                  background: active ? v.color + '20' : C.surfaceAlt,
+                  outline: active ? `2px solid ${v.color}` : '2px solid transparent',
+                  color: active ? v.color : C.text2,
+                  fontSize: 11, fontWeight: 700,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                }}>
+                  <span style={{ fontSize: 18 }}>{v.icon}</span>{v.label}
+                </button>
+              )
+            })}
           </div>
         </div>
 
