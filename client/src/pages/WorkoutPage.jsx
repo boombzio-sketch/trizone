@@ -36,9 +36,15 @@ export default function WorkoutPage() {
   const [tab, setTab] = useState('log')
   const [sport, setSport] = useState('swim')
   const [form, setForm] = useState({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
-  const [brick, setBrick] = useState([{ sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
-  const [transitTime, setTransitTime] = useState('')
-  const [photo, setPhoto] = useState(null)
+  const [brick, setBrick] = useState([
+    { sport: 'swim', distance: '', time: '' },
+    { sport: 'bike', distance: '', time: '' },
+    { sport: 'run',  distance: '', time: '' },
+  ])
+  const [t1Time, setT1Time] = useState('')
+  const [t2Time, setT2Time] = useState('')
+  const [photos, setPhotos] = useState([])
+  const [coverIndex, setCoverIndex] = useState(0)
   const [visibility, setVisibility] = useState('public')
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
@@ -54,11 +60,21 @@ export default function WorkoutPage() {
 
   function today() { return new Date().toISOString().slice(0,10) }
 
-  async function handlePhotoChange(e) {
+  async function handlePhotoAdd(e) {
     const file = e.target.files[0]
     if (!file) return
     const base64 = await compressImage(file)
-    setPhoto(base64)
+    setPhotos(prev => [...prev, base64])
+    e.target.value = ''
+  }
+
+  function removePhoto(index) {
+    setPhotos(prev => prev.filter((_, i) => i !== index))
+    setCoverIndex(prev => {
+      if (prev === index) return 0
+      if (prev > index) return prev - 1
+      return prev
+    })
   }
 
   async function handleSubmit(e) {
@@ -67,20 +83,20 @@ export default function WorkoutPage() {
     try {
       const dur = parseDuration(form.time)
       const dist = parseFloat(form.distance) || 0
-      let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo, photo: photo || '', visibility }
+      let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo, photos, cover_photo_index: coverIndex, visibility }
       if (sport === 'swim') body.pool_type = form.pool_type
       else if (sport === 'bike') { body.course_type = form.course_type; body.elevation_m = parseInt(form.elevation)||0; body.avg_power_w = parseInt(form.power)||0 }
       else if (sport === 'brick') {
         const segments = brick.map(b => ({ sport: b.sport, distance_km: parseFloat(b.distance)||0, duration_sec: parseDuration(b.time) }))
         body.brick_segments = segments
         body.distance_km = segments.reduce((s,b) => s+b.distance_km, 0)
-        body.duration_sec = segments.reduce((s,b) => s+b.duration_sec, 0) + parseDuration(transitTime)
+        body.duration_sec = segments.reduce((s,b) => s+b.duration_sec, 0) + parseDuration(t1Time) + parseDuration(t2Time)
       }
       await api.addWorkout(body)
       setSuccess('✅ 기록이 저장되었습니다! 클럽장 승인 후 클럽 기록에 반영됩니다.')
       setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
-      setBrick([{ sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
-      setTransitTime(''); setPhoto(null); setVisibility('public')
+      setBrick([{ sport: 'swim', distance: '', time: '' }, { sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
+      setT1Time(''); setT2Time(''); setPhotos([]); setCoverIndex(0); setVisibility('public')
       setTimeout(() => { setSuccess(''); setTab('log') }, 2000)
     } catch(err) { setError(err.message) }
     finally { setLoading(false) }
@@ -170,26 +186,38 @@ export default function WorkoutPage() {
             </>)}
           </>) : (
             <>
-              {brick.map((seg, i) => (
-                <div key={i} style={{ background: C.surfaceAlt, borderRadius: 14, padding: 14, marginBottom: 10, borderLeft: `3px solid ${SPORT_COLOR[seg.sport]}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontSize: 16 }}>{SPORT_ICON[seg.sport]}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: SPORT_COLOR[seg.sport] }}>세그먼트 {i+1}</span>
-                    <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
-                      {['swim','bike','run'].map(s => (
-                        <button key={s} type="button" onClick={() => { const b=[...brick]; b[i]={...b[i],sport:s}; setBrick(b) }} style={chipSt(seg.sport===s, SPORT_COLOR[s], true)}>{SPORT_ICON[s]}</button>
-                      ))}
+              {[
+                { sport: 'swim', label: '수영', idx: 0 },
+                { sport: 'bike', label: '사이클', idx: 1 },
+                { sport: 'run',  label: '런', idx: 2 },
+              ].map(({ sport: sp, label, idx }) => (
+                <div key={sp}>
+                  <div style={{ background: C.surfaceAlt, borderRadius: 14, padding: 14, marginBottom: 6, borderLeft: `3px solid ${SPORT_COLOR[sp]}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 18 }}>{SPORT_ICON[sp]}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: SPORT_COLOR[sp] }}>세그먼트 {idx+1} — {label}</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <input type="number" step="0.01" placeholder="거리 km" value={brick[idx].distance}
+                        onChange={e => { const b=[...brick]; b[idx]={...b[idx],distance:e.target.value}; setBrick(b) }}
+                        style={inputSt(SPORT_COLOR[sp])} />
+                      <input placeholder="시간 MM:SS" value={brick[idx].time}
+                        onChange={e => { const b=[...brick]; b[idx]={...b[idx],time:e.target.value}; setBrick(b) }}
+                        style={inputSt(SPORT_COLOR[sp])} />
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <input type="number" step="0.01" placeholder="거리 km" value={seg.distance} onChange={e => { const b=[...brick]; b[i]={...b[i],distance:e.target.value}; setBrick(b) }} style={inputSt(SPORT_COLOR[seg.sport])} />
-                    <input placeholder="시간 MM:SS" value={seg.time} onChange={e => { const b=[...brick]; b[i]={...b[i],time:e.target.value}; setBrick(b) }} style={inputSt(SPORT_COLOR[seg.sport])} />
-                  </div>
+                  {idx < 2 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 6px', padding: '0 4px' }}>
+                      <div style={{ flex: 1, height: 1, background: C.border }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.warn }}>T{idx+1} 전환</span>
+                      <input placeholder="MM:SS" value={idx === 0 ? t1Time : t2Time}
+                        onChange={e => idx === 0 ? setT1Time(e.target.value) : setT2Time(e.target.value)}
+                        style={{ width: 80, padding: '6px 10px', background: C.surfaceAlt, border: `1px solid ${C.warn}44`, borderRadius: 8, color: C.text, fontSize: 12, outline: 'none', fontFamily: 'inherit', textAlign: 'center' }} />
+                      <div style={{ flex: 1, height: 1, background: C.border }} />
+                    </div>
+                  )}
                 </div>
               ))}
-              <Field label="⏱️ 전환 시간 T2 (MM:SS)">
-                <input placeholder="예: 4:30" value={transitTime} onChange={e => setTransitTime(e.target.value)} style={inputSt(C.brick)} />
-              </Field>
             </>
           )}
 
@@ -216,17 +244,29 @@ export default function WorkoutPage() {
           </Field>
 
           {/* 사진 업로드 */}
-          <Field label="📷 사진 (선택)">
-            {photo && (
-              <div style={{ position: 'relative', marginBottom: 8 }}>
-                <img src={photo} alt="미리보기" style={{ width: '100%', borderRadius: 12, maxHeight: 200, objectFit: 'cover', display: 'block' }} />
-                <button type="button" onClick={() => setPhoto(null)} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 28, height: 28, color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <Field label={`📷 사진 (${photos.length}/5) — 대표 사진을 선택하세요`}>
+            {photos.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                {photos.map((p, i) => (
+                  <div key={i} style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+                    <img src={p} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, display: 'block', outline: i === coverIndex ? `3px solid ${C.accent}` : 'none' }} />
+                    {i === coverIndex && (
+                      <div style={{ position: 'absolute', top: 4, left: 4, background: C.accent, borderRadius: 4, fontSize: 9, fontWeight: 800, color: '#fff', padding: '1px 5px' }}>대표</div>
+                    )}
+                    <button type="button" onClick={() => setCoverIndex(i)} style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 9, padding: '2px 5px', fontWeight: 700 }}>
+                      {i === coverIndex ? '✓' : '대표'}
+                    </button>
+                    <button type="button" onClick={() => removePhoto(i)} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 20, height: 20, color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  </div>
+                ))}
               </div>
             )}
-            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', background: C.surfaceAlt, border: `1px dashed ${C.borderLight}`, borderRadius: 12, cursor: 'pointer', color: C.text2, fontSize: 13, fontWeight: 600 }}>
-              📷 {photo ? '사진 변경' : '사진 선택'}
-              <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
-            </label>
+            {photos.length < 5 && (
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', background: C.surfaceAlt, border: `1px dashed ${C.borderLight}`, borderRadius: 12, cursor: 'pointer', color: C.text2, fontSize: 13, fontWeight: 600 }}>
+                📷 사진 추가 ({photos.length}/5)
+                <input type="file" accept="image/*" onChange={handlePhotoAdd} style={{ display: 'none' }} />
+              </label>
+            )}
           </Field>
 
           {error && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.error }}>{error}</div>}

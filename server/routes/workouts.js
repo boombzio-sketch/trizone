@@ -72,7 +72,8 @@ router.put('/:id', authMiddleware, (req, res) => {
 router.post('/', authMiddleware, (req, res) => {
   const {
     sport_type, logged_at, distance_km, duration_sec, memo,
-    pool_type, elevation_m, course_type, avg_power_w, brick_segments, photo, visibility
+    pool_type, elevation_m, course_type, avg_power_w, brick_segments,
+    photo, photos, cover_photo_index, visibility
   } = req.body;
 
   if (!sport_type || !logged_at) return res.status(400).json({ error: '종목과 날짜는 필수입니다.' });
@@ -83,14 +84,19 @@ router.post('/', authMiddleware, (req, res) => {
   const result = db.prepare(`
     INSERT INTO workout_logs
     (user_id, sport_type, logged_at, distance_km, duration_sec, memo,
-     pool_type, elevation_m, course_type, avg_power_w, brick_segments, pace, score, status, photo, visibility)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+     pool_type, elevation_m, course_type, avg_power_w, brick_segments, pace, score,
+     status, photo, photos, cover_photo_index, visibility)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
   `).run(
     req.user.id, sport_type, logged_at,
     distance_km || 0, duration_sec || 0, memo || '',
     pool_type || '', elevation_m || 0, course_type || '', avg_power_w || 0,
     brick_segments ? JSON.stringify(brick_segments) : '[]',
-    pace, score, photo || '', visibility || 'public'
+    pace, score,
+    photos?.[cover_photo_index || 0] || photo || '',
+    photos ? JSON.stringify(photos) : '[]',
+    cover_photo_index || 0,
+    visibility || 'public'
   );
 
   const row = db.prepare('SELECT * FROM workout_logs WHERE id = ?').get(result.lastInsertRowid);

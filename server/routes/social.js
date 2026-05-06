@@ -56,6 +56,8 @@ router.get('/following/:userId', authMiddleware, (req, res) => {
 const FEED_COLS = `
     SELECT w.id, w.user_id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
            w.memo, w.pace, w.score, w.brick_segments, w.status, w.photo,
+           COALESCE(w.photos, '[]') as photos,
+           COALESCE(w.cover_photo_index, 0) as cover_photo_index,
            COALESCE(w.visibility, 'public') as visibility,
            u.nickname, u.avatar_color,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,

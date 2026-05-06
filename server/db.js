@@ -127,6 +127,8 @@ async function initDb() {
   try { db.run("ALTER TABLE workout_logs ADD COLUMN status TEXT DEFAULT 'approved'") } catch {}
   try { db.run("ALTER TABLE workout_logs ADD COLUMN photo TEXT DEFAULT ''") } catch {}
   try { db.run("ALTER TABLE workout_logs ADD COLUMN visibility TEXT DEFAULT 'public'") } catch {}
+  try { db.run("ALTER TABLE workout_logs ADD COLUMN photos TEXT DEFAULT '[]'") } catch {}
+  try { db.run("ALTER TABLE workout_logs ADD COLUMN cover_photo_index INTEGER DEFAULT 0") } catch {}
 
   // 2. club_memberships 재구성 (club_id + 복합 UNIQUE)
   try {

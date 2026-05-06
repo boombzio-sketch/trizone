@@ -253,6 +253,8 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
   }
 
   const segs = f.sport_type === 'brick' ? (() => { try { return JSON.parse(f.brick_segments || '[]') } catch { return [] } })() : null
+  const photoList = (() => { try { return JSON.parse(f.photos || '[]') } catch { return [] } })()
+  const coverPhoto = photoList.length > 0 ? photoList[f.cover_photo_index || 0] : f.photo || null
 
   return (
     <div style={{ margin: '0 12px 10px' }}>
@@ -286,9 +288,14 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
         </div>
 
         {/* 사진 */}
-        {f.photo && (
-          <div style={{ margin: '0 14px 10px' }}>
-            <img src={f.photo} alt="훈련 사진" style={{ width: '100%', borderRadius: 12, display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+        {coverPhoto && (
+          <div style={{ margin: '0 14px 10px', position: 'relative' }}>
+            <img src={coverPhoto} alt="훈련 사진" style={{ width: '100%', borderRadius: 12, display: 'block', maxHeight: 300, objectFit: 'cover' }} />
+            {photoList.length > 1 && (
+              <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', borderRadius: 6, fontSize: 10, fontWeight: 700, color: '#fff', padding: '2px 8px' }}>
+                📷 {photoList.length}
+              </div>
+            )}
           </div>
         )}
 
