@@ -37,6 +37,8 @@ async function initDb() {
       brick_segments TEXT DEFAULT '[]',
       pace REAL DEFAULT 0,
       score REAL DEFAULT 0,
+      status TEXT DEFAULT 'approved',
+      photo TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS club_info (

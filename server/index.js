@@ -11,7 +11,7 @@ const ALLOWED_ORIGINS = [
   ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
 ];
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 initDb().then(() => {
   app.use('/api/auth',    require('./routes/auth'));
