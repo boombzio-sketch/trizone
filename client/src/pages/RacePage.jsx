@@ -26,6 +26,7 @@ export default function RacePage() {
   const { user } = useAuth()
   const [races, setRaces] = useState([])
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState('list') // list | calendar
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null) // null = 신규, id = 수정
   const [form, setForm] = useState(empty)
@@ -82,16 +83,31 @@ export default function RacePage() {
           <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>🏁 대회 일정</div>
           <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>예정 {upcoming.length}개 · 종료 {past.length}개</div>
         </div>
-        {user?.role === 'admin' && (
-          <button onClick={showForm ? closeForm : openNew} style={{
-            padding: '8px 16px', border: 'none', borderRadius: 100,
-            background: showForm ? C.surfaceAlt : C.accent,
-            color: showForm ? C.text2 : '#fff',
-            fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          }}>
-            {showForm ? '취소' : '+ 대회 등록'}
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* 뷰 토글 */}
+          <div style={{ display: 'flex', background: C.surfaceAlt, borderRadius: 10, padding: 3, border: `1px solid ${C.border}` }}>
+            <button onClick={() => setViewMode('list')} style={{
+              padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer',
+              background: viewMode === 'list' ? C.surfaceHigh : 'transparent',
+              color: viewMode === 'list' ? C.text : C.text2, fontSize: 15,
+            }}>☰</button>
+            <button onClick={() => setViewMode('calendar')} style={{
+              padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer',
+              background: viewMode === 'calendar' ? C.surfaceHigh : 'transparent',
+              color: viewMode === 'calendar' ? C.accent : C.text2, fontSize: 15,
+            }}>📅</button>
+          </div>
+          {user?.role === 'admin' && (
+            <button onClick={showForm ? closeForm : openNew} style={{
+              padding: '8px 16px', border: 'none', borderRadius: 100,
+              background: showForm ? C.surfaceAlt : C.accent,
+              color: showForm ? C.text2 : '#fff',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}>
+              {showForm ? '취소' : '+ 등록'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 등록 폼 */}
@@ -165,7 +181,7 @@ export default function RacePage() {
         </form>
       )}
 
-      {/* 대회 목록 */}
+      {/* 대회 목록 / 달력 */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
       ) : races.length === 0 ? (
@@ -174,6 +190,8 @@ export default function RacePage() {
           <div style={{ fontSize: 14, fontWeight: 600 }}>등록된 대회가 없습니다</div>
           {user?.role === 'admin' && <div style={{ fontSize: 12, marginTop: 6, color: C.text3 }}>위 버튼으로 대회를 등록해보세요.</div>}
         </div>
+      ) : viewMode === 'calendar' ? (
+        <CalendarView races={races} isAdmin={user?.role === 'admin'} onEdit={openEdit} onDelete={handleDelete} />
       ) : (
         <div style={{ padding: '10px 12px' }}>
           {upcoming.length > 0 && (
@@ -188,6 +206,117 @@ export default function RacePage() {
               {past.map(r => <RaceCard key={r.id} race={r} isAdmin={user?.role === 'admin'} onEdit={openEdit} onDelete={handleDelete} today={today} isPast />)}
             </>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const WEEK_DAYS = ['월','화','수','목','금','토','일']
+const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+
+function CalendarView({ races, isAdmin, onEdit, onDelete }) {
+  const now = new Date()
+  const [current, setCurrent] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
+  const [selected, setSelected] = useState(null)
+
+  const year = current.getFullYear()
+  const month = current.getMonth()
+
+  // 이번 달 races
+  const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
+  const racesByDay = {}
+  races.forEach(r => {
+    if (r.date.startsWith(monthStr)) {
+      const day = parseInt(r.date.slice(8, 10))
+      if (!racesByDay[day]) racesByDay[day] = []
+      racesByDay[day].push(r)
+    }
+  })
+
+  // 달력 그리드 생성 (월요일 시작)
+  const firstDow = new Date(year, month, 1).getDay() // 0=일
+  const startOffset = (firstDow + 6) % 7             // 월요일 기준 offset
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+
+  const todayStr = now.toISOString().slice(0, 10)
+  const selectedRaces = selected ? (racesByDay[selected] || []) : []
+
+  return (
+    <div style={{ padding: 12 }}>
+      {/* 월 네비게이션 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <button onClick={() => { setCurrent(new Date(year, month - 1, 1)); setSelected(null) }}
+          style={{ background: C.surfaceAlt, border: 'none', borderRadius: 10, padding: '8px 14px', color: C.text, fontSize: 16, cursor: 'pointer', fontWeight: 700 }}>‹</button>
+        <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{year}년 {MONTH_NAMES[month]}</span>
+        <button onClick={() => { setCurrent(new Date(year, month + 1, 1)); setSelected(null) }}
+          style={{ background: C.surfaceAlt, border: 'none', borderRadius: 10, padding: '8px 14px', color: C.text, fontSize: 16, cursor: 'pointer', fontWeight: 700 }}>›</button>
+      </div>
+
+      {/* 요일 헤더 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
+        {WEEK_DAYS.map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: C.text2, padding: '4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* 달력 셀 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />
+          const dayRaces = racesByDay[day] || []
+          const hasRace = dayRaces.length > 0
+          const isSelected = selected === day
+          const dayStr = `${monthStr}-${String(day).padStart(2, '0')}`
+          const isToday = dayStr === todayStr
+
+          return (
+            <div key={i} onClick={() => hasRace && setSelected(isSelected ? null : day)} style={{
+              minHeight: 52, borderRadius: 10, padding: '4px 3px',
+              background: isSelected ? C.accentBg : hasRace ? C.surfaceAlt : 'transparent',
+              border: isSelected ? `1.5px solid ${C.accentBorder}` : `1.5px solid transparent`,
+              cursor: hasRace ? 'pointer' : 'default',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                background: isToday ? C.accent : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: isToday ? 900 : 500,
+                color: isToday ? '#fff' : C.text,
+              }}>{day}</div>
+              {dayRaces.slice(0, 2).map(r => {
+                const dc = DIST_MAP[r.distance]?.color || C.accent
+                return (
+                  <div key={r.id} style={{
+                    width: '100%', borderRadius: 3, padding: '1px 2px',
+                    background: dc + '30', fontSize: 8, color: dc,
+                    fontWeight: 700, textAlign: 'center',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {DIST_MAP[r.distance]?.label}
+                  </div>
+                )
+              })}
+              {dayRaces.length > 2 && (
+                <div style={{ fontSize: 8, color: C.text2 }}>+{dayRaces.length - 2}</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 선택된 날의 대회 상세 */}
+      {selected && selectedRaces.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            {monthStr}-{String(selected).padStart(2,'0')} 대회
+          </div>
+          {selectedRaces.map(r => (
+            <RaceCard key={r.id} race={r} isAdmin={isAdmin} onEdit={onEdit} onDelete={onDelete}
+              today={todayStr} isPast={r.date < todayStr} />
+          ))}
         </div>
       )}
     </div>
