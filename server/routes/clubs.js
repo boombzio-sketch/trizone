@@ -234,4 +234,100 @@ router.delete('/:id/announcements/:annId', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── 훈련 모집 ─────────────────────────────────────────────────
+
+router.get('/:id/trainings', authMiddleware, (req, res) => {
+  const rows = prepare(`
+    SELECT t.*, u.nickname as creator_name,
+           (SELECT COUNT(*) FROM club_training_participants WHERE training_id=t.id) as participant_count,
+           (SELECT status FROM club_training_participants WHERE training_id=t.id AND user_id=?) as my_status
+    FROM club_trainings t JOIN users u ON t.created_by=u.id
+    WHERE t.club_id=? ORDER BY t.train_date DESC, t.train_time DESC
+  `).all(req.user.id, req.params.id);
+  res.json(rows);
+});
+
+router.post('/:id/trainings', authMiddleware, (req, res) => {
+  const club = prepare('SELECT leader_id FROM clubs WHERE id=?').get(req.params.id);
+  if (!club) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
+  if (club.leader_id !== req.user.id && req.user.role !== 'admin')
+    return res.status(403).json({ error: '권한이 없습니다.' });
+  const { title, train_date, train_time, location, description, capacity, link_url } = req.body;
+  if (!title || !train_date || !location) return res.status(400).json({ error: '훈련명, 날짜, 장소는 필수입니다.' });
+  const result = prepare(`
+    INSERT INTO club_trainings (club_id, title, train_date, train_time, location, description, capacity, link_url, created_by)
+    VALUES (?,?,?,?,?,?,?,?,?)
+  `).run(req.params.id, title, train_date, train_time||'', location, description||'', capacity||0, link_url||'', req.user.id);
+  const row = prepare(`
+    SELECT t.*, u.nickname as creator_name,
+           0 as participant_count, NULL as my_status
+    FROM club_trainings t JOIN users u ON t.created_by=u.id WHERE t.id=?
+  `).get(result.lastInsertRowid);
+  res.json(row);
+});
+
+router.put('/:id/trainings/:tid', authMiddleware, (req, res) => {
+  const club = prepare('SELECT leader_id FROM clubs WHERE id=?').get(req.params.id);
+  if (club?.leader_id !== req.user.id && req.user.role !== 'admin')
+    return res.status(403).json({ error: '권한이 없습니다.' });
+  const { title, train_date, train_time, location, description, capacity, link_url } = req.body;
+  prepare(`UPDATE club_trainings SET title=?, train_date=?, train_time=?, location=?, description=?, capacity=?, link_url=?
+    WHERE id=? AND club_id=?`).run(title, train_date, train_time||'', location, description||'', capacity||0, link_url||'', req.params.tid, req.params.id);
+  res.json({ ok: true });
+});
+
+router.delete('/:id/trainings/:tid', authMiddleware, (req, res) => {
+  const club = prepare('SELECT leader_id FROM clubs WHERE id=?').get(req.params.id);
+  if (club?.leader_id !== req.user.id && req.user.role !== 'admin')
+    return res.status(403).json({ error: '권한이 없습니다.' });
+  prepare('DELETE FROM club_training_participants WHERE training_id=?').run(req.params.tid);
+  prepare('DELETE FROM club_trainings WHERE id=? AND club_id=?').run(req.params.tid, req.params.id);
+  res.json({ ok: true });
+});
+
+// 참가 신청
+router.post('/:id/trainings/:tid/join', authMiddleware, (req, res) => {
+  prepare("INSERT OR IGNORE INTO club_training_participants (training_id, user_id, status) VALUES (?,?,'joined')").run(req.params.tid, req.user.id);
+  res.json({ ok: true });
+});
+
+// 참가 취소
+router.delete('/:id/trainings/:tid/leave', authMiddleware, (req, res) => {
+  prepare('DELETE FROM club_training_participants WHERE training_id=? AND user_id=?').run(req.params.tid, req.user.id);
+  res.json({ ok: true });
+});
+
+// 출석 체크 (leader/admin)
+router.put('/:id/trainings/:tid/attendance/:userId', authMiddleware, (req, res) => {
+  const club = prepare('SELECT leader_id FROM clubs WHERE id=?').get(req.params.id);
+  if (club?.leader_id !== req.user.id && req.user.role !== 'admin')
+    return res.status(403).json({ error: '권한이 없습니다.' });
+  const { status } = req.body;
+  if (!['joined','attended','absent'].includes(status)) return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
+  prepare('UPDATE club_training_participants SET status=? WHERE training_id=? AND user_id=?').run(status, req.params.tid, req.params.userId);
+  res.json({ ok: true });
+});
+
+// 참가자 목록
+router.get('/:id/trainings/:tid/participants', authMiddleware, (req, res) => {
+  const rows = prepare(`
+    SELECT p.*, u.nickname, u.avatar_color
+    FROM club_training_participants p JOIN users u ON p.user_id=u.id
+    WHERE p.training_id=? ORDER BY p.applied_at ASC
+  `).all(req.params.tid);
+  res.json(rows);
+});
+
+// 회원별 훈련 참가 횟수
+router.get('/:id/training-stats', authMiddleware, (req, res) => {
+  const rows = prepare(`
+    SELECT p.user_id, COUNT(*) as total, SUM(CASE WHEN p.status='attended' THEN 1 ELSE 0 END) as attended
+    FROM club_training_participants p
+    JOIN club_trainings t ON p.training_id=t.id
+    WHERE t.club_id=?
+    GROUP BY p.user_id
+  `).all(req.params.id);
+  res.json(rows);
+});
+
 module.exports = router;

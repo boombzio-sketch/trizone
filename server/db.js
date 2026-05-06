@@ -130,6 +130,31 @@ async function initDb() {
   try { db.run("ALTER TABLE workout_logs ADD COLUMN photos TEXT DEFAULT '[]'") } catch {}
   try { db.run("ALTER TABLE workout_logs ADD COLUMN cover_photo_index INTEGER DEFAULT 0") } catch {}
 
+  // 훈련 모집 테이블
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS club_trainings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      club_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      train_date DATE NOT NULL,
+      train_time TEXT DEFAULT '',
+      location TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      capacity INTEGER DEFAULT 0,
+      link_url TEXT DEFAULT '',
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`)
+    db.run(`CREATE TABLE IF NOT EXISTS club_training_participants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      training_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      status TEXT DEFAULT 'joined',
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(training_id, user_id)
+    )`)
+  } catch {}
+
   // 2. club_memberships 재구성 (club_id + 복합 UNIQUE)
   try {
     const cols = db.exec("PRAGMA table_info(club_memberships)");

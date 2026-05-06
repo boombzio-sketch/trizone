@@ -5,7 +5,7 @@ import { api } from '../utils/api'
 import { C } from '../utils/theme'
 
 const REGIONS = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주']
-const TABS = ['공지사항','회원','관리']
+const TABS = ['공지사항','훈련','회원','관리']
 
 export default function ClubDetailPage() {
   const { id } = useParams()
@@ -32,6 +32,14 @@ export default function ClubDetailPage() {
   const [annTitle, setAnnTitle] = useState('')
   const [annBody, setAnnBody] = useState('')
   const [showAnnForm, setShowAnnForm] = useState(false)
+  const [trainings, setTrainings] = useState([])
+  const [trainingStats, setTrainingStats] = useState({})
+  const [showTrainingForm, setShowTrainingForm] = useState(false)
+  const [editingTraining, setEditingTraining] = useState(null)
+  const [trainingForm, setTrainingForm] = useState({ title:'', train_date:'', train_time:'', location:'', description:'', capacity:'', link_url:'' })
+  const [expandedTraining, setExpandedTraining] = useState(null)
+  const [trainingParticipants, setTrainingParticipants] = useState({})
+  const [trainingSaving, setTrainingSaving] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
   const [selectedNewLeader, setSelectedNewLeader] = useState('')
   const [transferring, setTransferring] = useState(false)
@@ -45,6 +53,76 @@ export default function ClubDetailPage() {
   const canManage = isLeader || isAdmin
 
   useEffect(() => { loadAll() }, [id])
+
+  async function loadTrainings() {
+    const [tr, stats] = await Promise.all([
+      api.getClubTrainings(id),
+      api.getClubTrainingStats(id),
+    ])
+    setTrainings(tr)
+    const statsMap = {}
+    stats.forEach(s => { statsMap[s.user_id] = s })
+    setTrainingStats(statsMap)
+  }
+
+  async function handleTrainingSubmit(e) {
+    e.preventDefault()
+    setTrainingSaving(true)
+    try {
+      if (editingTraining) {
+        await api.updateClubTraining(id, editingTraining.id, { ...trainingForm, capacity: parseInt(trainingForm.capacity)||0 })
+      } else {
+        await api.createClubTraining(id, { ...trainingForm, capacity: parseInt(trainingForm.capacity)||0 })
+      }
+      await loadTrainings()
+      setShowTrainingForm(false); setEditingTraining(null)
+      setTrainingForm({ title:'', train_date:'', train_time:'', location:'', description:'', capacity:'', link_url:'' })
+    } catch(e) { alert(e.message) }
+    finally { setTrainingSaving(false) }
+  }
+
+  async function handleDeleteTraining(tid) {
+    if (!confirm('훈련을 삭제할까요?')) return
+    await api.deleteClubTraining(id, tid)
+    setTrainings(prev => prev.filter(t => t.id !== tid))
+  }
+
+  async function handleJoinTraining(tid) {
+    await api.joinClubTraining(id, tid)
+    setTrainings(prev => prev.map(t => t.id === tid ? { ...t, my_status: 'joined', participant_count: (t.participant_count||0)+1 } : t))
+  }
+
+  async function handleLeaveTraining(tid) {
+    await api.leaveClubTraining(id, tid)
+    setTrainings(prev => prev.map(t => t.id === tid ? { ...t, my_status: null, participant_count: Math.max(0,(t.participant_count||1)-1) } : t))
+  }
+
+  async function toggleExpandTraining(tid) {
+    if (expandedTraining === tid) { setExpandedTraining(null); return }
+    setExpandedTraining(tid)
+    if (!trainingParticipants[tid]) {
+      const rows = await api.getTrainingParticipants(id, tid)
+      setTrainingParticipants(prev => ({ ...prev, [tid]: rows }))
+    }
+  }
+
+  async function handleAttendance(tid, userId, current) {
+    const next = current === 'attended' ? 'joined' : current === 'absent' ? 'joined' : 'attended'
+    await api.setTrainingAttendance(id, tid, userId, next)
+    setTrainingParticipants(prev => ({
+      ...prev,
+      [tid]: (prev[tid]||[]).map(p => p.user_id === userId ? { ...p, status: next } : p)
+    }))
+  }
+
+  async function handleAbsent(tid, userId, current) {
+    const next = current === 'absent' ? 'joined' : 'absent'
+    await api.setTrainingAttendance(id, tid, userId, next)
+    setTrainingParticipants(prev => ({
+      ...prev,
+      [tid]: (prev[tid]||[]).map(p => p.user_id === userId ? { ...p, status: next } : p)
+    }))
+  }
 
   async function loadAll() {
     setLoading(true)
@@ -62,6 +140,7 @@ export default function ClubDetailPage() {
       if (memData.status === 'approved' || clubData.leader_id === user?.id || user?.role === 'admin') {
         const [membersData] = await Promise.all([api.getClubMembers(id)])
         setMembers(membersData)
+        await loadTrainings()
       }
       if (canManage || clubData.leader_id === user?.id || user?.role === 'admin') {
         const pending = await api.getClubPendingMembers(id).catch(() => [])
@@ -257,6 +336,128 @@ export default function ClubDetailPage() {
         ))}
       </div>
 
+      {/* 훈련 탭 */}
+      {tab === '훈련' && (
+        <div style={{ padding: '12px' }}>
+          {canManage && (
+            <div style={{ marginBottom: 12 }}>
+              <button onClick={() => { setShowTrainingForm(s => !s); setEditingTraining(null); setTrainingForm({ title:'', train_date:'', train_time:'', location:'', description:'', capacity:'', link_url:'' }) }}
+                style={{ fontSize: 12, fontWeight: 700, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer' }}>
+                {showTrainingForm && !editingTraining ? '취소' : '+ 훈련 만들기'}
+              </button>
+            </div>
+          )}
+
+          {/* 훈련 등록/수정 폼 */}
+          {showTrainingForm && (
+            <form onSubmit={handleTrainingSubmit} style={{ background: C.surface, borderRadius: 14, padding: 16, marginBottom: 14, border: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 14 }}>{editingTraining ? '훈련 수정' : '훈련 만들기'}</div>
+              {[['title','훈련명 *','text','예: 한강 수영 훈련'],['location','장소 *','text','예: 잠실 올림픽수영장']].map(([k,l,t,p]) => (
+                <div key={k} style={{ marginBottom: 10 }}>
+                  <label style={labelSt}>{l}</label>
+                  <input type={t} value={trainingForm[k]} onChange={e => setTrainingForm(f => ({...f,[k]:e.target.value}))} placeholder={p} required={l.includes('*')} style={iSt} />
+                </div>
+              ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <div><label style={labelSt}>날짜 *</label><input type="date" value={trainingForm.train_date} onChange={e => setTrainingForm(f => ({...f,train_date:e.target.value}))} required style={iSt} /></div>
+                <div><label style={labelSt}>시간</label><input type="time" value={trainingForm.train_time} onChange={e => setTrainingForm(f => ({...f,train_time:e.target.value}))} style={iSt} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                <div><label style={labelSt}>최대 인원</label><input type="number" placeholder="0=제한없음" value={trainingForm.capacity} onChange={e => setTrainingForm(f => ({...f,capacity:e.target.value}))} style={iSt} /></div>
+                <div><label style={labelSt}>링크 (카페 등)</label><input type="url" placeholder="https://..." value={trainingForm.link_url} onChange={e => setTrainingForm(f => ({...f,link_url:e.target.value}))} style={iSt} /></div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelSt}>훈련 내용</label>
+                <textarea value={trainingForm.description} onChange={e => setTrainingForm(f => ({...f,description:e.target.value}))} rows={3} placeholder="훈련 내용을 입력하세요" style={{ ...iSt, resize: 'none' }} />
+              </div>
+              <button type="submit" disabled={trainingSaving} style={{ width: '100%', padding: '11px', border: 'none', borderRadius: 10, background: trainingSaving ? C.surfaceHigh : C.accent, color: trainingSaving ? C.text2 : '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                {trainingSaving ? '저장 중...' : '💾 저장'}
+              </button>
+            </form>
+          )}
+
+          {/* 훈련 목록 */}
+          {trainings.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 32, color: C.text2, fontSize: 13 }}>등록된 훈련이 없습니다.</div>
+          ) : trainings.map(t => {
+            const isPast = t.train_date < new Date().toISOString().slice(0,10)
+            const isExpanded = expandedTraining === t.id
+            const parts = trainingParticipants[t.id] || []
+            const isFull = t.capacity > 0 && t.participant_count >= t.capacity
+
+            return (
+              <div key={t.id} style={{ background: C.surface, borderRadius: 16, marginBottom: 10, overflow: 'hidden', borderLeft: `4px solid ${isPast ? C.text3 : C.accent}`, opacity: isPast ? 0.85 : 1 }}>
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t.title}</div>
+                      <div style={{ fontSize: 11, color: C.text2, marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        <span>📅 {t.train_date}{t.train_time ? ` ${t.train_time}` : ''}</span>
+                        <span>📍 {t.location}</span>
+                        {t.capacity > 0 && <span>👥 {t.participant_count}/{t.capacity}명</span>}
+                        {!t.capacity && <span>👥 {t.participant_count}명 신청</span>}
+                      </div>
+                    </div>
+                    {canManage && (
+                      <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                        <button onClick={() => { setEditingTraining(t); setTrainingForm({ title:t.title, train_date:t.train_date, train_time:t.train_time||'', location:t.location, description:t.description||'', capacity:t.capacity||'', link_url:t.link_url||'' }); setShowTrainingForm(true) }} style={{ background: C.accentBg, border: 'none', borderRadius: 7, color: C.accent, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '4px 8px' }}>수정</button>
+                        <button onClick={() => handleDeleteTraining(t.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 7, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '4px 8px' }}>삭제</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {t.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{t.description}</div>}
+
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {t.link_url && (
+                      <a href={t.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, fontWeight: 700, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 7, padding: '4px 10px', textDecoration: 'none' }}>🔗 상세보기</a>
+                    )}
+                    {!isPast && membership?.status === 'approved' && (
+                      t.my_status ? (
+                        <button onClick={() => handleLeaveTraining(t.id)} style={{ fontSize: 11, fontWeight: 700, color: C.text2, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 7, padding: '4px 10px', cursor: 'pointer' }}>참가 취소</button>
+                      ) : (
+                        <button onClick={() => handleJoinTraining(t.id)} disabled={isFull} style={{ fontSize: 11, fontWeight: 700, color: isFull ? C.text3 : '#fff', background: isFull ? C.surfaceAlt : C.accent, border: 'none', borderRadius: 7, padding: '4px 10px', cursor: isFull ? 'default' : 'pointer' }}>
+                          {isFull ? '마감' : '참가 신청'}
+                        </button>
+                      )
+                    )}
+                    {t.my_status === 'attended' && <span style={{ fontSize: 10, fontWeight: 700, color: C.success, background: C.successBg, borderRadius: 5, padding: '2px 7px' }}>✓ 참석</span>}
+                    {t.my_status === 'absent' && <span style={{ fontSize: 10, fontWeight: 700, color: C.error, background: C.errorBg, borderRadius: 5, padding: '2px 7px' }}>✗ 불참</span>}
+                    <div style={{ flex: 1 }} />
+                    <button onClick={() => toggleExpandTraining(t.id)} style={{ fontSize: 11, color: C.text2, background: 'none', border: 'none', cursor: 'pointer' }}>
+                      참가자 {isExpanded ? '▲' : '▼'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 참가자 목록 */}
+                {isExpanded && (
+                  <div style={{ background: C.surfaceAlt, borderTop: `1px solid ${C.border}`, padding: '10px 16px' }}>
+                    {parts.length === 0 ? (
+                      <div style={{ fontSize: 12, color: C.text2 }}>참가자가 없습니다.</div>
+                    ) : parts.map(p => (
+                      <div key={p.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: p.avatar_color+'22', border: `1.5px solid ${p.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: p.avatar_color, flexShrink: 0 }}>{p.nickname?.charAt(0)}</div>
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.text }}>{p.nickname}</span>
+                        {p.status === 'attended' && <span style={{ fontSize: 10, fontWeight: 700, color: C.success, background: C.successBg, borderRadius: 5, padding: '2px 7px' }}>✓ 참석</span>}
+                        {p.status === 'absent' && <span style={{ fontSize: 10, fontWeight: 700, color: C.error, background: C.errorBg, borderRadius: 5, padding: '2px 7px' }}>✗ 불참</span>}
+                        {p.status === 'joined' && <span style={{ fontSize: 10, color: C.text2 }}>신청</span>}
+                        {canManage && (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={() => handleAttendance(t.id, p.user_id, p.status)} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: p.status==='attended' ? C.success : C.successBg, color: p.status==='attended' ? '#fff' : C.success }}>참석</button>
+                            <button onClick={() => handleAbsent(t.id, p.user_id, p.status)} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: p.status==='absent' ? C.error : C.errorBg, color: p.status==='absent' ? '#fff' : C.error }}>불참</button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* 공지사항 탭 */}
       {tab === '공지사항' && (
         <div style={{ padding: '12px' }}>
@@ -306,7 +507,10 @@ export default function ClubDetailPage() {
                   {club.leader_id === m.id && <span style={{ fontSize: 9, background: C.goldBg, color: C.gold, borderRadius: 4, padding: '1px 5px' }}>👑</span>}
                   {m.id === user?.id && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>나</span>}
                 </div>
-                <div style={{ fontSize: 10, color: C.text2, marginTop: 1 }}>{(m.total_km||0).toFixed(1)}km · {m.total_workouts||0}회</div>
+                <div style={{ fontSize: 10, color: C.text2, marginTop: 1 }}>
+                {(m.total_km||0).toFixed(1)}km · 훈련 {m.total_workouts||0}회
+                {trainingStats[m.id] && ` · 모임 ${trainingStats[m.id].attended||0}회 참석`}
+              </div>
               </div>
             </div>
           ))}
