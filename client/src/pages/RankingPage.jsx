@@ -4,23 +4,36 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, formatScore } from '../utils/helpers'
 import { C } from '../utils/theme'
 
-const PERIODS = [{ key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' }]
-const SPORTS  = [{ key: 'swim', label: '🏊 수영' }, { key: 'bike', label: '🚴 사이클' }, { key: 'run', label: '🏃 런' }]
+const PERIODS = [
+  { key: 'weekly',  label: '주간' },
+  { key: 'monthly', label: '월간' },
+  { key: 'yearly',  label: '연간' },
+  { key: 'custom',  label: '기간설정' },
+]
+const SPORTS = [{ key: 'swim', label: '🏊 수영' }, { key: 'bike', label: '🚴 사이클' }, { key: 'run', label: '🏃 런' }]
+
+const today = new Date().toISOString().slice(0, 10)
 
 export default function RankingPage() {
   const { user } = useAuth()
   const [period, setPeriod] = useState('weekly')
   const [sport, setSport] = useState('swim')
+  const [customFrom, setCustomFrom] = useState(today)
+  const [customTo, setCustomTo] = useState(today)
   const [data, setData] = useState(null)
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (period === 'custom' && (!customFrom || !customTo)) return
     setLoading(true)
-    Promise.all([api.getRanking(period, sport), api.getDashboard()])
+    const rankingParams = period === 'custom'
+      ? api.getRankingCustom(customFrom, customTo, sport)
+      : api.getRanking(period, sport)
+    Promise.all([rankingParams, api.getDashboard()])
       .then(([r, d]) => { setData(r); setDashboard(d) })
       .finally(() => setLoading(false))
-  }, [period, sport])
+  }, [period, sport, customFrom, customTo])
 
   const rankings = data?.rankings || []
   const myRank = rankings.findIndex(r => r.user_id === user?.id) + 1
@@ -65,16 +78,38 @@ export default function RankingPage() {
       )}
 
       {/* 기간 필터 */}
-      <div style={{ display: 'flex', gap: 6, padding: '12px 14px 0', background: C.bg }}>
-        {PERIODS.map(p => (
-          <button key={p.key} onClick={() => setPeriod(p.key)} style={{
-            flex: 1, padding: '8px 0', border: 'none', borderRadius: 100,
-            background: period === p.key ? C.accentBg : C.surfaceAlt,
-            color: period === p.key ? C.accent : C.text2,
-            fontSize: 13, fontWeight: 700, cursor: 'pointer',
-            outline: period === p.key ? `1px solid ${C.accentBorder}` : 'none',
-          }}>{p.label}</button>
-        ))}
+      <div style={{ background: C.bg, padding: '12px 14px 0' }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {PERIODS.map(p => (
+            <button key={p.key} onClick={() => setPeriod(p.key)} style={{
+              flex: 1, padding: '8px 0', border: 'none', borderRadius: 100,
+              background: period === p.key ? C.accentBg : C.surfaceAlt,
+              color: period === p.key ? C.accent : C.text2,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              outline: period === p.key ? `1px solid ${C.accentBorder}` : 'none',
+            }}>{p.label}</button>
+          ))}
+        </div>
+
+        {/* 날짜 범위 표시 */}
+        {period !== 'custom' && data && (
+          <div style={{ fontSize: 11, color: C.text2, marginTop: 8, textAlign: 'center' }}>
+            📅 {data.from} ~ {data.to}
+          </div>
+        )}
+
+        {/* 커스텀 날짜 선택 */}
+        {period === 'custom' && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+            <input type="date" value={customFrom} max={customTo || today}
+              onChange={e => setCustomFrom(e.target.value)}
+              style={{ flex: 1, padding: '8px 10px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+            <span style={{ color: C.text2, fontSize: 12, fontWeight: 700 }}>~</span>
+            <input type="date" value={customTo} min={customFrom} max={today}
+              onChange={e => setCustomTo(e.target.value)}
+              style={{ flex: 1, padding: '8px 10px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+          </div>
+        )}
       </div>
 
       {/* 종목 필터 */}

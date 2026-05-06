@@ -48,8 +48,8 @@ function calcDistances(workouts) {
 
 // 랭킹
 router.get('/', authMiddleware, (req, res) => {
-  const { period = 'weekly', sport = 'all' } = req.query;
-  const { from, to } = getDateRange(period);
+  const { period = 'weekly', sport = 'all', from: qFrom, to: qTo } = req.query;
+  const { from, to } = (qFrom && qTo) ? { from: qFrom, to: qTo } : getDateRange(period);
 
   const workouts = prepare(`
     SELECT user_id, sport_type, distance_km, brick_segments

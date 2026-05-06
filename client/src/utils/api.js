@@ -36,6 +36,7 @@ export const api = {
 
   // 랭킹
   getRanking: (period, sport) => request(`/ranking?period=${period}&sport=${sport}`),
+  getRankingCustom: (from, to, sport) => request(`/ranking?period=custom&from=${from}&to=${to}&sport=${sport}`),
   getDashboard: () => request('/ranking/dashboard'),
 
   // 클럽
