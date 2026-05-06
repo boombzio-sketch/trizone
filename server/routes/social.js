@@ -1,0 +1,165 @@
+const router = require('express').Router()
+const { prepare } = require('../db')
+const { authMiddleware } = require('../middleware')
+const db = { prepare }
+
+// ── 팔로우 ──────────────────────────────────────────
+// 팔로우하기
+router.post('/follow/:targetId', authMiddleware, (req, res) => {
+  const me = req.user.id
+  const target = Number(req.params.targetId)
+  if (me === target) return res.status(400).json({ error: '자기 자신은 팔로우할 수 없습니다.' })
+  try {
+    db.prepare('INSERT OR IGNORE INTO follows (follower_id, following_id) VALUES (?,?)').run(me, target)
+    res.json({ ok: true, following: true })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
+// 언팔로우
+router.delete('/follow/:targetId', authMiddleware, (req, res) => {
+  db.prepare('DELETE FROM follows WHERE follower_id=? AND following_id=?').run(req.user.id, Number(req.params.targetId))
+  res.json({ ok: true, following: false })
+})
+
+// 팔로우 상태 조회
+router.get('/follow/:targetId', authMiddleware, (req, res) => {
+  const row = db.prepare('SELECT id FROM follows WHERE follower_id=? AND following_id=?').get(req.user.id, Number(req.params.targetId))
+  res.json({ following: !!row })
+})
+
+// 내 팔로워/팔로잉 목록
+router.get('/followers/:userId', authMiddleware, (req, res) => {
+  const rows = db.prepare(`
+    SELECT u.id, u.nickname, u.avatar_color,
+      CASE WHEN f2.id IS NOT NULL THEN 1 ELSE 0 END as i_follow
+    FROM follows f
+    JOIN users u ON f.follower_id = u.id
+    LEFT JOIN follows f2 ON f2.follower_id=? AND f2.following_id=u.id
+    WHERE f.following_id=?
+  `).all(req.user.id, Number(req.params.userId))
+  res.json(rows)
+})
+
+router.get('/following/:userId', authMiddleware, (req, res) => {
+  const rows = db.prepare(`
+    SELECT u.id, u.nickname, u.avatar_color,
+      CASE WHEN f2.id IS NOT NULL THEN 1 ELSE 0 END as i_follow
+    FROM follows f
+    JOIN users u ON f.following_id = u.id
+    LEFT JOIN follows f2 ON f2.follower_id=? AND f2.following_id=u.id
+    WHERE f.follower_id=?
+  `).all(req.user.id, Number(req.params.userId))
+  res.json(rows)
+})
+
+// ── 피드 ──────────────────────────────────────────
+// 팔로잉 피드 (내가 팔로우하는 사람 + 나)
+router.get('/feed', authMiddleware, (req, res) => {
+  const { offset = 0 } = req.query
+  const rows = db.prepare(`
+    SELECT w.*, u.nickname, u.avatar_color,
+      (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
+      (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
+      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
+    FROM workout_logs w
+    JOIN users u ON w.user_id = u.id
+    WHERE w.user_id = ?
+      OR w.user_id IN (SELECT following_id FROM follows WHERE follower_id=?)
+    ORDER BY w.logged_at DESC, w.created_at DESC
+    LIMIT 20 OFFSET ?
+  `).all(req.user.id, req.user.id, req.user.id, Number(offset))
+  res.json(rows)
+})
+
+// 전체 피드 (클럽 전체)
+router.get('/feed/all', authMiddleware, (req, res) => {
+  const { offset = 0 } = req.query
+  const rows = db.prepare(`
+    SELECT w.*, u.nickname, u.avatar_color,
+      (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
+      (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
+      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
+    FROM workout_logs w
+    JOIN users u ON w.user_id = u.id
+    ORDER BY w.logged_at DESC, w.created_at DESC
+    LIMIT 20 OFFSET ?
+  `).all(req.user.id, Number(offset))
+  res.json(rows)
+})
+
+// ── 좋아요 ──────────────────────────────────────────
+router.post('/like/:workoutId', authMiddleware, (req, res) => {
+  const wid = Number(req.params.workoutId)
+  const existing = db.prepare('SELECT id FROM likes WHERE workout_id=? AND user_id=?').get(wid, req.user.id)
+  if (existing) {
+    db.prepare('DELETE FROM likes WHERE workout_id=? AND user_id=?').run(wid, req.user.id)
+    const cnt = db.prepare('SELECT COUNT(*) as c FROM likes WHERE workout_id=?').get(wid)
+    return res.json({ liked: false, count: cnt.c })
+  }
+  db.prepare('INSERT INTO likes (workout_id, user_id) VALUES (?,?)').run(wid, req.user.id)
+  const cnt = db.prepare('SELECT COUNT(*) as c FROM likes WHERE workout_id=?').get(wid)
+  res.json({ liked: true, count: cnt.c })
+})
+
+// ── 댓글 ──────────────────────────────────────────
+router.get('/comments/:workoutId', authMiddleware, (req, res) => {
+  const rows = db.prepare(`
+    SELECT c.*, u.nickname, u.avatar_color
+    FROM comments c JOIN users u ON c.user_id=u.id
+    WHERE c.workout_id=? ORDER BY c.created_at ASC
+  `).all(Number(req.params.workoutId))
+  res.json(rows)
+})
+
+router.post('/comments/:workoutId', authMiddleware, (req, res) => {
+  const { body } = req.body
+  if (!body?.trim()) return res.status(400).json({ error: '댓글 내용을 입력하세요.' })
+  const result = db.prepare('INSERT INTO comments (workout_id, user_id, body) VALUES (?,?,?)').run(Number(req.params.workoutId), req.user.id, body.trim())
+  const row = db.prepare(`SELECT c.*, u.nickname, u.avatar_color FROM comments c JOIN users u ON c.user_id=u.id WHERE c.id=?`).get(result.lastInsertRowid)
+  res.json(row)
+})
+
+router.delete('/comments/:commentId', authMiddleware, (req, res) => {
+  const c = db.prepare('SELECT * FROM comments WHERE id=?').get(Number(req.params.commentId))
+  if (!c) return res.status(404).json({ error: '댓글이 없습니다.' })
+  if (c.user_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: '권한이 없습니다.' })
+  db.prepare('DELETE FROM comments WHERE id=?').run(Number(req.params.commentId))
+  res.json({ ok: true })
+})
+
+// ── 유저 검색 ──────────────────────────────────────────
+router.get('/users/search', authMiddleware, (req, res) => {
+  const { q = '' } = req.query
+  if (!q.trim()) return res.json([])
+  const rows = db.prepare(`
+    SELECT u.id, u.nickname, u.avatar_color,
+      (SELECT COUNT(*) FROM follows WHERE following_id=u.id) as follower_count,
+      CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END as i_follow
+    FROM users u
+    LEFT JOIN follows f ON f.follower_id=? AND f.following_id=u.id
+    WHERE u.nickname LIKE ? AND u.id != ?
+    LIMIT 20
+  `).all(req.user.id, '%'+q+'%', req.user.id)
+  res.json(rows)
+})
+
+// 유저 프로필 (팔로우 수 포함)
+router.get('/profile/:userId', authMiddleware, (req, res) => {
+  const uid = Number(req.params.userId)
+  const user = db.prepare('SELECT id,nickname,avatar_color,role,created_at FROM users WHERE id=?').get(uid)
+  if (!user) return res.status(404).json({ error: '없는 유저입니다.' })
+  const followers = db.prepare('SELECT COUNT(*) as c FROM follows WHERE following_id=?').get(uid)
+  const following = db.prepare('SELECT COUNT(*) as c FROM follows WHERE follower_id=?').get(uid)
+  const iFollow = db.prepare('SELECT id FROM follows WHERE follower_id=? AND following_id=?').get(req.user.id, uid)
+  const stats = db.prepare(`SELECT sport_type, SUM(distance_km) as km, COUNT(*) as cnt FROM workout_logs WHERE user_id=? GROUP BY sport_type`).all(uid)
+  const recentWorkouts = db.prepare(`
+    SELECT w.*,
+      (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
+      (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
+      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
+    FROM workout_logs w WHERE w.user_id=? ORDER BY w.logged_at DESC LIMIT 10
+  `).all(req.user.id, uid)
+  res.json({ user, follower_count: followers.c, following_count: following.c, i_follow: !!iFollow, stats, recentWorkouts })
+})
+
+module.exports = router

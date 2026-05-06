@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(git *)",
+      "PowerShell(winget install *)",
+      "PowerShell(choco *)",
+      "PowerShell(gh *)",
+      "PowerShell(Expand-Archive *)"
+    ]
+  }
+}
