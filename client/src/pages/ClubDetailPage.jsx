@@ -326,7 +326,7 @@ export default function ClubDetailPage() {
 
       {/* 탭 */}
       <div style={{ display: 'flex', background: C.surface, borderBottom: `1px solid ${C.border}` }}>
-        {(canManage ? TABS : ['공지사항','회원']).map(t => (
+        {(canManage ? TABS : ['공지사항','훈련','회원']).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             flex: 1, padding: '13px 0', border: 'none', background: 'transparent', cursor: 'pointer',
             fontSize: 13, fontWeight: 700,
