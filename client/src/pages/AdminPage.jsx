@@ -111,19 +111,28 @@ function PendingTab() {
                 {w.memo && <div style={{ fontSize: 11, color: C.text2, marginTop: 6, fontStyle: 'italic' }}>{w.memo}</div>}
               </div>
 
-              {displayPhoto && (
-                <div style={{ position: 'relative', marginBottom: 10 }}>
-                  <img
-                    src={displayPhoto} alt="훈련 사진"
-                    onClick={() => setPhotoModal(displayPhoto)}
-                    style={{ width: '100%', borderRadius: 10, maxHeight: 200, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
-                  />
-                  {photos.length > 1 && (
-                    <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', borderRadius: 6, fontSize: 10, fontWeight: 700, color: '#fff', padding: '2px 8px' }}>📷 {photos.length}</div>
+              {(photos.length > 0 || displayPhoto) && (
+                <div style={{ marginBottom: 10 }}>
+                  {/* 대표 사진 */}
+                  {displayPhoto && (
+                    <div style={{ position: 'relative', marginBottom: 6 }}>
+                      <img src={displayPhoto} alt="대표 사진" onClick={() => setPhotoModal(displayPhoto)}
+                        style={{ width: '100%', borderRadius: 10, maxHeight: 220, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                      <div style={{ position: 'absolute', top: 6, left: 6, background: C.accent, borderRadius: 5, fontSize: 9, fontWeight: 800, color: '#fff', padding: '2px 7px' }}>대표</div>
+                    </div>
                   )}
-                  <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.55)', borderRadius: 6, fontSize: 10, color: '#fff', padding: '2px 8px', cursor: 'pointer' }} onClick={() => setPhotoModal(displayPhoto)}>
-                    원본 보기
-                  </div>
+                  {/* 나머지 사진 */}
+                  {photos.length > 1 && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {photos.map((p, i) => (
+                        <div key={i} style={{ position: 'relative' }}>
+                          <img src={p} alt={`사진 ${i+1}`} onClick={() => setPhotoModal(p)}
+                            style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, display: 'block', cursor: 'zoom-in', outline: i === (w.cover_photo_index||0) ? `2px solid ${C.accent}` : 'none' }} />
+                          <div style={{ position: 'absolute', bottom: 3, right: 3, background: 'rgba(0,0,0,0.55)', borderRadius: 4, fontSize: 8, color: '#fff', padding: '1px 4px' }}>{i+1}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
