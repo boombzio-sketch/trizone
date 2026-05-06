@@ -61,10 +61,12 @@ export default function WorkoutPage() {
   function today() { return new Date().toISOString().slice(0,10) }
 
   async function handlePhotoAdd(e) {
-    const file = e.target.files[0]
-    if (!file) return
-    const base64 = await compressImage(file)
-    setPhotos(prev => [...prev, base64])
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    const remaining = 5 - photos.length
+    const toProcess = files.slice(0, remaining)
+    const base64s = await Promise.all(toProcess.map(f => compressImage(f)))
+    setPhotos(prev => [...prev, ...base64s])
     e.target.value = ''
   }
 
@@ -275,7 +277,7 @@ export default function WorkoutPage() {
             {photos.length < 5 && (
               <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', background: C.surfaceAlt, border: `1px dashed ${C.borderLight}`, borderRadius: 12, cursor: 'pointer', color: C.text2, fontSize: 13, fontWeight: 600 }}>
                 📷 사진 추가 ({photos.length}/5)
-                <input type="file" accept="image/*" onChange={handlePhotoAdd} style={{ display: 'none' }} />
+                <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: 'none' }} />
               </label>
             )}
           </Field>

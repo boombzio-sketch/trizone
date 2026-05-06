@@ -254,7 +254,9 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
 
   const segs = f.sport_type === 'brick' ? (() => { try { return JSON.parse(f.brick_segments || '[]') } catch { return [] } })() : null
   const photoList = (() => { try { return JSON.parse(f.photos || '[]') } catch { return [] } })()
-  const coverPhoto = photoList.length > 0 ? photoList[f.cover_photo_index || 0] : f.photo || null
+  const allPhotos = photoList.length > 0 ? photoList : (f.photo ? [f.photo] : [])
+  const coverIdx = f.cover_photo_index || 0
+  const [photoModalIdx, setPhotoModalIdx] = useState(null)
 
   return (
     <div style={{ margin: '0 12px 10px' }}>
@@ -287,13 +289,45 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
           </div>
         </div>
 
+        {/* 사진 모달 */}
+        {photoModalIdx !== null && (
+          <div onClick={() => setPhotoModalIdx(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={allPhotos[photoModalIdx]} alt="" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8 }} />
+            {allPhotos.length > 1 && (
+              <>
+                <button onClick={e => { e.stopPropagation(); setPhotoModalIdx(i => (i - 1 + allPhotos.length) % allPhotos.length) }}
+                  style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer' }}>‹</button>
+                <button onClick={e => { e.stopPropagation(); setPhotoModalIdx(i => (i + 1) % allPhotos.length) }}
+                  style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer' }}>›</button>
+                <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
+                  {allPhotos.map((_, i) => (
+                    <div key={i} onClick={e => { e.stopPropagation(); setPhotoModalIdx(i) }}
+                      style={{ width: 7, height: 7, borderRadius: '50%', background: i === photoModalIdx ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }} />
+                  ))}
+                </div>
+              </>
+            )}
+            <button onClick={() => setPhotoModalIdx(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
+          </div>
+        )}
+
         {/* 사진 */}
-        {coverPhoto && (
-          <div style={{ margin: '0 14px 10px', position: 'relative' }}>
-            <img src={coverPhoto} alt="훈련 사진" style={{ width: '100%', borderRadius: 12, display: 'block', maxHeight: 300, objectFit: 'cover' }} />
-            {photoList.length > 1 && (
-              <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', borderRadius: 6, fontSize: 10, fontWeight: 700, color: '#fff', padding: '2px 8px' }}>
-                📷 {photoList.length}
+        {allPhotos.length > 0 && (
+          <div style={{ margin: '0 14px 10px' }}>
+            {allPhotos.length === 1 ? (
+              <img src={allPhotos[0]} alt="훈련 사진" onClick={() => setPhotoModalIdx(0)}
+                style={{ width: '100%', borderRadius: 12, display: 'block', maxHeight: 300, objectFit: 'cover', cursor: 'zoom-in' }} />
+            ) : (
+              <div style={{ display: 'flex', gap: 4, overflowX: 'auto', borderRadius: 12, paddingBottom: 2 }}>
+                {allPhotos.map((p, i) => (
+                  <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                    <img src={p} alt={`사진 ${i+1}`} onClick={() => setPhotoModalIdx(i)}
+                      style={{ width: allPhotos.length === 2 ? 'calc(50vw - 30px)' : 140, height: 160, objectFit: 'cover', borderRadius: 10, display: 'block', cursor: 'zoom-in' }} />
+                    {i === coverIdx && (
+                      <div style={{ position: 'absolute', top: 5, left: 5, background: C.accent, borderRadius: 4, fontSize: 8, fontWeight: 800, color: '#fff', padding: '1px 5px' }}>대표</div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
