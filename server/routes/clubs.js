@@ -102,6 +102,17 @@ router.put('/:id', authMiddleware, (req, res) => {
   res.json(getClubFull(req.params.id));
 });
 
+// 클럽 삭제 (admin only)
+router.delete('/:id', authMiddleware, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: '관리자만 클럽을 삭제할 수 있습니다.' });
+  const club = prepare('SELECT id FROM clubs WHERE id=?').get(req.params.id);
+  if (!club) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
+  prepare('DELETE FROM club_memberships WHERE club_id=?').run(req.params.id);
+  prepare('DELETE FROM club_announcements WHERE club_id=?').run(req.params.id);
+  prepare('DELETE FROM clubs WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 // ── 멤버십 ───────────────────────────────────────────────────
 
 router.get('/:id/membership', authMiddleware, (req, res) => {

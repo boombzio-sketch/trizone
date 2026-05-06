@@ -63,6 +63,7 @@ export const api = {
   getClub: (id) => request(`/clubs/${id}`),
   createClub: (body) => request('/clubs', { method: 'POST', body }),
   updateClub: (id, body) => request(`/clubs/${id}`, { method: 'PUT', body }),
+  deleteClub: (id) => request(`/clubs/${id}`, { method: 'DELETE' }),
   getMyLeaderApp: () => request('/clubs/my-leader-app'),
   applyClubLeader: (message) => request('/clubs/my-leader-app', { method: 'POST', body: { message } }),
   getClubMembership: (id) => request(`/clubs/${id}/membership`),

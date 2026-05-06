@@ -35,6 +35,8 @@ export default function ClubDetailPage() {
   const [showTransfer, setShowTransfer] = useState(false)
   const [selectedNewLeader, setSelectedNewLeader] = useState('')
   const [transferring, setTransferring] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const [error, setError] = useState('')
 
@@ -96,6 +98,15 @@ export default function ClubDetailPage() {
       setShowEditForm(false)
     } catch(e) { setError(e.message) }
     finally { setEditSaving(false) }
+  }
+
+  async function handleDeleteClub() {
+    setDeleting(true)
+    try {
+      await api.deleteClub(id)
+      navigate('/clubs')
+    } catch(e) { alert(e.message) }
+    finally { setDeleting(false) }
   }
 
   async function handleTransferLeader() {
@@ -335,6 +346,40 @@ export default function ClubDetailPage() {
               </div>
             )}
           </div>
+
+          {/* 클럽 삭제 (관리자 전용) */}
+          {isAdmin && (
+            <div style={{ background: C.errorBg, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.errorBorder}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.error }}>⚠️ 클럽 삭제</div>
+                  <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>삭제 시 모든 클럽 데이터가 제거됩니다.</div>
+                </div>
+                <button onClick={() => setShowDeleteConfirm(true)} style={{ padding: '8px 14px', border: 'none', borderRadius: 10, background: C.error, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  클럽 삭제
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 삭제 확인 모달 */}
+          {showDeleteConfirm && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+              <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.error, marginBottom: 10 }}>클럽 삭제</div>
+                <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.7, marginBottom: 20 }}>
+                  <strong style={{ color: C.text }}>{club?.name}</strong> 클럽을 삭제합니다.<br />
+                  모든 멤버십, 공지사항 데이터가 삭제되며 복구할 수 없습니다.
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: '11px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+                  <button onClick={handleDeleteClub} disabled={deleting} style={{ flex: 1, padding: '11px', background: C.error, border: 'none', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                    {deleting ? '삭제 중...' : '삭제 확인'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 가입 신청 대기 */}
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>
