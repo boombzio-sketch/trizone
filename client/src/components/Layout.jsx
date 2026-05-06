@@ -27,13 +27,23 @@ export default function Layout() {
           TRI<span style={{ color: C.accent }}>ZONE</span>
         </div>
         <div style={{
-          width: 34, height: 34, borderRadius: '50%',
-          background: (user?.avatar_color || C.accent) + '22',
-          border: `2px solid ${user?.avatar_color || C.accent}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14, fontWeight: 800, color: user?.avatar_color || C.accent,
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: (user?.avatar_color || C.accent) + '15',
+          border: `1.5px solid ${(user?.avatar_color || C.accent) + '60'}`,
+          borderRadius: 100, padding: '5px 12px 5px 6px',
         }}>
-          {user?.nickname?.charAt(0)}
+          <div style={{
+            width: 24, height: 24, borderRadius: '50%',
+            background: (user?.avatar_color || C.accent) + '30',
+            border: `1.5px solid ${user?.avatar_color || C.accent}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 800, color: user?.avatar_color || C.accent, flexShrink: 0,
+          }}>
+            {user?.nickname?.charAt(0)}
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.nickname}
+          </span>
         </div>
       </header>
 
