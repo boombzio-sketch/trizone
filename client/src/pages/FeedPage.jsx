@@ -231,6 +231,7 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [loadingC, setLoadingC] = useState(false)
+  const [replyingTo, setReplyingTo] = useState(null) // { id, nickname }
   const vis = VIS_MAP[f.visibility || 'public']
   const status = f.status || 'approved'
 
@@ -241,8 +242,12 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
   }
   async function postComment() {
     if (!commentText.trim()) return
-    const row = await req('/social/comments/' + f.id, { method: 'POST', body: { body: commentText } })
-    setComments(prev => [...prev, row]); setCommentText('')
+    const body = { body: commentText }
+    if (replyingTo) body.parent_id = replyingTo.id
+    const row = await req('/social/comments/' + f.id, { method: 'POST', body })
+    setComments(prev => [...prev, row])
+    setCommentText('')
+    setReplyingTo(null)
   }
   async function deleteComment(cid) {
     await req('/social/comments/' + cid, { method: 'DELETE' })
@@ -377,20 +382,52 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
               <div style={{ fontSize: 12, color: C.text2, padding: '4px 0 8px' }}>불러오는 중...</div>
             ) : comments.length === 0 ? (
               <div style={{ fontSize: 12, color: C.text2, padding: '4px 0 8px' }}>첫 댓글을 남겨보세요!</div>
-            ) : comments.map(cc => (
-              <div key={cc.id} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: cc.avatar_color+'22', border: `1.5px solid ${cc.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: cc.avatar_color, flexShrink: 0 }}>
-                  {cc.nickname?.charAt(0)}
+            ) : (() => {
+              const topLevel = comments.filter(c => !c.parent_id)
+              const repliesByParent = {}
+              comments.filter(c => c.parent_id).forEach(c => {
+                if (!repliesByParent[c.parent_id]) repliesByParent[c.parent_id] = []
+                repliesByParent[c.parent_id].push(c)
+              })
+              const CommentRow = ({ cc, isReply }) => (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
+                  <div style={{ width: isReply ? 20 : 24, height: isReply ? 20 : 24, borderRadius: '50%', background: cc.avatar_color+'22', border: `1.5px solid ${cc.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isReply ? 8 : 9, fontWeight: 800, color: cc.avatar_color, flexShrink: 0 }}>
+                    {cc.nickname?.charAt(0)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginRight: 5 }}>{cc.nickname}</span>
+                    <span style={{ fontSize: 12, color: C.text2 }}>{cc.body}</span>
+                    {!isReply && (
+                      <button onClick={() => { setReplyingTo({ id: cc.id, nickname: cc.nickname }); setCommentText('') }}
+                        style={{ display: 'block', background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 0', marginTop: 2 }}>
+                        답글
+                      </button>
+                    )}
+                  </div>
+                  {cc.user_id === myId && <button onClick={() => deleteComment(cc.id)} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11 }}>✕</button>}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginRight: 6 }}>{cc.nickname}</span>
-                  <span style={{ fontSize: 12, color: C.text2 }}>{cc.body}</span>
+              )
+              return topLevel.map(cc => (
+                <div key={cc.id}>
+                  <CommentRow cc={cc} isReply={false} />
+                  {(repliesByParent[cc.id] || []).map(r => (
+                    <div key={r.id} style={{ marginLeft: 30, borderLeft: `2px solid ${C.border}`, paddingLeft: 10, marginBottom: 2 }}>
+                      <CommentRow cc={r} isReply={true} />
+                    </div>
+                  ))}
                 </div>
-                {cc.user_id === myId && <button onClick={() => deleteComment(cc.id)} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11 }}>✕</button>}
+              ))
+            })()}
+            {replyingTo && (
+              <div style={{ fontSize: 11, color: C.accent, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>↩ {replyingTo.nickname}에게 답글</span>
+                <button onClick={() => { setReplyingTo(null); setCommentText('') }} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11 }}>✕</button>
               </div>
-            ))}
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && postComment()} placeholder="댓글 입력..." style={{ flex: 1, padding: '9px 12px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 12, outline: 'none', fontFamily: 'inherit' }} />
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && postComment()}
+                placeholder={replyingTo ? `${replyingTo.nickname}에게 답글...` : '댓글 입력...'}
+                style={{ flex: 1, padding: '9px 12px', background: C.surface, border: `1px solid ${replyingTo ? C.accentBorder : C.border}`, borderRadius: 10, color: C.text, fontSize: 12, outline: 'none', fontFamily: 'inherit' }} />
               <button onClick={postComment} style={{ padding: '9px 14px', background: C.accent, border: 'none', borderRadius: 10, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>전송</button>
             </div>
           </div>

@@ -136,9 +136,9 @@ router.get('/comments/:workoutId', authMiddleware, (req, res) => {
 })
 
 router.post('/comments/:workoutId', authMiddleware, (req, res) => {
-  const { body } = req.body
+  const { body, parent_id } = req.body
   if (!body?.trim()) return res.status(400).json({ error: '댓글 내용을 입력하세요.' })
-  const result = db.prepare('INSERT INTO comments (workout_id, user_id, body) VALUES (?,?,?)').run(Number(req.params.workoutId), req.user.id, body.trim())
+  const result = db.prepare('INSERT INTO comments (workout_id, user_id, body, parent_id) VALUES (?,?,?,?)').run(Number(req.params.workoutId), req.user.id, body.trim(), parent_id || null)
   const row = db.prepare(`SELECT c.*, u.nickname, u.avatar_color FROM comments c JOIN users u ON c.user_id=u.id WHERE c.id=?`).get(result.lastInsertRowid)
   res.json(row)
 })

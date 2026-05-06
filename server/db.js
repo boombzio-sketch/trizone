@@ -125,6 +125,7 @@ async function initDb() {
 
   // 1. workout_logs 컬럼
   try { db.run("ALTER TABLE workout_logs ADD COLUMN status TEXT DEFAULT 'approved'") } catch {}
+  try { db.run("ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL") } catch {}
   try { db.run("ALTER TABLE workout_logs ADD COLUMN photo TEXT DEFAULT ''") } catch {}
   try { db.run("ALTER TABLE workout_logs ADD COLUMN visibility TEXT DEFAULT 'public'") } catch {}
   try { db.run("ALTER TABLE workout_logs ADD COLUMN photos TEXT DEFAULT '[]'") } catch {}
