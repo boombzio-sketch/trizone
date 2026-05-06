@@ -5,12 +5,12 @@ import { SPORT_COLOR, SPORT_ICON, formatScore } from '../utils/helpers'
 import { C } from '../utils/theme'
 
 const PERIODS = [{ key: 'weekly', label: '주간' }, { key: 'monthly', label: '월간' }, { key: 'yearly', label: '연간' }]
-const SPORTS  = [{ key: 'all', label: '종합' }, { key: 'swim', label: '🏊 수영' }, { key: 'bike', label: '🚴 사이클' }, { key: 'run', label: '🏃 런' }]
+const SPORTS  = [{ key: 'swim', label: '🏊 수영' }, { key: 'bike', label: '🚴 사이클' }, { key: 'run', label: '🏃 런' }]
 
 export default function RankingPage() {
   const { user } = useAuth()
   const [period, setPeriod] = useState('weekly')
-  const [sport, setSport] = useState('all')
+  const [sport, setSport] = useState('swim')
   const [data, setData] = useState(null)
   const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
