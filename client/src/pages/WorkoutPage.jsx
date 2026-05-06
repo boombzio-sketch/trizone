@@ -35,7 +35,7 @@ async function compressImage(file, maxW = 1024, quality = 0.78) {
 export default function WorkoutPage() {
   const [tab, setTab] = useState('log')
   const [sport, setSport] = useState('swim')
-  const [form, setForm] = useState({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
+  const [form, setForm] = useState({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: '실외', elevation: '', power: '' })
   const [brick, setBrick] = useState([
     { sport: 'swim', distance: '', time: '' },
     { sport: 'bike', distance: '', time: '' },
@@ -86,6 +86,7 @@ export default function WorkoutPage() {
       let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo, photos, cover_photo_index: coverIndex, visibility }
       if (sport === 'swim') body.pool_type = form.pool_type
       else if (sport === 'bike') { body.course_type = form.course_type; body.elevation_m = parseInt(form.elevation)||0; body.avg_power_w = parseInt(form.power)||0 }
+      else if (sport === 'run') { body.course_type = form.course_type }
       else if (sport === 'brick') {
         const segments = brick.map(b => ({ sport: b.sport, distance_km: parseFloat(b.distance)||0, duration_sec: parseDuration(b.time) }))
         body.brick_segments = segments
@@ -97,6 +98,7 @@ export default function WorkoutPage() {
       setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
       setBrick([{ sport: 'swim', distance: '', time: '' }, { sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
       setT1Time(''); setT2Time(''); setPhotos([]); setCoverIndex(0); setVisibility('public')
+      setForm(f => ({ ...f, course_type: '실외' }))
       setTimeout(() => { setSuccess(''); setTab('log') }, 2000)
     } catch(err) { setError(err.message) }
     finally { setLoading(false) }
@@ -178,12 +180,21 @@ export default function WorkoutPage() {
               </Field>
               <Field label="🛣️ 코스 유형">
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {[['road','로드'],['indoor','실내'],['mtb','MTB']].map(([v,l]) => (
+                  {[['실외','실외'],['실내','실내']].map(([v,l]) => (
                     <button key={v} type="button" onClick={() => setForm({...form, course_type:v})} style={chipSt(form.course_type===v, sc)}>{l}</button>
                   ))}
                 </div>
               </Field>
             </>)}
+            {sport === 'run' && (
+              <Field label="🛣️ 코스 유형">
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[['실외','실외'],['실내','실내']].map(([v,l]) => (
+                    <button key={v} type="button" onClick={() => setForm({...form, course_type:v})} style={chipSt(form.course_type===v, sc)}>{l}</button>
+                  ))}
+                </div>
+              </Field>
+            )}
           </>) : (
             <>
               {[
