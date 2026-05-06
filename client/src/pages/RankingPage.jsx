@@ -29,7 +29,7 @@ export default function RankingPage() {
     if (sport === 'swim') return `${(row.swim_km||0).toFixed(1)}km`
     if (sport === 'bike') return `${(row.bike_km||0).toFixed(1)}km`
     if (sport === 'run')  return `${(row.run_km||0).toFixed(1)}km`
-    return `${formatScore(row.total_score)}pt`
+    return `${(row.total_km||0).toFixed(1)}km`
   }
 
   return (
@@ -134,7 +134,7 @@ export default function RankingPage() {
                 <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, fontVariantNumeric: 'tabular-nums' }}>{getMainValue(r)}</div>
                 {sport === 'all' && (
                   <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>
-                    🏊{(r.swim_km||0).toFixed(1)} 🚴{(r.bike_km||0).toFixed(1)} 🏃{(r.run_km||0).toFixed(1)}
+                    🏊{(r.swim_km||0).toFixed(1)}km 🚴{(r.bike_km||0).toFixed(1)}km 🏃{(r.run_km||0).toFixed(1)}km
                   </div>
                 )}
               </div>
