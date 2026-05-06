@@ -37,9 +37,9 @@ export default function ClubDetailPage() {
   const [showTrainingForm, setShowTrainingForm] = useState(false)
   const [editingTraining, setEditingTraining] = useState(null)
   const [trainingForm, setTrainingForm] = useState({ title:'', train_date:'', train_time:'', location:'', description:'', capacity:'', link_url:'' })
-  const [expandedTraining, setExpandedTraining] = useState(null)
   const [trainingParticipants, setTrainingParticipants] = useState({})
   const [trainingSaving, setTrainingSaving] = useState(false)
+  const [trainingViewMode, setTrainingViewMode] = useState('calendar')
   const [showTransfer, setShowTransfer] = useState(false)
   const [selectedNewLeader, setSelectedNewLeader] = useState('')
   const [transferring, setTransferring] = useState(false)
@@ -350,14 +350,18 @@ export default function ClubDetailPage() {
       {/* 훈련 탭 */}
       {tab === '훈련' && (
         <div style={{ padding: '12px' }}>
-          {canManage && (
-            <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            {canManage ? (
               <button onClick={() => { setShowTrainingForm(s => !s); setEditingTraining(null); setTrainingForm({ title:'', train_date:'', train_time:'', location:'', description:'', capacity:'', link_url:'' }) }}
                 style={{ fontSize: 12, fontWeight: 700, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer' }}>
                 {showTrainingForm && !editingTraining ? '취소' : '+ 훈련 만들기'}
               </button>
+            ) : <div />}
+            <div style={{ display: 'flex', background: C.surfaceAlt, borderRadius: 10, padding: 3, border: `1px solid ${C.border}` }}>
+              <button onClick={() => setTrainingViewMode('list')} style={{ padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', background: trainingViewMode === 'list' ? C.surfaceHigh : 'transparent', color: trainingViewMode === 'list' ? C.text : C.text2, fontSize: 15 }}>☰</button>
+              <button onClick={() => setTrainingViewMode('calendar')} style={{ padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', background: trainingViewMode === 'calendar' ? C.surfaceHigh : 'transparent', color: trainingViewMode === 'calendar' ? C.accent : C.text2, fontSize: 15 }}>📅</button>
             </div>
-          )}
+          </div>
 
           {/* 훈련 등록/수정 폼 */}
           {showTrainingForm && (
@@ -387,10 +391,28 @@ export default function ClubDetailPage() {
             </form>
           )}
 
-          {/* 훈련 목록 */}
-          {trainings.length === 0 ? (
+          {/* 달력 뷰 */}
+          {trainingViewMode === 'calendar' && (
+            <TrainingCalendar
+              trainings={trainings}
+              participants={trainingParticipants}
+              canManage={canManage}
+              membership={membership}
+              isPast={t => t.train_date < new Date().toISOString().slice(0,10)}
+              onJoin={handleJoinTraining}
+              onLeave={handleLeaveTraining}
+              onAttendance={handleAttendance}
+              onAbsent={handleAbsent}
+              onEdit={t => { setEditingTraining(t); setTrainingForm({ title:t.title, train_date:t.train_date, train_time:t.train_time||'', location:t.location, description:t.description||'', capacity:t.capacity||'', link_url:t.link_url||'' }); setShowTrainingForm(true) }}
+              onDelete={handleDeleteTraining}
+              setTrainings={setTrainings}
+            />
+          )}
+
+          {trainingViewMode === 'list' && trainings.length === 0 && (
             <div style={{ textAlign: 'center', padding: 32, color: C.text2, fontSize: 13 }}>등록된 훈련이 없습니다.</div>
-          ) : trainings.map(t => {
+          )}
+          {trainingViewMode === 'list' && trainings.map(t => {
             const isPast = t.train_date < new Date().toISOString().slice(0,10)
             const isExpanded = expandedTraining === t.id
             const parts = trainingParticipants[t.id] || []
@@ -623,3 +645,152 @@ export default function ClubDetailPage() {
 
 const iSt = { width: '100%', padding: '10px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }
 const labelSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }
+
+const WEEK_DAYS = ['월','화','수','목','금','토','일']
+const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+
+function TrainingCalendar({ trainings, participants, canManage, membership, onJoin, onLeave, onAttendance, onAbsent, onEdit, onDelete }) {
+  const now = new Date()
+  const [current, setCurrent] = useState(new Date(now.getFullYear(), now.getMonth(), 1))
+  const [selectedDay, setSelectedDay] = useState(null)
+
+  const year = current.getFullYear()
+  const month = current.getMonth()
+  const monthStr = `${year}-${String(month+1).padStart(2,'0')}`
+  const todayStr = now.toISOString().slice(0,10)
+
+  const byDay = {}
+  trainings.forEach(t => {
+    if (t.train_date.startsWith(monthStr)) {
+      const day = parseInt(t.train_date.slice(8,10))
+      if (!byDay[day]) byDay[day] = []
+      byDay[day].push(t)
+    }
+  })
+
+  const firstDow = new Date(year, month, 1).getDay()
+  const startOffset = (firstDow + 6) % 7
+  const daysInMonth = new Date(year, month+1, 0).getDate()
+  const cells = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i+1)]
+
+  const selectedTrainings = selectedDay ? (byDay[selectedDay] || []) : []
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <button onClick={() => { setCurrent(new Date(year, month-1, 1)); setSelectedDay(null) }}
+          style={{ background: C.surfaceAlt, border: 'none', borderRadius: 10, padding: '7px 14px', color: C.text, fontSize: 16, cursor: 'pointer', fontWeight: 700 }}>‹</button>
+        <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{year}년 {MONTH_NAMES[month]}</span>
+        <button onClick={() => { setCurrent(new Date(year, month+1, 1)); setSelectedDay(null) }}
+          style={{ background: C.surfaceAlt, border: 'none', borderRadius: 10, padding: '7px 14px', color: C.text, fontSize: 16, cursor: 'pointer', fontWeight: 700 }}>›</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
+        {WEEK_DAYS.map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: C.text2, padding: '4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3, marginBottom: 14 }}>
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />
+          const dayTrainings = byDay[day] || []
+          const hasTraining = dayTrainings.length > 0
+          const isSelected = selectedDay === day
+          const dayStr = `${monthStr}-${String(day).padStart(2,'0')}`
+          const isToday = dayStr === todayStr
+
+          return (
+            <div key={i} onClick={() => hasTraining && setSelectedDay(isSelected ? null : day)} style={{
+              minHeight: 52, borderRadius: 10, padding: '4px 3px',
+              background: isSelected ? C.accentBg : hasTraining ? C.surfaceAlt : 'transparent',
+              border: isSelected ? `1.5px solid ${C.accentBorder}` : '1.5px solid transparent',
+              cursor: hasTraining ? 'pointer' : 'default',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: isToday ? C.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: isToday ? 900 : 500, color: isToday ? '#fff' : C.text }}>
+                {day}
+              </div>
+              {dayTrainings.slice(0, 2).map(t => (
+                <div key={t.id} style={{ width: '100%', borderRadius: 3, padding: '1px 2px', background: C.accent+'30', fontSize: 8, color: C.accent, fontWeight: 700, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.train_time ? t.train_time.slice(0,5) : '훈련'}
+                </div>
+              ))}
+              {dayTrainings.length > 2 && <div style={{ fontSize: 8, color: C.text2 }}>+{dayTrainings.length-2}</div>}
+            </div>
+          )
+        })}
+      </div>
+
+      {selectedDay && selectedTrainings.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            {monthStr}-{String(selectedDay).padStart(2,'0')} 훈련
+          </div>
+          {selectedTrainings.map(t => {
+            const isPast = t.train_date < todayStr
+            const parts = participants[t.id] || []
+            const isFull = t.capacity > 0 && t.participant_count >= t.capacity
+            return (
+              <div key={t.id} style={{ background: C.surface, borderRadius: 16, marginBottom: 10, overflow: 'hidden', borderLeft: `4px solid ${isPast ? C.text3 : C.accent}` }}>
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t.title}</div>
+                      <div style={{ fontSize: 11, color: C.text2, marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {t.train_time && <span>🕐 {t.train_time}</span>}
+                        <span>📍 {t.location}</span>
+                        <span>👥 {parts.length}{t.capacity > 0 ? `/${t.capacity}` : ''}명</span>
+                      </div>
+                    </div>
+                    {canManage && (
+                      <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                        <button onClick={() => onEdit(t)} style={{ background: C.accentBg, border: 'none', borderRadius: 7, color: C.accent, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '4px 8px' }}>수정</button>
+                        <button onClick={() => onDelete(t.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 7, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '4px 8px' }}>삭제</button>
+                      </div>
+                    )}
+                  </div>
+                  {t.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 8 }}>{t.description}</div>}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: parts.length > 0 ? 10 : 0 }}>
+                    {t.link_url && <a href={t.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, fontWeight: 700, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 7, padding: '4px 10px', textDecoration: 'none' }}>🔗 상세보기</a>}
+                    {!isPast && membership?.status === 'approved' && (
+                      t.my_status ? (
+                        <button onClick={() => onLeave(t.id)} style={{ fontSize: 11, fontWeight: 700, color: C.text2, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 7, padding: '4px 10px', cursor: 'pointer' }}>참가 취소</button>
+                      ) : (
+                        <button onClick={() => onJoin(t.id)} disabled={isFull} style={{ fontSize: 11, fontWeight: 700, color: isFull ? C.text3 : '#fff', background: isFull ? C.surfaceAlt : C.accent, border: 'none', borderRadius: 7, padding: '4px 10px', cursor: isFull ? 'default' : 'pointer' }}>
+                          {isFull ? '마감' : '참가 신청'}
+                        </button>
+                      )
+                    )}
+                    {t.my_status === 'attended' && <span style={{ fontSize: 10, fontWeight: 700, color: C.success, background: C.successBg, borderRadius: 5, padding: '2px 7px' }}>✓ 참석</span>}
+                    {t.my_status === 'absent' && <span style={{ fontSize: 10, fontWeight: 700, color: C.error, background: C.errorBg, borderRadius: 5, padding: '2px 7px' }}>✗ 불참</span>}
+                  </div>
+                  {parts.length > 0 && (
+                    <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6 }}>참가자 {parts.length}명</div>
+                      {parts.map(p => (
+                        <div key={p.user_id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: `1px solid ${C.border}` }}>
+                          <div style={{ width: 26, height: 26, borderRadius: '50%', background: p.avatar_color+'22', border: `1.5px solid ${p.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: p.avatar_color, flexShrink: 0 }}>{p.nickname?.charAt(0)}</div>
+                          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: C.text }}>{p.nickname}</span>
+                          {p.status === 'attended' && <span style={{ fontSize: 10, fontWeight: 700, color: C.success, background: C.successBg, borderRadius: 5, padding: '2px 7px' }}>✓ 참석</span>}
+                          {p.status === 'absent' && <span style={{ fontSize: 10, fontWeight: 700, color: C.error, background: C.errorBg, borderRadius: 5, padding: '2px 7px' }}>✗ 불참</span>}
+                          {p.status === 'joined' && <span style={{ fontSize: 10, color: C.text2 }}>신청</span>}
+                          {canManage && (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button onClick={() => onAttendance(t.id, p.user_id, p.status)} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: p.status==='attended' ? C.success : C.successBg, color: p.status==='attended' ? '#fff' : C.success }}>참석</button>
+                              <button onClick={() => onAbsent(t.id, p.user_id, p.status)} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: p.status==='absent' ? C.error : C.errorBg, color: p.status==='absent' ? '#fff' : C.error }}>불참</button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
