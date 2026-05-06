@@ -102,11 +102,25 @@ router.put('/:id', authMiddleware, (req, res) => {
 // 클럽 삭제 (admin only)
 router.delete('/:id', authMiddleware, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: '관리자만 클럽을 삭제할 수 있습니다.' });
-  const club = prepare('SELECT id FROM clubs WHERE id=?').get(req.params.id);
+  const cid = Number(req.params.id);
+  const club = prepare('SELECT id FROM clubs WHERE id=?').get(cid);
   if (!club) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
-  prepare('DELETE FROM club_memberships WHERE club_id=?').run(req.params.id);
-  prepare('DELETE FROM club_announcements WHERE club_id=?').run(req.params.id);
-  prepare('DELETE FROM clubs WHERE id=?').run(req.params.id);
+
+  // 관련 훈련 참가자 먼저 삭제
+  const trainings = prepare('SELECT id FROM club_trainings WHERE club_id=?').all(cid);
+  trainings.forEach(t => {
+    prepare('DELETE FROM club_training_participants WHERE training_id=?').run(t.id);
+  });
+  prepare('DELETE FROM club_trainings WHERE club_id=?').run(cid);
+  prepare('DELETE FROM club_training_participants WHERE training_id IN (SELECT id FROM club_trainings WHERE club_id=?)').run(cid);
+  prepare('DELETE FROM club_memberships WHERE club_id=?').run(cid);
+  prepare('DELETE FROM club_announcements WHERE club_id=?').run(cid);
+  prepare('DELETE FROM club_leader_applications WHERE user_id = (SELECT leader_id FROM clubs WHERE id=?)').run(cid);
+  prepare('DELETE FROM clubs WHERE id=?').run(cid);
+
+  const check = prepare('SELECT id FROM clubs WHERE id=?').get(cid);
+  if (check) return res.status(500).json({ error: '클럽 삭제에 실패했습니다.' });
+
   res.json({ ok: true });
 });
 
