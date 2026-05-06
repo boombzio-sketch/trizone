@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import { C } from '../utils/theme'
@@ -30,6 +31,7 @@ const VIS_MAP = Object.fromEntries(VIS_OPTIONS.map(v => [v.key, v]))
 
 export default function FeedPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [tab, setTab] = useState('following')
   const [feeds, setFeeds] = useState([])
   const [loading, setLoading] = useState(true)
@@ -101,11 +103,17 @@ export default function FeedPage() {
             }}>{t.label}</button>
           ))}
         </div>
-        <button onClick={() => setShowSearch(s => !s)} style={{
-          background: showSearch ? C.accentBg : C.surfaceAlt,
-          border: `1px solid ${showSearch ? C.accentBorder : C.border}`,
-          borderRadius: 10, padding: '7px 10px', color: C.accent, fontSize: 14, cursor: 'pointer',
-        }}>🔍</button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => navigate('/workout')} style={{
+            background: C.accent, border: 'none',
+            borderRadius: 10, padding: '7px 14px', color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer', lineHeight: 1,
+          }}>+</button>
+          <button onClick={() => setShowSearch(s => !s)} style={{
+            background: showSearch ? C.accentBg : C.surfaceAlt,
+            border: `1px solid ${showSearch ? C.accentBorder : C.border}`,
+            borderRadius: 10, padding: '7px 10px', color: C.accent, fontSize: 14, cursor: 'pointer',
+          }}>🔍</button>
+        </div>
       </div>
 
       {/* 검색 패널 */}

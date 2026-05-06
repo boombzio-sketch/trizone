@@ -5,7 +5,6 @@ import { C } from '../utils/theme'
 const TABS = [
   { to: '/',        icon: '⚡', label: '피드' },
   { to: '/ranking', icon: '🏆', label: '랭킹' },
-  { to: '/workout', icon: '💪', label: '훈련' },
   { to: '/races',   icon: '🏁', label: '대회' },
   { to: '/clubs',   icon: '👥', label: '클럽' },
   { to: '/my',      icon: '👤', label: 'MY' },
