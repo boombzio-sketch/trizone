@@ -53,40 +53,56 @@ router.get('/following/:userId', authMiddleware, (req, res) => {
 })
 
 // ── 피드 ──────────────────────────────────────────
-// 팔로잉 피드 (내가 팔로우하는 사람 + 나)
-router.get('/feed', authMiddleware, (req, res) => {
-  const { offset = 0 } = req.query
-  const rows = db.prepare(`
+const FEED_COLS = `
     SELECT w.id, w.user_id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
            w.memo, w.pace, w.score, w.brick_segments, w.status, w.photo,
+           COALESCE(w.visibility, 'public') as visibility,
            u.nickname, u.avatar_color,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
       (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
       (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
     FROM workout_logs w
-    JOIN users u ON w.user_id = u.id
-    WHERE w.user_id = ?
-      OR w.user_id IN (SELECT following_id FROM follows WHERE follower_id=?)
-    ORDER BY w.logged_at DESC, w.created_at DESC
-    LIMIT 20 OFFSET ?
+    JOIN users u ON w.user_id = u.id`
+
+// 팔로잉 피드
+router.get('/feed', authMiddleware, (req, res) => {
+  const { offset = 0 } = req.query
+  const rows = db.prepare(`${FEED_COLS}
+    WHERE (
+      w.user_id = ?
+      OR (w.user_id IN (SELECT following_id FROM follows WHERE follower_id=?)
+          AND COALESCE(w.visibility,'public') IN ('public','followers'))
+    )
+    ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
   `).all(req.user.id, req.user.id, req.user.id, Number(offset))
   res.json(rows)
 })
 
-// 전체 피드 (클럽 전체)
+// 클럽 피드
+router.get('/feed/club', authMiddleware, (req, res) => {
+  const { offset = 0 } = req.query
+  const rows = db.prepare(`${FEED_COLS}
+    WHERE (
+      w.user_id = ?
+      OR (COALESCE(w.visibility,'public') IN ('public','club')
+          AND EXISTS (
+            SELECT 1 FROM club_memberships cm1
+            JOIN club_memberships cm2 ON cm1.club_id = cm2.club_id
+            WHERE cm1.user_id = w.user_id AND cm1.status='approved'
+              AND cm2.user_id = ? AND cm2.status='approved'
+          ))
+    )
+    ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+  `).all(req.user.id, req.user.id, req.user.id, Number(offset))
+  res.json(rows)
+})
+
+// 전체 피드
 router.get('/feed/all', authMiddleware, (req, res) => {
   const { offset = 0 } = req.query
-  const rows = db.prepare(`
-    SELECT w.id, w.user_id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
-           w.memo, w.pace, w.score, w.brick_segments, w.status, w.photo,
-           u.nickname, u.avatar_color,
-      (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
-      (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
-      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
-    FROM workout_logs w
-    JOIN users u ON w.user_id = u.id
-    ORDER BY w.logged_at DESC, w.created_at DESC
-    LIMIT 20 OFFSET ?
+  const rows = db.prepare(`${FEED_COLS}
+    WHERE COALESCE(w.visibility,'public') = 'public'
+    ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
   `).all(req.user.id, Number(offset))
   res.json(rows)
 })

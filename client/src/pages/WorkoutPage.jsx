@@ -7,6 +7,13 @@ const SPORTS = ['swim', 'bike', 'run', 'brick']
 const STATUS_LABEL = { pending: '승인대기', approved: '승인', rejected: '반려' }
 const STATUS_COLOR = { pending: C.warn, approved: C.success, rejected: C.error }
 const STATUS_BG    = { pending: C.warnBg, approved: C.successBg, rejected: C.errorBg }
+const VIS_OPTIONS = [
+  { key: 'public',    label: '전체',   icon: '🌍', color: C.success },
+  { key: 'club',      label: '클럽원', icon: '👥', color: C.accent },
+  { key: 'followers', label: '팔로워', icon: '👤', color: C.brick },
+  { key: 'private',   label: '비공개', icon: '🔒', color: C.text2 },
+]
+const VIS_MAP = Object.fromEntries(VIS_OPTIONS.map(v => [v.key, v]))
 
 async function compressImage(file, maxW = 1024, quality = 0.78) {
   return new Promise(resolve => {
@@ -32,6 +39,7 @@ export default function WorkoutPage() {
   const [brick, setBrick] = useState([{ sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
   const [transitTime, setTransitTime] = useState('')
   const [photo, setPhoto] = useState(null)
+  const [visibility, setVisibility] = useState('public')
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -59,7 +67,7 @@ export default function WorkoutPage() {
     try {
       const dur = parseDuration(form.time)
       const dist = parseFloat(form.distance) || 0
-      let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo, photo: photo || '' }
+      let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo, photo: photo || '', visibility }
       if (sport === 'swim') body.pool_type = form.pool_type
       else if (sport === 'bike') { body.course_type = form.course_type; body.elevation_m = parseInt(form.elevation)||0; body.avg_power_w = parseInt(form.power)||0 }
       else if (sport === 'brick') {
@@ -72,7 +80,7 @@ export default function WorkoutPage() {
       setSuccess('✅ 기록이 저장되었습니다! 클럽장 승인 후 클럽 기록에 반영됩니다.')
       setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
       setBrick([{ sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
-      setTransitTime(''); setPhoto(null)
+      setTransitTime(''); setPhoto(null); setVisibility('public')
       setTimeout(() => { setSuccess(''); setTab('log') }, 2000)
     } catch(err) { setError(err.message) }
     finally { setLoading(false) }
@@ -189,6 +197,24 @@ export default function WorkoutPage() {
             <textarea placeholder="오늘 훈련 소감을 적어보세요" value={form.memo} onChange={e => setForm({...form, memo: e.target.value})} rows={2} style={{ ...inputSt(sc), resize: 'none' }} />
           </Field>
 
+          {/* 공개 범위 */}
+          <Field label="🔒 공개 범위">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+              {VIS_OPTIONS.map(v => (
+                <button key={v.key} type="button" onClick={() => setVisibility(v.key)} style={{
+                  padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
+                  background: visibility === v.key ? v.color + '20' : C.surfaceAlt,
+                  outline: visibility === v.key ? `2px solid ${v.color}` : '2px solid transparent',
+                  color: visibility === v.key ? v.color : C.text2,
+                  fontSize: 11, fontWeight: 700,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                }}>
+                  <span style={{ fontSize: 18 }}>{v.icon}</span>{v.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+
           {/* 사진 업로드 */}
           <Field label="📷 사진 (선택)">
             {photo && (
@@ -224,6 +250,7 @@ function LogItem({ log, onDelete }) {
   const sc = SPORT_COLOR[log.sport_type] || C.text2
   const segs = log.sport_type === 'brick' ? JSON.parse(log.brick_segments || '[]') : null
   const status = log.status || 'approved'
+  const vis = VIS_MAP[log.visibility || 'public']
   return (
     <div style={{ margin: '8px 12px', background: C.surface, borderRadius: 14, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
       <div style={{ padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -236,6 +263,7 @@ function LogItem({ log, onDelete }) {
             <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
               {STATUS_LABEL[status]}
             </span>
+            <span style={{ fontSize: 9, color: vis.color }}>{vis.icon}</span>
             <span style={{ fontSize: 11, color: C.text2 }}>{log.logged_at}</span>
           </div>
           {segs ? (

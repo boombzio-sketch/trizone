@@ -30,6 +30,7 @@ export const api = {
   getWorkouts: (params = '') => request(`/workouts?${params}`),
   getAllWorkouts: (params = '') => request(`/workouts/all?${params}`),
   addWorkout: (body) => request('/workouts', { method: 'POST', body }),
+  editWorkout: (id, body) => request(`/workouts/${id}`, { method: 'PUT', body }),
   deleteWorkout: (id) => request(`/workouts/${id}`, { method: 'DELETE' }),
   myStats: () => request('/workouts/stats/me'),
 

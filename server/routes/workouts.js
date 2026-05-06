@@ -56,11 +56,23 @@ router.get('/all', authMiddleware, (req, res) => {
   res.json(db.prepare(q).all(...params));
 });
 
+// 기록 수정 (메모, 공개 범위)
+router.put('/:id', authMiddleware, (req, res) => {
+  const { memo, visibility } = req.body;
+  const row = db.prepare('SELECT * FROM workout_logs WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
+  if (row.user_id !== req.user.id) return res.status(403).json({ error: '수정 권한이 없습니다.' });
+  const valid = ['public','club','followers','private'];
+  if (visibility && !valid.includes(visibility)) return res.status(400).json({ error: '유효하지 않은 공개 범위입니다.' });
+  db.prepare('UPDATE workout_logs SET memo=?, visibility=? WHERE id=?').run(memo ?? row.memo, visibility || row.visibility, req.params.id);
+  res.json(db.prepare('SELECT * FROM workout_logs WHERE id=?').get(req.params.id));
+});
+
 // 기록 추가
 router.post('/', authMiddleware, (req, res) => {
   const {
     sport_type, logged_at, distance_km, duration_sec, memo,
-    pool_type, elevation_m, course_type, avg_power_w, brick_segments, photo
+    pool_type, elevation_m, course_type, avg_power_w, brick_segments, photo, visibility
   } = req.body;
 
   if (!sport_type || !logged_at) return res.status(400).json({ error: '종목과 날짜는 필수입니다.' });
@@ -71,14 +83,14 @@ router.post('/', authMiddleware, (req, res) => {
   const result = db.prepare(`
     INSERT INTO workout_logs
     (user_id, sport_type, logged_at, distance_km, duration_sec, memo,
-     pool_type, elevation_m, course_type, avg_power_w, brick_segments, pace, score, status, photo)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+     pool_type, elevation_m, course_type, avg_power_w, brick_segments, pace, score, status, photo, visibility)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
   `).run(
     req.user.id, sport_type, logged_at,
     distance_km || 0, duration_sec || 0, memo || '',
     pool_type || '', elevation_m || 0, course_type || '', avg_power_w || 0,
     brick_segments ? JSON.stringify(brick_segments) : '[]',
-    pace, score, photo || ''
+    pace, score, photo || '', visibility || 'public'
   );
 
   const row = db.prepare('SELECT * FROM workout_logs WHERE id = ?').get(result.lastInsertRowid);

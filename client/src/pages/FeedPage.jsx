@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import { C } from '../utils/theme'
+import { api } from '../utils/api'
 
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
 const tok = () => localStorage.getItem('tz_token')
@@ -19,6 +20,14 @@ const STATUS_LABEL = { pending: '승인대기', approved: '승인', rejected: '�
 const STATUS_COLOR = { pending: C.warn, approved: C.success, rejected: C.error }
 const STATUS_BG    = { pending: C.warnBg, approved: C.successBg, rejected: C.errorBg }
 
+const VIS_OPTIONS = [
+  { key: 'public',    label: '전체',   icon: '🌍', color: C.success },
+  { key: 'club',      label: '클럽원', icon: '👥', color: C.accent },
+  { key: 'followers', label: '팔로워', icon: '👤', color: C.brick },
+  { key: 'private',   label: '비공개', icon: '🔒', color: C.text2 },
+]
+const VIS_MAP = Object.fromEntries(VIS_OPTIONS.map(v => [v.key, v]))
+
 export default function FeedPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('following')
@@ -28,6 +37,7 @@ export default function FeedPage() {
   const [searchRes, setSearchRes] = useState([])
   const [showSearch, setShowSearch] = useState(false)
   const [openComments, setOpenComments] = useState(null)
+  const [editingFeed, setEditingFeed] = useState(null)
   const searchTimer = useRef(null)
 
   useEffect(() => { loadFeed() }, [tab])
@@ -35,7 +45,8 @@ export default function FeedPage() {
   async function loadFeed() {
     setLoading(true)
     try {
-      const rows = await req(tab === 'following' ? '/social/feed' : '/social/feed/all')
+      const path = tab === 'following' ? '/social/feed' : tab === 'club' ? '/social/feed/club' : '/social/feed/all'
+      const rows = await req(path)
       setFeeds(rows)
     } finally { setLoading(false) }
   }
@@ -64,18 +75,30 @@ export default function FeedPage() {
     ))
   }
 
+  async function handleEditSave(id, memo, visibility) {
+    const updated = await api.editWorkout(id, { memo, visibility })
+    setFeeds(prev => prev.map(f => f.id === id ? { ...f, memo: updated.memo, visibility: updated.visibility } : f))
+    setEditingFeed(null)
+  }
+
+  const TABS = [
+    { key: 'following', label: '팔로잉' },
+    { key: 'club',      label: '클럽' },
+    { key: 'all',       label: '전체' },
+  ]
+
   return (
     <div>
       {/* 헤더 */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1, display: 'flex', gap: 6 }}>
-          {[['following','팔로잉'],['all','전체']].map(([k,l]) => (
-            <button key={k} onClick={() => setTab(k)} style={{
-              padding: '6px 16px', border: 'none', borderRadius: 100,
-              background: tab===k ? C.accent : C.surfaceAlt,
-              color: tab===k ? '#fff' : C.text2,
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              padding: '6px 14px', border: 'none', borderRadius: 100,
+              background: tab === t.key ? C.accent : C.surfaceAlt,
+              color: tab === t.key ? '#fff' : C.text2,
               fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            }}>{l}</button>
+            }}>{t.label}</button>
           ))}
         </div>
         <button onClick={() => setShowSearch(s => !s)} style={{
@@ -117,28 +140,91 @@ export default function FeedPage() {
         </div>
       )}
 
+      {/* 편집 모달 */}
+      {editingFeed && (
+        <EditModal feed={editingFeed} onSave={handleEditSave} onClose={() => setEditingFeed(null)} />
+      )}
+
       {/* 피드 */}
       <div style={{ padding: '8px 0' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 로딩 중...</div>
         ) : feeds.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 48, color: C.text2, fontSize: 14, lineHeight: 1.9 }}>
-            {tab === 'following' ? '아직 팔로우한 사람이 없어요.\n🔍 검색으로 클럽원을 찾아 팔로우해보세요!' : '아직 훈련 기록이 없습니다.'}
+            {tab === 'following' ? '아직 팔로우한 사람이 없어요.' : tab === 'club' ? '클럽 회원의 기록이 없습니다.' : '아직 훈련 기록이 없습니다.'}
           </div>
         ) : feeds.map(f => (
-          <FeedCard key={f.id} feed={f} myId={user?.id} onStar={() => toggleStar(f.id)} openComments={openComments} setOpenComments={setOpenComments} />
+          <FeedCard
+            key={f.id} feed={f} myId={user?.id}
+            onStar={() => toggleStar(f.id)}
+            openComments={openComments} setOpenComments={setOpenComments}
+            onEdit={() => setEditingFeed(f)}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments }) {
+function EditModal({ feed, onSave, onClose }) {
+  const [memo, setMemo] = useState(feed.memo || '')
+  const [visibility, setVisibility] = useState(feed.visibility || 'public')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    try { await onSave(feed.id, memo, visibility) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }}>
+      <div style={{ background: C.surface, borderRadius: '22px 22px 0 0', width: '100%', padding: 20, border: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>피드 수정</div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelSt}>메모</label>
+          <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={3}
+            style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'none' }} />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={labelSt}>공개 범위</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+            {VIS_OPTIONS.map(v => (
+              <button key={v.key} type="button" onClick={() => setVisibility(v.key)} style={{
+                padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
+                background: visibility === v.key ? v.color + '20' : C.surfaceAlt,
+                outline: visibility === v.key ? `2px solid ${v.color}` : '2px solid transparent',
+                color: visibility === v.key ? v.color : C.text2,
+                fontSize: 11, fontWeight: 700,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              }}>
+                <span style={{ fontSize: 18 }}>{v.icon}</span>{v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px', background: saving ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 12, color: saving ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            {saving ? '저장 중...' : '💾 저장'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit }) {
   const sc = SPORT_COLOR[f.sport_type] || C.accent
   const isOpen = openComments === f.id
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [loadingC, setLoadingC] = useState(false)
+  const vis = VIS_MAP[f.visibility || 'public']
+  const status = f.status || 'approved'
 
   async function loadComments() {
     setLoadingC(true)
@@ -159,7 +245,6 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments }) {
   }
 
   const segs = f.sport_type === 'brick' ? (() => { try { return JSON.parse(f.brick_segments || '[]') } catch { return [] } })() : null
-  const status = f.status || 'approved'
 
   return (
     <div style={{ margin: '0 12px 10px' }}>
@@ -174,13 +259,21 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments }) {
               {f.nickname}
               {f.user_id === myId && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>나</span>}
             </div>
-            <div style={{ fontSize: 10, color: C.text3, marginTop: 1 }}>{f.logged_at}</div>
+            <div style={{ fontSize: 10, color: C.text3, marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+              {f.logged_at}
+              <span style={{ color: vis.color }}>{vis.icon} {vis.label}</span>
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: sc }}>{SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
-              {STATUS_LABEL[status]}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
+                {STATUS_LABEL[status]}
+              </span>
+              {f.user_id === myId && (
+                <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -267,3 +360,5 @@ function Metric({ val, unit }) {
     </div>
   )
 }
+
+const labelSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.05em' }
