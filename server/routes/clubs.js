@@ -76,10 +76,7 @@ router.post('/', authMiddleware, (req, res) => {
 
   const result = prepare('INSERT INTO clubs (name, description, region, leader_id) VALUES (?,?,?,?)').run(name, description||'', region, req.user.id);
   const clubId = result.lastInsertRowid;
-  prepare("INSERT OR IGNORE INTO club_memberships (club_id, user_id, status) VALUES (?,'approved',?)").run(clubId, req.user.id); // wrong order, fix:
-  // actually fix the wrong order - status should be 'approved'
-  // Let me just update:
-  prepare("UPDATE club_memberships SET status='approved' WHERE club_id=? AND user_id=?").run(clubId, req.user.id);
+  prepare("INSERT OR IGNORE INTO club_memberships (club_id, user_id, status) VALUES (?, ?, 'approved')").run(clubId, req.user.id);
   res.json(getClubFull(clubId));
 });
 

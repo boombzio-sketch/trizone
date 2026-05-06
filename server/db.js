@@ -194,6 +194,9 @@ async function initDb() {
   // 6. admin 유저 클럽장 신청 자동 승인
   db.run("INSERT OR IGNORE INTO club_leader_applications (user_id, status) SELECT id, 'approved' FROM users WHERE role='admin'");
 
+  // 7. 클럽장을 클럽 멤버십에 추가 (누락된 경우)
+  db.run("INSERT OR IGNORE INTO club_memberships (club_id, user_id, status) SELECT id, leader_id, 'approved' FROM clubs WHERE leader_id IS NOT NULL");
+
   saveDb();
   console.log('✅ DB 초기화 완료');
 }
