@@ -157,8 +157,8 @@ export default function WorkoutPage() {
             <Field label="📏 거리 (km)">
               <input type="number" step="0.01" placeholder="예: 1.5" value={form.distance} onChange={e => setForm({...form, distance: e.target.value})} style={inputSt(sc)} />
             </Field>
-            <Field label="⏱️ 시간 (HH:MM:SS 또는 MM:SS)">
-              <input placeholder="예: 1:02:18 또는 32:10" value={form.time} onChange={e => setForm({...form, time: e.target.value})} style={inputSt(sc)} />
+            <Field label="⏱️ 시간 (HH:MM:SS)">
+              <input placeholder="예: 1:02:18" value={form.time} onChange={e => setForm({...form, time: e.target.value})} style={inputSt(sc)} />
             </Field>
             {sport === 'swim' && (
               <Field label="🌊 수영 환경">
@@ -201,7 +201,7 @@ export default function WorkoutPage() {
                       <input type="number" step="0.01" placeholder="거리 km" value={brick[idx].distance}
                         onChange={e => { const b=[...brick]; b[idx]={...b[idx],distance:e.target.value}; setBrick(b) }}
                         style={inputSt(SPORT_COLOR[sp])} />
-                      <input placeholder="시간 MM:SS" value={brick[idx].time}
+                      <input placeholder="HH:MM:SS" value={brick[idx].time}
                         onChange={e => { const b=[...brick]; b[idx]={...b[idx],time:e.target.value}; setBrick(b) }}
                         style={inputSt(SPORT_COLOR[sp])} />
                     </div>
@@ -210,7 +210,7 @@ export default function WorkoutPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 6px', padding: '0 4px' }}>
                       <div style={{ flex: 1, height: 1, background: C.border }} />
                       <span style={{ fontSize: 11, fontWeight: 700, color: C.warn }}>T{idx+1} 전환</span>
-                      <input placeholder="MM:SS" value={idx === 0 ? t1Time : t2Time}
+                      <input placeholder="HH:MM:SS" value={idx === 0 ? t1Time : t2Time}
                         onChange={e => idx === 0 ? setT1Time(e.target.value) : setT2Time(e.target.value)}
                         style={{ width: 80, padding: '6px 10px', background: C.surfaceAlt, border: `1px solid ${C.warn}44`, borderRadius: 8, color: C.text, fontSize: 12, outline: 'none', fontFamily: 'inherit', textAlign: 'center' }} />
                       <div style={{ flex: 1, height: 1, background: C.border }} />
