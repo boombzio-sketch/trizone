@@ -263,12 +263,11 @@ export default function WorkoutPage() {
                 {photos.map((p, i) => (
                   <div key={i} style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
                     <img src={p} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, display: 'block', outline: i === coverIndex ? `3px solid ${C.accent}` : 'none' }} />
-                    {i === coverIndex && (
+                    {i === coverIndex ? (
                       <div style={{ position: 'absolute', top: 4, left: 4, background: C.accent, borderRadius: 4, fontSize: 9, fontWeight: 800, color: '#fff', padding: '1px 5px' }}>대표</div>
+                    ) : (
+                      <button type="button" onClick={() => setCoverIndex(i)} style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 9, padding: '2px 5px', fontWeight: 700 }}>대표</button>
                     )}
-                    <button type="button" onClick={() => setCoverIndex(i)} style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 9, padding: '2px 5px', fontWeight: 700 }}>
-                      {i === coverIndex ? '✓' : '대표'}
-                    </button>
                     <button type="button" onClick={() => removePhoto(i)} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 20, height: 20, color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                   </div>
                 ))}
