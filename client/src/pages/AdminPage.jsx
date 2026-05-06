@@ -27,10 +27,10 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
-      {tab === 'pending' && <PendingTab />}
-      {tab === 'memberships' && <MembershipsTab />}
-      {tab === 'leaderApps' && <LeaderAppsTab />}
-      {tab === 'members' && <MembersTab user={user} />}
+      <div style={{ display: tab === 'pending' ? 'block' : 'none' }}><PendingTab /></div>
+      <div style={{ display: tab === 'memberships' ? 'block' : 'none' }}><MembershipsTab /></div>
+      <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab /></div>
+      <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} /></div>
     </div>
   )
 }

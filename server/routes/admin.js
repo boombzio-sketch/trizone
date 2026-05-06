@@ -50,13 +50,24 @@ router.put('/members/:id/role', (req, res) => {
 
 // 회원 삭제
 router.delete('/members/:id', (req, res) => {
-  if (Number(req.params.id) === req.user.id)
+  const uid = Number(req.params.id);
+  if (uid === req.user.id)
     return res.status(400).json({ error: '자신의 계정은 삭제할 수 없습니다.' });
-  prepare('DELETE FROM workout_logs WHERE user_id = ?').run(req.params.id);
-  prepare('DELETE FROM follows WHERE follower_id = ? OR following_id = ?').run(req.params.id, req.params.id);
-  prepare('DELETE FROM likes WHERE user_id = ?').run(req.params.id);
-  prepare('DELETE FROM comments WHERE user_id = ?').run(req.params.id);
-  prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  const user = prepare('SELECT id FROM users WHERE id = ?').get(uid);
+  if (!user) return res.status(404).json({ error: '존재하지 않는 회원입니다.' });
+
+  prepare('DELETE FROM workout_logs WHERE user_id = ?').run(uid);
+  prepare('DELETE FROM follows WHERE follower_id = ? OR following_id = ?').run(uid, uid);
+  prepare('DELETE FROM likes WHERE user_id = ?').run(uid);
+  prepare('DELETE FROM comments WHERE user_id = ?').run(uid);
+  prepare('DELETE FROM club_memberships WHERE user_id = ?').run(uid);
+  prepare('DELETE FROM club_leader_applications WHERE user_id = ?').run(uid);
+  prepare('DELETE FROM club_training_participants WHERE user_id = ?').run(uid);
+  prepare('DELETE FROM users WHERE id = ?').run(uid);
+
+  const check = prepare('SELECT id FROM users WHERE id = ?').get(uid);
+  if (check) return res.status(500).json({ error: '삭제에 실패했습니다.' });
+
   res.json({ ok: true });
 });
 
