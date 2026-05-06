@@ -33,6 +33,20 @@ router.post('/my-leader-app', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── 내 클럽 목록 ─────────────────────────────────────────────
+
+router.get('/mine', authMiddleware, (req, res) => {
+  const rows = prepare(`
+    SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color,
+           (SELECT COUNT(*) FROM club_memberships cm2 WHERE cm2.club_id=c.id AND cm2.status='approved') as member_count
+    FROM clubs c
+    LEFT JOIN users u ON c.leader_id=u.id
+    JOIN club_memberships cm ON cm.club_id=c.id AND cm.user_id=? AND cm.status='approved'
+    ORDER BY c.region, c.name
+  `).all(req.user.id);
+  res.json(rows);
+});
+
 // ── 클럽 목록 / 생성 ─────────────────────────────────────────
 
 router.get('/', authMiddleware, (req, res) => {

@@ -58,6 +58,7 @@ export const api = {
   leaveClub: () => request('/club/leave', { method: 'DELETE' }),
 
   // 다중 클럽
+  getMyClubs: () => request('/clubs/mine'),
   getClubs: (region) => request(`/clubs${region && region !== '전체' ? `?region=${encodeURIComponent(region)}` : ''}`),
   getClub: (id) => request(`/clubs/${id}`),
   createClub: (body) => request('/clubs', { method: 'POST', body }),

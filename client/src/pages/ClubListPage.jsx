@@ -10,6 +10,8 @@ export default function ClubListPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [clubs, setClubs] = useState([])
+  const [myClubs, setMyClubs] = useState([])
+  const [filterMode, setFilterMode] = useState('my') // 'my' | 'region'
   const [region, setRegion] = useState('전체')
   const [loading, setLoading] = useState(true)
   const [leaderApp, setLeaderApp] = useState(null)
@@ -23,17 +25,23 @@ export default function ClubListPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => { loadAll() }, [])
-  useEffect(() => { loadClubs() }, [region])
+  useEffect(() => { if (filterMode === 'region') loadClubs() }, [region, filterMode])
 
   async function loadAll() {
     try {
-      const [clubsData, leaderData] = await Promise.all([
-        api.getClubs(region),
+      const [myClubsData, leaderData] = await Promise.all([
+        api.getMyClubs(),
         api.getMyLeaderApp(),
       ])
-      setClubs(clubsData)
+      setMyClubs(myClubsData)
       setLeaderApp(leaderData.application)
       setMyClub(leaderData.club)
+      // 가입 클럽이 없으면 전체 보기로
+      if (myClubsData.length === 0) {
+        setFilterMode('region')
+        const all = await api.getClubs('전체')
+        setClubs(all)
+      }
     } finally { setLoading(false) }
   }
 
@@ -103,16 +111,28 @@ export default function ClubListPage() {
           </div>
         </div>
 
-        {/* 지역 필터 */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-          {REGIONS.map(r => (
-            <button key={r} onClick={() => setRegion(r)} style={{
-              padding: '5px 12px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer',
-              background: region === r ? C.accent : C.surfaceAlt,
-              color: region === r ? '#fff' : C.text2,
-              fontSize: 12, fontWeight: 700, flexShrink: 0,
-            }}>{r}</button>
-          ))}
+        {/* 필터 */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={() => setFilterMode('my')} style={{
+            padding: '7px 16px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0,
+            background: filterMode === 'my' ? C.accent : C.surfaceAlt,
+            color: filterMode === 'my' ? '#fff' : C.text2,
+            fontSize: 12, fontWeight: 700,
+          }}>내 클럽</button>
+          <select
+            value={filterMode === 'region' ? region : ''}
+            onChange={e => { setFilterMode('region'); setRegion(e.target.value) }}
+            onClick={() => { if (filterMode !== 'region') { setFilterMode('region'); loadClubs() } }}
+            style={{
+              flex: 1, padding: '7px 12px', background: filterMode === 'region' ? C.accentBg : C.surfaceAlt,
+              border: `1px solid ${filterMode === 'region' ? C.accentBorder : C.border}`,
+              borderRadius: 10, color: filterMode === 'region' ? C.accent : C.text2,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', outline: 'none',
+              appearance: 'none', backgroundImage: 'none',
+            }}
+          >
+            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
         </div>
       </div>
 
@@ -182,14 +202,20 @@ export default function ClubListPage() {
       {/* 클럽 목록 */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
-      ) : clubs.length === 0 ? (
+      ) : filterMode === 'my' && myClubs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>가입된 클럽이 없습니다</div>
+          <div style={{ fontSize: 12, color: C.text3, marginTop: 6 }}>지역을 선택해 클럽을 찾아보세요</div>
+        </div>
+      ) : filterMode === 'region' && clubs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
           <div style={{ fontSize: 14, fontWeight: 600 }}>{region === '전체' ? '등록된 클럽이 없습니다' : `${region}에 등록된 클럽이 없습니다`}</div>
         </div>
       ) : (
         <div style={{ padding: '10px 12px' }}>
-          {clubs.map(club => (
+          {(filterMode === 'my' ? myClubs : clubs).map(club => (
             <div key={club.id} onClick={() => navigate(`/clubs/${club.id}`)}
               style={{ background: C.surface, borderRadius: 16, marginBottom: 10, padding: '14px 16px', cursor: 'pointer', border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.accent}` }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
