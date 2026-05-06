@@ -28,6 +28,23 @@ router.post('/', authMiddleware, adminMiddleware, (req, res) => {
   res.json(row);
 });
 
+// 대회 수정 (admin)
+router.put('/:id', authMiddleware, adminMiddleware, (req, res) => {
+  const { name, date, location, distance, entry_fee, reg_url, capacity, reg_start, reg_end } = req.body;
+  if (!name || !date || !location || !distance)
+    return res.status(400).json({ error: '대회명, 날짜, 장소, 종목은 필수입니다.' });
+
+  const row = prepare('SELECT id FROM races WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: '대회를 찾을 수 없습니다.' });
+
+  prepare(`
+    UPDATE races SET name=?, date=?, location=?, distance=?, entry_fee=?, reg_url=?, capacity=?, reg_start=?, reg_end=?
+    WHERE id=?
+  `).run(name, date, location, distance, entry_fee || 0, reg_url || '', capacity || 0, reg_start || '', reg_end || '', req.params.id);
+
+  res.json(prepare('SELECT * FROM races WHERE id = ?').get(req.params.id));
+});
+
 // 대회 삭제 (admin)
 router.delete('/:id', authMiddleware, adminMiddleware, (req, res) => {
   const row = prepare('SELECT id FROM races WHERE id = ?').get(req.params.id);

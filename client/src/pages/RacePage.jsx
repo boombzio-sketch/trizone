@@ -14,11 +14,20 @@ const DIST_MAP = Object.fromEntries(DISTANCES.map(d => [d.key, d]))
 
 const empty = { name: '', date: '', location: '', distance: 'olympic', entry_fee: '', reg_url: '', capacity: '', reg_start: '', reg_end: '' }
 
+function raceToForm(r) {
+  return {
+    name: r.name, date: r.date, location: r.location, distance: r.distance,
+    entry_fee: r.entry_fee || '', reg_url: r.reg_url || '',
+    capacity: r.capacity || '', reg_start: r.reg_start || '', reg_end: r.reg_end || '',
+  }
+}
+
 export default function RacePage() {
   const { user } = useAuth()
   const [races, setRaces] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null) // null = 신규, id = 수정
   const [form, setForm] = useState(empty)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -33,17 +42,23 @@ export default function RacePage() {
 
   function f(k) { return e => setForm(p => ({ ...p, [k]: e.target.value })) }
 
+  function openNew() { setEditingId(null); setForm(empty); setError(''); setShowForm(true) }
+  function openEdit(race) { setEditingId(race.id); setForm(raceToForm(race)); setError(''); setShowForm(true) }
+  function closeForm() { setShowForm(false); setEditingId(null); setForm(empty); setError('') }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true); setError('')
+    const body = { ...form, entry_fee: parseInt(form.entry_fee) || 0, capacity: parseInt(form.capacity) || 0 }
     try {
-      const race = await api.addRace({
-        ...form,
-        entry_fee: parseInt(form.entry_fee) || 0,
-        capacity: parseInt(form.capacity) || 0,
-      })
-      setRaces(prev => [...prev, race].sort((a, b) => a.date.localeCompare(b.date)))
-      setForm(empty); setShowForm(false)
+      if (editingId) {
+        const updated = await api.updateRace(editingId, body)
+        setRaces(prev => prev.map(r => r.id === editingId ? updated : r).sort((a, b) => a.date.localeCompare(b.date)))
+      } else {
+        const race = await api.addRace(body)
+        setRaces(prev => [...prev, race].sort((a, b) => a.date.localeCompare(b.date)))
+      }
+      closeForm()
     } catch(e) { setError(e.message) }
     finally { setSaving(false) }
   }
@@ -52,6 +67,7 @@ export default function RacePage() {
     if (!confirm('이 대회를 삭제할까요?')) return
     await api.deleteRace(id)
     setRaces(prev => prev.filter(r => r.id !== id))
+    if (editingId === id) closeForm()
   }
 
   const today = new Date().toISOString().slice(0, 10)
@@ -67,7 +83,7 @@ export default function RacePage() {
           <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>예정 {upcoming.length}개 · 종료 {past.length}개</div>
         </div>
         {user?.role === 'admin' && (
-          <button onClick={() => { setShowForm(s => !s); setError('') }} style={{
+          <button onClick={showForm ? closeForm : openNew} style={{
             padding: '8px 16px', border: 'none', borderRadius: 100,
             background: showForm ? C.surfaceAlt : C.accent,
             color: showForm ? C.text2 : '#fff',
@@ -81,7 +97,7 @@ export default function RacePage() {
       {/* 등록 폼 */}
       {showForm && (
         <form onSubmit={handleSubmit} style={{ margin: '12px', background: C.surface, borderRadius: 18, padding: 18, border: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 16 }}>새 대회 등록</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 16 }}>{editingId ? '대회 수정' : '새 대회 등록'}</div>
 
           <Field label="대회명 *">
             <input value={form.name} onChange={f('name')} placeholder="예: 2026 부산 철인3종" required style={iSt} />
@@ -144,7 +160,7 @@ export default function RacePage() {
             color: saving ? C.text2 : '#fff',
             fontSize: 14, fontWeight: 800, cursor: saving ? 'default' : 'pointer',
           }}>
-            {saving ? '등록 중...' : '💾 대회 등록'}
+            {saving ? '저장 중...' : editingId ? '💾 수정 저장' : '💾 대회 등록'}
           </button>
         </form>
       )}
@@ -163,13 +179,13 @@ export default function RacePage() {
           {upcoming.length > 0 && (
             <>
               <SectionLabel>예정 대회</SectionLabel>
-              {upcoming.map(r => <RaceCard key={r.id} race={r} isAdmin={user?.role === 'admin'} onDelete={handleDelete} today={today} />)}
+              {upcoming.map(r => <RaceCard key={r.id} race={r} isAdmin={user?.role === 'admin'} onEdit={openEdit} onDelete={handleDelete} today={today} />)}
             </>
           )}
           {past.length > 0 && (
             <>
               <SectionLabel style={{ marginTop: upcoming.length > 0 ? 16 : 0 }}>종료된 대회</SectionLabel>
-              {past.map(r => <RaceCard key={r.id} race={r} isAdmin={user?.role === 'admin'} onDelete={handleDelete} today={today} isPast />)}
+              {past.map(r => <RaceCard key={r.id} race={r} isAdmin={user?.role === 'admin'} onEdit={openEdit} onDelete={handleDelete} today={today} isPast />)}
             </>
           )}
         </div>
@@ -178,7 +194,7 @@ export default function RacePage() {
   )
 }
 
-function RaceCard({ race: r, isAdmin, onDelete, isPast }) {
+function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
   const dist = DIST_MAP[r.distance] || { label: r.distance, color: C.accent, sub: '' }
   const regOpen = r.reg_start && r.reg_end
     ? `${r.reg_start} ~ ${r.reg_end}`
@@ -204,7 +220,10 @@ function RaceCard({ race: r, isAdmin, onDelete, isPast }) {
             <div style={{ fontSize: 10, color: dist.color, marginTop: 2 }}>{dist.sub}</div>
           </div>
           {isAdmin && (
-            <button onClick={() => onDelete(r.id)} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0 }}>🗑️</button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button onClick={() => onEdit(r)} style={{ background: C.accentBg, border: 'none', borderRadius: 8, color: C.accent, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '4px 10px' }}>수정</button>
+              <button onClick={() => onDelete(r.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 8, color: C.error, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '4px 10px' }}>삭제</button>
+            </div>
           )}
         </div>
 

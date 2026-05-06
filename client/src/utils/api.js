@@ -48,6 +48,7 @@ export const api = {
   // 대회
   getRaces: () => request('/races'),
   addRace: (body) => request('/races', { method: 'POST', body }),
+  updateRace: (id, body) => request(`/races/${id}`, { method: 'PUT', body }),
   deleteRace: (id) => request(`/races/${id}`, { method: 'DELETE' }),
 
   // 클럽 멤버십
