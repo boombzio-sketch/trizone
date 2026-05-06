@@ -36,12 +36,6 @@ export default function ClubListPage() {
       setMyClubs(myClubsData)
       setLeaderApp(leaderData.application)
       setMyClub(leaderData.club)
-      // 가입 클럽이 없으면 전체 보기로
-      if (myClubsData.length === 0) {
-        setFilterMode('region')
-        const all = await api.getClubs('전체')
-        setClubs(all)
-      }
     } finally { setLoading(false) }
   }
 
