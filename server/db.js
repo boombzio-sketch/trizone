@@ -1,29 +1,49 @@
-const path = require('path');
-const fs = require('fs');
-const initSqlJs = require('sql.js');
+const { Pool, types } = require('pg');
 
-const DB_PATH = path.join(__dirname, 'trizone.db');
-let db;
+// Return DATE / TIMESTAMP / TIMESTAMPTZ as ISO strings (matches existing frontend
+// usage patterns like `value?.slice(0, 10)`), instead of JS Date objects.
+types.setTypeParser(1082, v => v);          // DATE
+types.setTypeParser(1114, v => v);          // TIMESTAMP without time zone
+types.setTypeParser(1184, v => v);          // TIMESTAMPTZ
+// BIGINT (INT8) → Number — IDs aren't going to overflow JS safe int range here.
+types.setTypeParser(20, v => v === null ? null : parseInt(v, 10));
+// NUMERIC (1700) → Number — SUM(distance_km) etc. land here when REAL is summed.
+types.setTypeParser(1700, v => v === null ? null : parseFloat(v));
+
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL 환경변수가 설정되지 않았습니다. .env 또는 호스팅 환경변수에 Neon connection string을 넣어주세요.');
+  process.exit(1);
+}
+
+const isLocal = /(?:localhost|127\.0\.0\.1)/.test(process.env.DATABASE_URL);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: isLocal ? false : { rejectUnauthorized: false },
+});
+
+// Translate the small subset of SQLite-flavored SQL the codebase uses into Postgres.
+//   1. `?` positional placeholders → `$1, $2, …`
+//   2. `strftime('%Y-%m', col)` → `to_char(col, 'YYYY-MM')`
+function translate(sql) {
+  let i = 0;
+  let out = sql.replace(/\?/g, () => `$${++i}`);
+  out = out.replace(/strftime\s*\(\s*'%Y-%m'\s*,\s*([^)]+)\)/gi, "to_char($1, 'YYYY-MM')");
+  return out;
+}
 
 async function initDb() {
-  const SQL = await initSqlJs();
-  if (fs.existsSync(DB_PATH)) {
-    db = new SQL.Database(fs.readFileSync(DB_PATH));
-  } else {
-    db = new SQL.Database();
-  }
-
-  db.run(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nickname TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT DEFAULT 'member',
       avatar_color TEXT DEFAULT '#4DB8FF',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      avatar_image TEXT DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS workout_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
       sport_type TEXT NOT NULL,
       logged_at DATE NOT NULL,
@@ -39,67 +59,80 @@ async function initDb() {
       score REAL DEFAULT 0,
       status TEXT DEFAULT 'approved',
       photo TEXT DEFAULT '',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      photos TEXT DEFAULT '[]',
+      cover_photo_index INTEGER DEFAULT 0,
+      visibility TEXT DEFAULT 'public',
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS club_info (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL DEFAULT '우리 클럽',
       description TEXT DEFAULT '',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS clubs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT DEFAULT '',
       region TEXT DEFAULT '',
       leader_id INTEGER,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS club_memberships (
+      id SERIAL PRIMARY KEY,
+      club_id INTEGER NOT NULL DEFAULT 1,
+      user_id INTEGER NOT NULL,
+      status TEXT DEFAULT 'pending',
+      message TEXT DEFAULT '',
+      applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(club_id, user_id)
     );
     CREATE TABLE IF NOT EXISTS club_leader_applications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL UNIQUE,
       message TEXT DEFAULT '',
       status TEXT DEFAULT 'pending',
-      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS announcements (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       body TEXT DEFAULT '',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS club_announcements (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       club_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       body TEXT DEFAULT '',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS follows (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       follower_id INTEGER NOT NULL,
       following_id INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(follower_id, following_id)
     );
     CREATE TABLE IF NOT EXISTS likes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       workout_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(workout_id, user_id)
     );
     CREATE TABLE IF NOT EXISTS comments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       workout_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       body TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      parent_id INTEGER DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS races (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       date DATE NOT NULL,
       location TEXT NOT NULL,
@@ -107,35 +140,13 @@ async function initDb() {
       entry_fee INTEGER DEFAULT 0,
       reg_url TEXT DEFAULT '',
       capacity INTEGER DEFAULT 0,
-      reg_start DATE DEFAULT '',
-      reg_end DATE DEFAULT '',
+      reg_start DATE,
+      reg_end DATE,
       created_by INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
-  `);
-
-  // club_info 초기 데이터
-  const clubCheck = db.exec("SELECT id FROM club_info LIMIT 1");
-  if (!clubCheck.length || !clubCheck[0].values.length) {
-    db.run("INSERT INTO club_info (name, description) VALUES (?, ?)",
-      ['KTA CREW', '코리아 트라이애슬론 아카데미 크루']);
-  }
-
-  // ── 마이그레이션 ──────────────────────────────────────────
-
-  // 1. workout_logs 컬럼
-  try { db.run("ALTER TABLE workout_logs ADD COLUMN status TEXT DEFAULT 'approved'") } catch {}
-  try { db.run("ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL") } catch {}
-  try { db.run("ALTER TABLE users ADD COLUMN avatar_image TEXT DEFAULT NULL") } catch {}
-  try { db.run("ALTER TABLE workout_logs ADD COLUMN photo TEXT DEFAULT ''") } catch {}
-  try { db.run("ALTER TABLE workout_logs ADD COLUMN visibility TEXT DEFAULT 'public'") } catch {}
-  try { db.run("ALTER TABLE workout_logs ADD COLUMN photos TEXT DEFAULT '[]'") } catch {}
-  try { db.run("ALTER TABLE workout_logs ADD COLUMN cover_photo_index INTEGER DEFAULT 0") } catch {}
-
-  // 훈련 모집 테이블
-  try {
-    db.run(`CREATE TABLE IF NOT EXISTS club_trainings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CREATE TABLE IF NOT EXISTS club_trainings (
+      id SERIAL PRIMARY KEY,
       club_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       train_date DATE NOT NULL,
@@ -145,118 +156,89 @@ async function initDb() {
       capacity INTEGER DEFAULT 0,
       link_url TEXT DEFAULT '',
       created_by INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`)
-    db.run(`CREATE TABLE IF NOT EXISTS club_training_participants (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS club_training_participants (
+      id SERIAL PRIMARY KEY,
       training_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       status TEXT DEFAULT 'joined',
-      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(training_id, user_id)
-    )`)
-  } catch {}
+    );
+  `);
 
-  // 2. club_memberships 재구성 (club_id + 복합 UNIQUE)
-  try {
-    const cols = db.exec("PRAGMA table_info(club_memberships)");
-    const hasClubId = cols.length > 0 && cols[0].values.some(r => r[1] === 'club_id');
-    if (!hasClubId) {
-      db.run(`CREATE TABLE IF NOT EXISTS club_memberships (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        club_id INTEGER NOT NULL DEFAULT 1,
-        user_id INTEGER NOT NULL,
-        status TEXT DEFAULT 'pending',
-        message TEXT DEFAULT '',
-        applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(club_id, user_id)
-      )`);
-    }
-  } catch {}
+  // Seed default club_info row
+  const clubCheck = await pool.query('SELECT id FROM club_info LIMIT 1');
+  if (clubCheck.rowCount === 0) {
+    await pool.query(
+      'INSERT INTO club_info (name, description) VALUES ($1, $2)',
+      ['KTA CREW', '코리아 트라이애슬론 아카데미 크루']
+    );
+  }
 
-  // 기존 단일 club_memberships 테이블이 user_id UNIQUE인 경우 재생성
-  try {
-    const idx = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='club_memberships'");
-    if (idx.length && idx[0].values[0][0] && !idx[0].values[0][0].includes('club_id')) {
-      db.run(`CREATE TABLE club_memberships_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        club_id INTEGER NOT NULL DEFAULT 1,
-        user_id INTEGER NOT NULL,
-        status TEXT DEFAULT 'pending',
-        message TEXT DEFAULT '',
-        applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(club_id, user_id)
-      )`);
-      db.run("INSERT OR IGNORE INTO club_memberships_new (id, club_id, user_id, status, message, applied_at) SELECT id, 1, user_id, status, message, applied_at FROM club_memberships");
-      db.run("DROP TABLE club_memberships");
-      db.run("ALTER TABLE club_memberships_new RENAME TO club_memberships");
-    }
-  } catch {}
+  // Existing users → approved membership in club id=1
+  await pool.query(`
+    INSERT INTO club_memberships (club_id, user_id, status)
+    SELECT 1, id, 'approved' FROM users
+    ON CONFLICT (club_id, user_id) DO NOTHING
+  `);
 
-  // 3. clubs 테이블에 기존 club_info 마이그레이션
-  try {
-    const cnt = db.exec("SELECT COUNT(*) FROM clubs");
-    if (cnt[0].values[0][0] === 0) {
-      const old = db.exec("SELECT name, description FROM club_info LIMIT 1");
-      if (old.length && old[0].values.length) {
-        const [name, desc] = old[0].values[0];
-        const adminU = db.exec("SELECT id FROM users WHERE role='admin' LIMIT 1");
-        const leaderId = adminU[0]?.values[0]?.[0] || null;
-        db.run("INSERT INTO clubs (id, name, description, region, leader_id) VALUES (1, ?, ?, '', ?)", [name, desc, leaderId]);
-      }
-    }
-  } catch {}
+  // Admins → auto-approved leader application
+  await pool.query(`
+    INSERT INTO club_leader_applications (user_id, status)
+    SELECT id, 'approved' FROM users WHERE role='admin'
+    ON CONFLICT (user_id) DO NOTHING
+  `);
 
-  // 4. club_announcements에 기존 announcements 마이그레이션
-  try {
-    const cnt = db.exec("SELECT COUNT(*) FROM club_announcements");
-    if (cnt[0].values[0][0] === 0) {
-      db.run("INSERT INTO club_announcements (club_id, user_id, title, body, created_at) SELECT 1, user_id, title, body, created_at FROM announcements");
-    }
-  } catch {}
+  // Club leaders → membership in their own clubs
+  await pool.query(`
+    INSERT INTO club_memberships (club_id, user_id, status)
+    SELECT id, leader_id, 'approved' FROM clubs WHERE leader_id IS NOT NULL
+    ON CONFLICT (club_id, user_id) DO NOTHING
+  `);
 
-  // 5. 기존 유저 club_id=1에 승인 처리
-  db.run("INSERT OR IGNORE INTO club_memberships (club_id, user_id, status) SELECT 1, id, 'approved' FROM users");
-
-  // 6. admin 유저 클럽장 신청 자동 승인
-  db.run("INSERT OR IGNORE INTO club_leader_applications (user_id, status) SELECT id, 'approved' FROM users WHERE role='admin'");
-
-  // 7. 클럽장을 클럽 멤버십에 추가 (누락된 경우)
-  db.run("INSERT OR IGNORE INTO club_memberships (club_id, user_id, status) SELECT id, leader_id, 'approved' FROM clubs WHERE leader_id IS NOT NULL");
-
-  saveDb();
-  console.log('✅ DB 초기화 완료');
+  console.log('✅ Postgres DB 초기화 완료');
 }
 
-function saveDb() {
-  if (!db) return;
-  fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
-}
+// Tiny wrapper that mimics the old better-sqlite3 / sql.js API surface
+// (`prepare(sql).get/all/run`) but resolves to Postgres. Callers must `await`.
+function prepare(rawSql) {
+  const wasOrIgnore = /^\s*INSERT\s+OR\s+IGNORE\s+/i.test(rawSql);
+  const cleaned = rawSql.replace(/^\s*INSERT\s+OR\s+IGNORE\s+/i, 'INSERT ');
+  const sql = translate(cleaned);
+  const isInsert = /^\s*INSERT\b/i.test(sql);
 
-function prepare(sql) {
   return {
-    get(...params) {
-      const res = db.exec(sql, params);
-      if (!res.length || !res[0].values.length) return undefined;
-      const cols = res[0].columns;
-      return Object.fromEntries(cols.map((c, i) => [c, res[0].values[0][i]]));
+    async get(...params) {
+      const { rows } = await pool.query(sql, params);
+      return rows[0];
     },
-    all(...params) {
-      const res = db.exec(sql, params);
-      if (!res.length) return [];
-      const cols = res[0].columns;
-      return res[0].values.map(row => Object.fromEntries(cols.map((c, i) => [c, row[i]])));
+    async all(...params) {
+      const { rows } = await pool.query(sql, params);
+      return rows;
     },
-    run(...params) {
-      db.run(sql, params);
-      const res = db.exec("SELECT last_insert_rowid() as id");
-      const lastId = res[0]?.values[0]?.[0] || 0;
-      saveDb();
-      return { lastInsertRowid: lastId };
-    }
+    async run(...params) {
+      let finalSql = sql;
+      if (isInsert) {
+        if (wasOrIgnore && !/\bON\s+CONFLICT\b/i.test(finalSql)) {
+          finalSql += ' ON CONFLICT DO NOTHING';
+        }
+        if (!/\bRETURNING\b/i.test(finalSql)) {
+          finalSql += ' RETURNING id';
+        }
+      }
+      const result = await pool.query(finalSql, params);
+      return {
+        lastInsertRowid: result.rows[0]?.id || 0,
+        changes: result.rowCount,
+      };
+    },
   };
 }
 
-function exec(sql) { db.run(sql); saveDb(); }
+async function exec(sql) {
+  await pool.query(sql);
+}
 
-module.exports = { initDb, prepare, exec, saveDb };
+module.exports = { initDb, prepare, exec, pool };

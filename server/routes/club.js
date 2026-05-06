@@ -4,52 +4,52 @@ const { authMiddleware, adminMiddleware } = require('../middleware');
 const db = { prepare };
 
 // 클럽 정보
-router.get('/info', authMiddleware, (req, res) => {
-  const info = db.prepare('SELECT * FROM club_info LIMIT 1').get();
-  const memberCount = db.prepare("SELECT COUNT(*) as cnt FROM club_memberships WHERE status='approved'").get();
+router.get('/info', authMiddleware, async (req, res) => {
+  const info = await db.prepare('SELECT * FROM club_info LIMIT 1').get();
+  const memberCount = await db.prepare("SELECT COUNT(*)::int as cnt FROM club_memberships WHERE status='approved'").get();
   res.json({ ...info, member_count: memberCount.cnt });
 });
 
 // 클럽 정보 수정 (admin)
-router.put('/info', authMiddleware, adminMiddleware, (req, res) => {
+router.put('/info', authMiddleware, adminMiddleware, async (req, res) => {
   const { name, description } = req.body;
-  db.prepare('UPDATE club_info SET name=?, description=? WHERE id=1').run(name, description);
+  await db.prepare('UPDATE club_info SET name=?, description=? WHERE id=1').run(name, description);
   res.json({ ok: true });
 });
 
 // 내 가입 상태
-router.get('/membership', authMiddleware, (req, res) => {
-  const m = db.prepare('SELECT * FROM club_memberships WHERE user_id=?').get(req.user.id);
+router.get('/membership', authMiddleware, async (req, res) => {
+  const m = await db.prepare('SELECT * FROM club_memberships WHERE user_id=?').get(req.user.id);
   res.json(m || { status: null });
 });
 
 // 가입 신청
-router.post('/join', authMiddleware, (req, res) => {
+router.post('/join', authMiddleware, async (req, res) => {
   const { message } = req.body;
-  const existing = db.prepare('SELECT * FROM club_memberships WHERE user_id=?').get(req.user.id);
+  const existing = await db.prepare('SELECT * FROM club_memberships WHERE user_id=?').get(req.user.id);
   if (existing?.status === 'approved') return res.status(400).json({ error: '이미 클럽 회원입니다.' });
   if (existing?.status === 'pending') return res.status(400).json({ error: '이미 가입 신청 중입니다.' });
 
   if (existing) {
-    db.prepare("UPDATE club_memberships SET status='pending', message=?, applied_at=CURRENT_TIMESTAMP WHERE user_id=?")
+    await db.prepare("UPDATE club_memberships SET status='pending', message=?, applied_at=CURRENT_TIMESTAMP WHERE user_id=?")
       .run(message || '', req.user.id);
   } else {
-    db.prepare("INSERT INTO club_memberships (user_id, status, message) VALUES (?, 'pending', ?)")
+    await db.prepare("INSERT INTO club_memberships (user_id, status, message) VALUES (?, 'pending', ?)")
       .run(req.user.id, message || '');
   }
   res.json({ ok: true });
 });
 
 // 클럽 탈퇴
-router.delete('/leave', authMiddleware, (req, res) => {
+router.delete('/leave', authMiddleware, async (req, res) => {
   if (req.user.role === 'admin') return res.status(400).json({ error: '클럽장은 탈퇴할 수 없습니다.' });
-  db.prepare("UPDATE club_memberships SET status='left' WHERE user_id=?").run(req.user.id);
+  await db.prepare("UPDATE club_memberships SET status='left' WHERE user_id=?").run(req.user.id);
   res.json({ ok: true });
 });
 
 // 승인된 회원 목록
-router.get('/members', authMiddleware, (req, res) => {
-  const members = db.prepare(`
+router.get('/members', authMiddleware, async (req, res) => {
+  const members = await db.prepare(`
     SELECT u.id, u.nickname, u.role, u.avatar_color, u.created_at,
            COUNT(w.id) as total_workouts,
            COALESCE(SUM(w.distance_km), 0) as total_km
@@ -63,16 +63,16 @@ router.get('/members', authMiddleware, (req, res) => {
 });
 
 // 회원 역할 변경 (admin)
-router.put('/members/:id/role', authMiddleware, adminMiddleware, (req, res) => {
+router.put('/members/:id/role', authMiddleware, adminMiddleware, async (req, res) => {
   const { role } = req.body;
   if (!['admin','member'].includes(role)) return res.status(400).json({ error: '잘못된 역할입니다.' });
-  db.prepare('UPDATE users SET role=? WHERE id=?').run(role, req.params.id);
+  await db.prepare('UPDATE users SET role=? WHERE id=?').run(role, Number(req.params.id));
   res.json({ ok: true });
 });
 
 // 공지사항 목록
-router.get('/announcements', authMiddleware, (req, res) => {
-  const rows = db.prepare(`
+router.get('/announcements', authMiddleware, async (req, res) => {
+  const rows = await db.prepare(`
     SELECT a.*, u.nickname, u.avatar_color
     FROM announcements a JOIN users u ON a.user_id = u.id
     ORDER BY a.created_at DESC LIMIT 20
@@ -81,16 +81,16 @@ router.get('/announcements', authMiddleware, (req, res) => {
 });
 
 // 공지사항 작성 (admin)
-router.post('/announcements', authMiddleware, adminMiddleware, (req, res) => {
+router.post('/announcements', authMiddleware, adminMiddleware, async (req, res) => {
   const { title, body } = req.body;
   if (!title) return res.status(400).json({ error: '제목을 입력하세요.' });
-  const result = db.prepare('INSERT INTO announcements (user_id, title, body) VALUES (?,?,?)').run(req.user.id, title, body || '');
+  const result = await db.prepare('INSERT INTO announcements (user_id, title, body) VALUES (?,?,?)').run(req.user.id, title, body || '');
   res.json({ id: result.lastInsertRowid });
 });
 
 // 공지사항 삭제 (admin)
-router.delete('/announcements/:id', authMiddleware, adminMiddleware, (req, res) => {
-  db.prepare('DELETE FROM announcements WHERE id=?').run(req.params.id);
+router.delete('/announcements/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  await db.prepare('DELETE FROM announcements WHERE id=?').run(Number(req.params.id));
   res.json({ ok: true });
 });
 

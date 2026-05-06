@@ -1,3 +1,5 @@
+require('dotenv').config();
+require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
 const { initDb } = require('./db');
@@ -24,6 +26,11 @@ initDb().then(() => {
   app.use('/api/races',   require('./routes/races'));
   app.use('/api/clubs',   require('./routes/clubs'));
   app.get('/api/health',  (req, res) => res.json({ ok: true }));
+
+  app.use((err, req, res, _next) => {
+    console.error('[server error]', err);
+    res.status(500).json({ error: err.message || '서버 오류' });
+  });
 
   app.listen(PORT, () => {
     console.log(`✅ TRIZONE 서버 실행 중 → http://localhost:${PORT}`);

@@ -47,17 +47,17 @@ function calcDistances(workouts) {
 }
 
 // 랭킹
-router.get('/', authMiddleware, (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   const { period = 'weekly', sport = 'all', from: qFrom, to: qTo } = req.query;
   const { from, to } = (qFrom && qTo) ? { from: qFrom, to: qTo } : getDateRange(period);
 
-  const workouts = prepare(`
+  const workouts = await prepare(`
     SELECT user_id, sport_type, distance_km, brick_segments
     FROM workout_logs WHERE logged_at BETWEEN ? AND ? AND status = 'approved'
   `).all(from, to);
 
   const distStats = calcDistances(workouts);
-  const users = prepare('SELECT id as user_id, nickname, avatar_color FROM users').all();
+  const users = await prepare('SELECT id as user_id, nickname, avatar_color FROM users').all();
 
   let rankings = users.map(u => {
     const s = distStats[u.user_id] || { swim: 0, bike: 0, run: 0, count: 0 };
@@ -82,10 +82,10 @@ router.get('/', authMiddleware, (req, res) => {
 });
 
 // 클럽 대시보드
-router.get('/dashboard', authMiddleware, (req, res) => {
+router.get('/dashboard', authMiddleware, async (req, res) => {
   const { from, to } = getDateRange('weekly');
 
-  const workouts = prepare(`
+  const workouts = await prepare(`
     SELECT user_id, sport_type, distance_km, brick_segments
     FROM workout_logs WHERE logged_at BETWEEN ? AND ? AND status = 'approved'
   `).all(from, to);
@@ -100,9 +100,9 @@ router.get('/dashboard', authMiddleware, (req, res) => {
   }
 
   const today = new Date().toISOString().slice(0,10);
-  const todayCount = prepare("SELECT COUNT(DISTINCT user_id) as cnt FROM workout_logs WHERE logged_at=? AND status='approved'").get(today);
+  const todayCount = await prepare("SELECT COUNT(DISTINCT user_id)::int as cnt FROM workout_logs WHERE logged_at=? AND status='approved'").get(today);
 
-  const heatmap = prepare(`
+  const heatmap = await prepare(`
     SELECT u.id as user_id, u.nickname, u.avatar_color, w.logged_at,
            SUM(w.distance_km) as day_score
     FROM users u
