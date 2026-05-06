@@ -19,13 +19,21 @@ router.get('/members', (req, res) => {
 
 // 회원 정보 수정
 router.put('/members/:id', (req, res) => {
-  const { nickname, avatar_color } = req.body;
+  const { nickname, avatar_color, password } = req.body;
   if (!nickname?.trim()) return res.status(400).json({ error: '닉네임을 입력하세요.' });
 
   const exists = prepare('SELECT id FROM users WHERE nickname=? AND id!=?').get(nickname.trim(), req.params.id);
   if (exists) return res.status(409).json({ error: '이미 사용 중인 닉네임입니다.' });
 
-  prepare('UPDATE users SET nickname=?, avatar_color=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', req.params.id);
+  if (password) {
+    if (password.length < 4) return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
+    const bcrypt = require('bcryptjs');
+    const hash = bcrypt.hashSync(password, 10);
+    prepare('UPDATE users SET nickname=?, avatar_color=?, password_hash=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', hash, req.params.id);
+  } else {
+    prepare('UPDATE users SET nickname=?, avatar_color=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', req.params.id);
+  }
+
   res.json(prepare('SELECT id, nickname, role, avatar_color, created_at FROM users WHERE id=?').get(req.params.id));
 });
 

@@ -233,7 +233,7 @@ function MembersTab({ user: currentUser }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingMember, setEditingMember] = useState(null)
-  const [editForm, setEditForm] = useState({ nickname: '', avatar_color: '' })
+  const [editForm, setEditForm] = useState({ nickname: '', avatar_color: '', password: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
 
@@ -247,7 +247,7 @@ function MembersTab({ user: currentUser }) {
 
   function openEdit(m) {
     setEditingMember(m)
-    setEditForm({ nickname: m.nickname, avatar_color: m.avatar_color })
+    setEditForm({ nickname: m.nickname, avatar_color: m.avatar_color, password: '' })
     setEditError('')
   }
 
@@ -292,6 +292,13 @@ function MembersTab({ user: currentUser }) {
             <div style={{ marginBottom: 14 }}>
               <label style={labelSt}>닉네임</label>
               <input value={editForm.nickname} onChange={e => setEditForm(p => ({...p, nickname: e.target.value}))}
+                style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit' }} />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelSt}>새 비밀번호 (변경 시만 입력)</label>
+              <input type="password" value={editForm.password} onChange={e => setEditForm(p => ({...p, password: e.target.value}))}
+                placeholder="4자 이상, 입력 안 하면 유지"
                 style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit' }} />
             </div>
 
