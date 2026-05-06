@@ -73,7 +73,8 @@ router.get('/feed', authMiddleware, (req, res) => {
     WHERE (
       w.user_id = ?
       OR (w.user_id IN (SELECT following_id FROM follows WHERE follower_id=?)
-          AND COALESCE(w.visibility,'public') IN ('public','followers'))
+          AND COALESCE(w.visibility,'public') IN ('public','followers')
+          AND w.status = 'approved')
     )
     ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
   `).all(req.user.id, req.user.id, req.user.id, Number(offset))
@@ -87,6 +88,7 @@ router.get('/feed/club', authMiddleware, (req, res) => {
     WHERE (
       w.user_id = ?
       OR (COALESCE(w.visibility,'public') IN ('public','club')
+          AND w.status = 'approved'
           AND EXISTS (
             SELECT 1 FROM club_memberships cm1
             JOIN club_memberships cm2 ON cm1.club_id = cm2.club_id
@@ -103,7 +105,7 @@ router.get('/feed/club', authMiddleware, (req, res) => {
 router.get('/feed/all', authMiddleware, (req, res) => {
   const { offset = 0 } = req.query
   const rows = db.prepare(`${FEED_COLS}
-    WHERE COALESCE(w.visibility,'public') = 'public'
+    WHERE COALESCE(w.visibility,'public') = 'public' AND w.status = 'approved'
     ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
   `).all(req.user.id, Number(offset))
   res.json(rows)
