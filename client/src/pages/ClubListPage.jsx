@@ -33,9 +33,14 @@ export default function ClubListPage() {
         api.getMyClubs(),
         api.getMyLeaderApp(),
       ])
-      setMyClubs(myClubsData)
       setLeaderApp(leaderData.application)
       setMyClub(leaderData.club)
+      // 가입 클럽이 1개면 바로 이동
+      if (myClubsData.length === 1) {
+        navigate(`/clubs/${myClubsData[0].id}`, { replace: true })
+        return
+      }
+      setMyClubs(myClubsData)
     } finally { setLoading(false) }
   }
 
