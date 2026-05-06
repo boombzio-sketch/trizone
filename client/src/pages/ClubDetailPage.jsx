@@ -646,7 +646,7 @@ export default function ClubDetailPage() {
 const iSt = { width: '100%', padding: '10px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }
 const labelSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }
 
-const WEEK_DAYS = ['월','화','수','목','금','토','일']
+const WEEK_DAYS = ['일','월','화','수','목','금','토']
 const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
 function TrainingCalendar({ trainings, participants, canManage, membership, onJoin, onLeave, onAttendance, onAbsent, onEdit, onDelete }) {
@@ -669,7 +669,7 @@ function TrainingCalendar({ trainings, participants, canManage, membership, onJo
   })
 
   const firstDow = new Date(year, month, 1).getDay()
-  const startOffset = (firstDow + 6) % 7
+  const startOffset = firstDow                        // 일요일 기준
   const daysInMonth = new Date(year, month+1, 0).getDate()
   const cells = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i+1)]
 
