@@ -5,8 +5,12 @@ const { initDb } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const ALLOWED_ORIGIN = process.env.CLIENT_URL || 'http://localhost:5173';
-app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'https://trizone-client.onrender.com',
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+];
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(express.json());
 
 initDb().then(() => {
