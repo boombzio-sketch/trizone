@@ -21,22 +21,20 @@ export default function RankingPage() {
   const [customFrom, setCustomFrom] = useState(today)
   const [customTo, setCustomTo] = useState(today)
   const [data, setData] = useState(null)
-  const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (period === 'custom' && (!customFrom || !customTo)) return
     setLoading(true)
-    const rankingParams = period === 'custom'
+    const call = period === 'custom'
       ? api.getRankingCustom(customFrom, customTo, sport)
       : api.getRanking(period, sport)
-    Promise.all([rankingParams, api.getDashboard()])
-      .then(([r, d]) => { setData(r); setDashboard(d) })
-      .finally(() => setLoading(false))
+    call.then(r => setData(r)).finally(() => setLoading(false))
   }, [period, sport, customFrom, customTo])
 
   const rankings = data?.rankings || []
   const myRank = rankings.findIndex(r => r.user_id === user?.id) + 1
+  const myData = rankings.find(r => r.user_id === user?.id) || null
 
   function getMainValue(row) {
     if (sport === 'swim') return `${(row.swim_km||0).toFixed(1)}km`
@@ -45,37 +43,39 @@ export default function RankingPage() {
     return `${(row.total_km||0).toFixed(1)}km`
   }
 
+  const periodLabel = PERIODS.find(p => p.key === period)?.label || ''
+
   return (
     <div>
-      {/* 클럽 대시보드 */}
-      {dashboard && (
-        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '16px 14px 14px' }}>
-          <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.07em' }}>이번 주 클럽 현황</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 8 }}>
-            {[
-              { label: '수영', val: (dashboard.totals?.swim_km||0).toFixed(1), unit: 'km', color: C.swim },
-              { label: '사이클', val: (dashboard.totals?.bike_km||0).toFixed(1), unit: 'km', color: C.bike },
-              { label: '런', val: (dashboard.totals?.run_km||0).toFixed(1), unit: 'km', color: C.run },
-            ].map(s => (
-              <div key={s.label} style={{ background: C.surfaceAlt, borderRadius: 14, padding: '12px 10px', borderLeft: `3px solid ${s.color}` }}>
-                <div style={{ fontSize: 10, color: s.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{s.val}</div>
-                <div style={{ fontSize: 9, color: C.text3, marginTop: 2 }}>{s.unit}</div>
-              </div>
-            ))}
+      {/* 나의 기록 */}
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '14px 14px 12px' }}>
+        <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          나의 기록 {data && `— ${data.from} ~ ${data.to}`}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 8 }}>
+          {[
+            { label: '수영', val: (myData?.swim_km||0).toFixed(2), color: C.swim },
+            { label: '사이클', val: (myData?.bike_km||0).toFixed(2), color: C.bike },
+            { label: '런', val: (myData?.run_km||0).toFixed(2), color: C.run },
+          ].map(s => (
+            <div key={s.label} style={{ background: C.surfaceAlt, borderRadius: 14, padding: '12px 10px', borderLeft: `3px solid ${s.color}` }}>
+              <div style={{ fontSize: 10, color: s.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{s.val}</div>
+              <div style={{ fontSize: 9, color: C.text3, marginTop: 2 }}>km</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: C.text2 }}>총 거리</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.accent }}>{(myData?.total_km||0).toFixed(2)}km</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: C.text2 }}>활성 회원</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{dashboard.totals?.active_members || 0}명</span>
-            </div>
-            <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: C.text2 }}>오늘 훈련</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: C.success }}>{dashboard.todayCount || 0}명</span>
-            </div>
+          <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: C.text2 }}>훈련 횟수</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{myData?.workout_count || 0}회</span>
           </div>
         </div>
-      )}
+      </div>
 
       {/* 기간 필터 */}
       <div style={{ background: C.bg, padding: '12px 14px 0' }}>
@@ -91,12 +91,6 @@ export default function RankingPage() {
           ))}
         </div>
 
-        {/* 날짜 범위 표시 */}
-        {period !== 'custom' && data && (
-          <div style={{ fontSize: 11, color: C.text2, marginTop: 8, textAlign: 'center' }}>
-            📅 {data.from} ~ {data.to}
-          </div>
-        )}
 
         {/* 커스텀 날짜 선택 */}
         {period === 'custom' && (
