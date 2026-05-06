@@ -59,7 +59,7 @@ const FEED_COLS = `
            COALESCE(w.photos, '[]') as photos,
            COALESCE(w.cover_photo_index, 0) as cover_photo_index,
            COALESCE(w.visibility, 'public') as visibility,
-           u.nickname, u.avatar_color,
+           u.nickname, u.avatar_color, u.avatar_image,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
       (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
       (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like

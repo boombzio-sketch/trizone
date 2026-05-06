@@ -7,7 +7,7 @@ router.use(authMiddleware, adminMiddleware);
 // 전체 회원 목록
 router.get('/members', (req, res) => {
   const members = prepare(`
-    SELECT u.id, u.nickname, u.role, u.avatar_color, u.created_at,
+    SELECT u.id, u.nickname, u.role, u.avatar_color, u.avatar_image, u.created_at,
            COUNT(w.id) as workout_count
     FROM users u
     LEFT JOIN workout_logs w ON w.user_id = u.id
@@ -19,7 +19,7 @@ router.get('/members', (req, res) => {
 
 // 회원 정보 수정
 router.put('/members/:id', (req, res) => {
-  const { nickname, avatar_color, password } = req.body;
+  const { nickname, avatar_color, avatar_image, password } = req.body;
   if (!nickname?.trim()) return res.status(400).json({ error: '닉네임을 입력하세요.' });
 
   const exists = prepare('SELECT id FROM users WHERE nickname=? AND id!=?').get(nickname.trim(), req.params.id);
@@ -29,12 +29,12 @@ router.put('/members/:id', (req, res) => {
     if (password.length < 4) return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
     const bcrypt = require('bcryptjs');
     const hash = bcrypt.hashSync(password, 10);
-    prepare('UPDATE users SET nickname=?, avatar_color=?, password_hash=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', hash, req.params.id);
+    prepare('UPDATE users SET nickname=?, avatar_color=?, avatar_image=?, password_hash=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', avatar_image ?? null, hash, req.params.id);
   } else {
-    prepare('UPDATE users SET nickname=?, avatar_color=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', req.params.id);
+    prepare('UPDATE users SET nickname=?, avatar_color=?, avatar_image=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', avatar_image ?? null, req.params.id);
   }
 
-  res.json(prepare('SELECT id, nickname, role, avatar_color, created_at FROM users WHERE id=?').get(req.params.id));
+  res.json(prepare('SELECT id, nickname, role, avatar_color, avatar_image, created_at FROM users WHERE id=?').get(req.params.id));
 });
 
 // 역할 변경

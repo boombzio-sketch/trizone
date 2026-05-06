@@ -1,6 +1,7 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { C } from '../utils/theme'
+import Avatar from './Avatar.jsx'
 
 const TABS = [
   { to: '/',        icon: '⚡', label: '피드' },
@@ -45,15 +46,7 @@ export default function Layout() {
             borderRadius: 100, padding: '5px 12px 5px 6px',
             textDecoration: 'none',
           })}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              background: (user?.avatar_color || C.accent) + '30',
-              border: `1.5px solid ${user?.avatar_color || C.accent}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 800, color: user?.avatar_color || C.accent, flexShrink: 0,
-            }}>
-              {user?.nickname?.charAt(0)}
-            </div>
+            <Avatar nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} size={24} />
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.nickname}
             </span>

@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import { C } from '../utils/theme'
 import { api } from '../utils/api'
+import Avatar from '../components/Avatar.jsx'
 
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
 const tok = () => localStorage.getItem('tz_token')
@@ -126,9 +127,7 @@ export default function FeedPage() {
           />
           {searchRes.map(u => (
             <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 2px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: u.avatar_color+'22', border: `2px solid ${u.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: u.avatar_color }}>
-                {u.nickname?.charAt(0)}
-              </div>
+              <Avatar nickname={u.nickname} avatar_color={u.avatar_color} avatar_image={u.avatar_image} size={36} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{u.nickname}</div>
                 <div style={{ fontSize: 10, color: C.text3, marginTop: 1 }}>팔로워 {u.follower_count}명</div>
@@ -268,9 +267,7 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
       <div style={{ background: C.surface, borderRadius: 18, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
         {/* 작성자 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px 8px' }}>
-          <div style={{ width: 38, height: 38, borderRadius: '50%', background: f.avatar_color+'22', border: `2px solid ${f.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: f.avatar_color, flexShrink: 0 }}>
-            {f.nickname?.charAt(0)}
-          </div>
+          <Avatar nickname={f.nickname} avatar_color={f.avatar_color} avatar_image={f.avatar_image} size={38} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
               {f.nickname}

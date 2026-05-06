@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import { C } from '../utils/theme'
+import Avatar from '../components/Avatar.jsx'
 
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
 const tok = () => localStorage.getItem('tz_token')
@@ -51,9 +52,7 @@ export default function MyPage() {
       {/* 프로필 카드 */}
       <div style={{ background: C.surface, borderRadius: 18, padding: 18, border: `1px solid ${C.border}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-          <div style={{ width: 60, height: 60, borderRadius: '50%', background: (user?.avatar_color||C.accent)+'22', border: `3px solid ${user?.avatar_color||C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: user?.avatar_color||C.accent, flexShrink: 0 }}>
-            {user?.nickname?.charAt(0)}
-          </div>
+          <Avatar nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} size={60} style={{ border: `3px solid ${user?.avatar_color||C.accent}` }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: 7 }}>
               {user?.nickname}

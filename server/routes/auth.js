@@ -46,7 +46,7 @@ router.post('/login', (req, res) => {
 
 // 내 정보
 router.get('/me', authMiddleware, (req, res) => {
-  const user = db.prepare('SELECT id, nickname, role, avatar_color, created_at FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, nickname, role, avatar_color, avatar_image, created_at FROM users WHERE id = ?').get(req.user.id);
   res.json(user);
 });
 

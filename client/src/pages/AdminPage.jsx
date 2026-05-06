@@ -4,6 +4,7 @@ import { api } from '../utils/api'
 import { Navigate } from 'react-router-dom'
 import { C } from '../utils/theme'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
+import Avatar from '../components/Avatar.jsx'
 
 export default function AdminPage() {
   const { user } = useAuth()
@@ -267,7 +268,7 @@ function MembersTab({ user: currentUser }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingMember, setEditingMember] = useState(null)
-  const [editForm, setEditForm] = useState({ nickname: '', avatar_color: '', password: '' })
+  const [editForm, setEditForm] = useState({ nickname: '', avatar_color: '', password: '', avatar_image: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
 
@@ -281,7 +282,7 @@ function MembersTab({ user: currentUser }) {
 
   function openEdit(m) {
     setEditingMember(m)
-    setEditForm({ nickname: m.nickname, avatar_color: m.avatar_color, password: '' })
+    setEditForm({ nickname: m.nickname, avatar_color: m.avatar_color, password: '', avatar_image: m.avatar_image || '' })
     setEditError('')
   }
 
@@ -322,6 +323,38 @@ function MembersTab({ user: currentUser }) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>회원 정보 수정</div>
+
+            {/* 아바타 미리보기 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              <Avatar nickname={editForm.nickname} avatar_color={editForm.avatar_color} avatar_image={editForm.avatar_image} size={56} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 6 }}>프로필 이미지</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <label style={{ padding: '6px 12px', background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: C.accent }}>
+                    📷 이미지 선택
+                    <input type="file" accept="image/*" onChange={async e => {
+                      const file = e.target.files[0]; if (!file) return
+                      const img = new Image(), url = URL.createObjectURL(file)
+                      img.onload = () => {
+                        const s = 120, c = document.createElement('canvas')
+                        c.width = s; c.height = s
+                        const min = Math.min(img.width, img.height)
+                        c.getContext('2d').drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, s, s)
+                        URL.revokeObjectURL(url)
+                        setEditForm(p => ({ ...p, avatar_image: c.toDataURL('image/jpeg', 0.85) }))
+                      }
+                      img.src = url; e.target.value = ''
+                    }} style={{ display: 'none' }} />
+                  </label>
+                  {editForm.avatar_image && (
+                    <button onClick={() => setEditForm(p => ({ ...p, avatar_image: '' }))}
+                      style={{ padding: '6px 12px', background: C.errorBg, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: C.error }}>
+                      이미지 삭제
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div style={{ marginBottom: 14 }}>
               <label style={labelSt}>닉네임</label>
@@ -371,9 +404,7 @@ function MembersTab({ user: currentUser }) {
       <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>총 {members.length}명</div>
       {members.map(m => (
         <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, background: m.avatar_color+'22', border: `2px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: m.avatar_color }}>
-            {m.nickname?.charAt(0)}
-          </div>
+          <Avatar nickname={m.nickname} avatar_color={m.avatar_color} avatar_image={m.avatar_image} size={42} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{m.nickname}</span>

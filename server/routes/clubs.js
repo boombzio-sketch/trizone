@@ -146,7 +146,7 @@ router.delete('/:id/leave', authMiddleware, (req, res) => {
 
 router.get('/:id/members', authMiddleware, (req, res) => {
   const rows = prepare(`
-    SELECT u.id, u.nickname, u.avatar_color, cm.applied_at,
+    SELECT u.id, u.nickname, u.avatar_color, u.avatar_image, cm.applied_at,
            COUNT(w.id) as total_workouts,
            COALESCE(SUM(CASE WHEN w.status='approved' THEN w.distance_km ELSE 0 END), 0) as total_km
     FROM club_memberships cm
