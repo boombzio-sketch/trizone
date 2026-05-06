@@ -5,7 +5,8 @@ const { initDb } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+const ALLOWED_ORIGIN = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
 app.use(express.json());
 
 initDb().then(() => {
