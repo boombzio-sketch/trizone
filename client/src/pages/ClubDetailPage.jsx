@@ -32,6 +32,9 @@ export default function ClubDetailPage() {
   const [annTitle, setAnnTitle] = useState('')
   const [annBody, setAnnBody] = useState('')
   const [showAnnForm, setShowAnnForm] = useState(false)
+  const [showTransfer, setShowTransfer] = useState(false)
+  const [selectedNewLeader, setSelectedNewLeader] = useState('')
+  const [transferring, setTransferring] = useState(false)
 
   const [error, setError] = useState('')
 
@@ -93,6 +96,19 @@ export default function ClubDetailPage() {
       setShowEditForm(false)
     } catch(e) { setError(e.message) }
     finally { setEditSaving(false) }
+  }
+
+  async function handleTransferLeader() {
+    if (!selectedNewLeader) return
+    if (!confirm(`정말로 ${members.find(m => m.id === Number(selectedNewLeader))?.nickname}님에게 클럽장을 양도하시겠습니까?`)) return
+    setTransferring(true)
+    try {
+      const updated = await api.transferClubLeader(id, Number(selectedNewLeader))
+      setClub(updated)
+      setShowTransfer(false)
+      setSelectedNewLeader('')
+    } catch(e) { alert(e.message) }
+    finally { setTransferring(false) }
   }
 
   async function handleMemberStatus(userId, status) {
@@ -289,6 +305,38 @@ export default function ClubDetailPage() {
       {/* 관리 탭 (클럽장/admin) */}
       {tab === '관리' && canManage && (
         <div style={{ padding: '12px' }}>
+
+          {/* 클럽장 양도 */}
+          <div style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showTransfer ? 12 : 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>👑 클럽장 양도</div>
+              <button onClick={() => { setShowTransfer(s => !s); setSelectedNewLeader('') }} style={{
+                padding: '5px 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                background: showTransfer ? C.surfaceAlt : C.warnBg, color: showTransfer ? C.text2 : C.warn,
+              }}>{showTransfer ? '취소' : '양도하기'}</button>
+            </div>
+            {showTransfer && (
+              <div>
+                <div style={{ fontSize: 12, color: C.text2, marginBottom: 10 }}>양도받을 회원을 선택하세요. 양도 후 클럽장 권한이 이전됩니다.</div>
+                <select value={selectedNewLeader} onChange={e => setSelectedNewLeader(e.target.value)} style={{ ...iSt, marginBottom: 10, cursor: 'pointer' }}>
+                  <option value="">회원 선택</option>
+                  {members.filter(m => m.id !== club.leader_id).map(m => (
+                    <option key={m.id} value={m.id}>{m.nickname}</option>
+                  ))}
+                </select>
+                <button onClick={handleTransferLeader} disabled={!selectedNewLeader || transferring} style={{
+                  width: '100%', padding: '11px', border: 'none', borderRadius: 10, cursor: selectedNewLeader ? 'pointer' : 'default',
+                  background: selectedNewLeader ? C.warn : C.surfaceAlt,
+                  color: selectedNewLeader ? '#fff' : C.text3,
+                  fontSize: 13, fontWeight: 700,
+                }}>
+                  {transferring ? '양도 중...' : '👑 클럽장 양도 확정'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 가입 신청 대기 */}
           <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>
             가입 신청 대기 <span style={{ color: C.warn }}>({pendingMembers.length})</span>
           </div>

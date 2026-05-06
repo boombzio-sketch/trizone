@@ -160,6 +160,28 @@ router.put('/:id/members/:userId/status', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// 클럽장 양도 (클럽장 or admin)
+router.put('/:id/transfer-leader', authMiddleware, (req, res) => {
+  const club = getClubFull(req.params.id);
+  if (!club) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
+  if (club.leader_id !== req.user.id && req.user.role !== 'admin')
+    return res.status(403).json({ error: '권한이 없습니다.' });
+
+  const { new_leader_id } = req.body;
+  if (!new_leader_id) return res.status(400).json({ error: '새 클럽장을 선택해주세요.' });
+  if (Number(new_leader_id) === club.leader_id)
+    return res.status(400).json({ error: '현재 클럽장과 동일한 회원입니다.' });
+
+  const isMember = prepare("SELECT id FROM club_memberships WHERE club_id=? AND user_id=? AND status='approved'").get(req.params.id, new_leader_id);
+  if (!isMember) return res.status(400).json({ error: '해당 회원이 클럽 멤버가 아닙니다.' });
+
+  // 새 클럽장의 leader application 승인 처리
+  prepare("INSERT OR IGNORE INTO club_leader_applications (user_id, status) VALUES (?, 'approved')").run(new_leader_id);
+  prepare("UPDATE club_leader_applications SET status='approved' WHERE user_id=?").run(new_leader_id);
+  prepare('UPDATE clubs SET leader_id=? WHERE id=?').run(new_leader_id, req.params.id);
+  res.json(getClubFull(req.params.id));
+});
+
 // ── 공지사항 ─────────────────────────────────────────────────
 
 router.get('/:id/announcements', authMiddleware, (req, res) => {

@@ -17,6 +17,18 @@ router.get('/members', (req, res) => {
   res.json(members);
 });
 
+// 회원 정보 수정
+router.put('/members/:id', (req, res) => {
+  const { nickname, avatar_color } = req.body;
+  if (!nickname?.trim()) return res.status(400).json({ error: '닉네임을 입력하세요.' });
+
+  const exists = prepare('SELECT id FROM users WHERE nickname=? AND id!=?').get(nickname.trim(), req.params.id);
+  if (exists) return res.status(409).json({ error: '이미 사용 중인 닉네임입니다.' });
+
+  prepare('UPDATE users SET nickname=?, avatar_color=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', req.params.id);
+  res.json(prepare('SELECT id, nickname, role, avatar_color, created_at FROM users WHERE id=?').get(req.params.id));
+});
+
 // 역할 변경
 router.put('/members/:id/role', (req, res) => {
   const { role } = req.body;

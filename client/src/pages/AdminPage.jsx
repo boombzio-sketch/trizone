@@ -226,10 +226,16 @@ function MembershipsTab() {
   )
 }
 
+const AVATAR_COLORS = ['#4F9CF9','#0EA5E9','#22C55E','#F97316','#A855F7','#EF4444','#F59E0B','#10B981','#EC4899','#14B8A6']
+
 function MembersTab({ user: currentUser }) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [editingMember, setEditingMember] = useState(null)
+  const [editForm, setEditForm] = useState({ nickname: '', avatar_color: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -238,6 +244,22 @@ function MembersTab({ user: currentUser }) {
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
+
+  function openEdit(m) {
+    setEditingMember(m)
+    setEditForm({ nickname: m.nickname, avatar_color: m.avatar_color })
+    setEditError('')
+  }
+
+  async function handleEditSave() {
+    setEditSaving(true); setEditError('')
+    try {
+      const updated = await api.updateAdminMember(editingMember.id, editForm)
+      setMembers(prev => prev.map(m => m.id === editingMember.id ? { ...m, ...updated } : m))
+      setEditingMember(null)
+    } catch(e) { setEditError(e.message) }
+    finally { setEditSaving(false) }
+  }
 
   async function handleRoleToggle(member) {
     const newRole = member.role === 'admin' ? 'member' : 'admin'
@@ -261,6 +283,50 @@ function MembersTab({ user: currentUser }) {
 
   return (
     <div>
+      {/* 회원 수정 모달 */}
+      {editingMember && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>회원 정보 수정</div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelSt}>닉네임</label>
+              <input value={editForm.nickname} onChange={e => setEditForm(p => ({...p, nickname: e.target.value}))}
+                style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit' }} />
+            </div>
+
+            <div style={{ marginBottom: 18 }}>
+              <label style={labelSt}>아바타 색상</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {AVATAR_COLORS.map(color => (
+                  <button key={color} type="button" onClick={() => setEditForm(p => ({...p, avatar_color: color}))} style={{
+                    width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                    background: color,
+                    outline: editForm.avatar_color === color ? `3px solid ${C.text}` : '3px solid transparent',
+                    outlineOffset: 2,
+                  }} />
+                ))}
+              </div>
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: editForm.avatar_color+'22', border: `2px solid ${editForm.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: editForm.avatar_color }}>
+                  {editForm.nickname?.charAt(0)}
+                </div>
+                <span style={{ fontSize: 12, color: C.text2 }}>미리보기</span>
+              </div>
+            </div>
+
+            {editError && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 13, color: C.error }}>{editError}</div>}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setEditingMember(null)} style={{ flex: 1, padding: '11px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+              <button onClick={handleEditSave} disabled={editSaving} style={{ flex: 2, padding: '11px', background: editSaving ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 12, color: editSaving ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                {editSaving ? '저장 중...' : '💾 저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>총 {members.length}명</div>
       {members.map(m => (
         <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: `1px solid ${C.border}` }}>
@@ -277,16 +343,19 @@ function MembersTab({ user: currentUser }) {
             </div>
             <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>가입 {m.created_at?.slice(0,10)} · 훈련 {m.workout_count}회</div>
           </div>
-          {m.id !== currentUser?.id && (
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button onClick={() => openEdit(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: C.accentBg, color: C.accent }}>수정</button>
+            {m.id !== currentUser?.id && <>
               <button onClick={() => handleRoleToggle(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: m.role==='admin' ? C.surfaceAlt : 'rgba(168,85,247,0.12)', color: m.role==='admin' ? C.text2 : C.brick }}>
                 {m.role === 'admin' ? '해제' : '관리자'}
               </button>
               <button onClick={() => handleDelete(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: C.errorBg, color: C.error }}>삭제</button>
-            </div>
-          )}
+            </>}
+          </div>
         </div>
       ))}
     </div>
   )
 }
+
+const labelSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }
