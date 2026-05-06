@@ -6,8 +6,8 @@ import { C } from '../utils/theme'
 const DISTANCES = [
   { key: 'sprint',   label: 'Sprint',   sub: '750m / 20km / 5km',          color: '#22C55E' },
   { key: 'olympic',  label: 'Olympic',  sub: '1.5km / 40km / 10km',         color: '#0EA5E9' },
-  { key: 'half',     label: 'half',     sub: '1.9km / 90.1km / 21.1km',       color: '#F97316' },
-  { key: 'king',  label: 'king',  sub: '3.8km / 180.2km / 42.2km',      color: '#EF4444' },
+  { key: 'half',     label: 'Half',     sub: '1.9km / 90.1km / 21.1km',       color: '#F97316' },
+  { key: 'king',  label: 'King',  sub: '3.8km / 180.2km / 42.2km',      color: '#EF4444' },
 ]
 
 const DIST_MAP = Object.fromEntries(DISTANCES.map(d => [d.key, d]))
