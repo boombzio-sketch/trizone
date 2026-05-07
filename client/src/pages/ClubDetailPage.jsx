@@ -374,10 +374,7 @@ export default function ClubDetailPage() {
                 {showTrainingForm && !editingTraining ? '취소' : '+ 훈련 만들기'}
               </button>
             ) : <div />}
-            <div style={{ display: 'flex', background: C.surfaceAlt, borderRadius: 10, padding: 3, border: `1px solid ${C.border}` }}>
-              <button onClick={() => setTrainingViewMode('list')} style={{ padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', background: trainingViewMode === 'list' ? C.surfaceHigh : 'transparent', color: trainingViewMode === 'list' ? C.text : C.text2, fontSize: 15 }}>☰</button>
-              <button onClick={() => setTrainingViewMode('calendar')} style={{ padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', background: trainingViewMode === 'calendar' ? C.surfaceHigh : 'transparent', color: trainingViewMode === 'calendar' ? C.accent : C.text2, fontSize: 15 }}>📅</button>
-            </div>
+            <div />
           </div>
 
           {/* 훈련 등록/수정 폼 */}
