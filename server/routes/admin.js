@@ -127,6 +127,7 @@ router.get('/pending', ...approveOnly, async (req, res) => {
            w.memo, w.score, w.brick_segments, w.photo,
            COALESCE(w.photos, '[]') as photos,
            COALESCE(w.cover_photo_index, 0) as cover_photo_index,
+           w.pool_type, w.elevation_m, w.course_type, w.avg_power_w,
            w.status, w.created_at,
            u.nickname, u.avatar_color
     FROM workout_logs w

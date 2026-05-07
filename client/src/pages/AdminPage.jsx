@@ -86,16 +86,36 @@ function WorkoutEditModal({ workout: w, onSave, onClose }) {
   const isBrick = w.sport_type === 'brick'
   const initSegs = isBrick ? (() => { try { return JSON.parse(w.brick_segments || '[]') } catch { return [] } })() : null
 
-  const [date, setDate]     = useState(w.logged_at?.slice(0, 10) || '')
-  const [distKm, setDistKm] = useState(w.distance_km || 0)
-  const [dur, setDur]       = useState(secsToDur(w.duration_sec))
-  const [memo, setMemo]     = useState(w.memo || '')
-  const [segs, setSegs]     = useState(initSegs ? initSegs.map(s => ({ ...s, dur: secsToDur(s.duration_sec) })) : null)
-  const [saving, setSaving] = useState(false)
-  const [err, setErr]       = useState('')
+  const [date, setDate]             = useState(w.logged_at?.slice(0, 10) || '')
+  const [distKm, setDistKm]         = useState(w.distance_km || 0)
+  const [dur, setDur]               = useState(secsToDur(w.duration_sec))
+  const [poolType, setPoolType]     = useState(w.pool_type || 'open')
+  const [courseType, setCourseType] = useState(w.course_type || '실외')
+  const [elevM, setElevM]           = useState(w.elevation_m || 0)
+  const [avgPow, setAvgPow]         = useState(w.avg_power_w || 0)
+  const [memo, setMemo]             = useState(w.memo || '')
+  const [segs, setSegs]             = useState(initSegs ? initSegs.map(s => ({ ...s, dur: secsToDur(s.duration_sec) })) : null)
+  const [saving, setSaving]         = useState(false)
+  const [err, setErr]               = useState('')
 
   const iSt = { width: '100%', padding: '9px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit' }
   const lSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }
+
+  function Toggle({ options, value, onChange }) {
+    return (
+      <div style={{ display: 'flex', gap: 6 }}>
+        {options.map(o => (
+          <button key={o.v} type="button" onClick={() => onChange(o.v)} style={{
+            flex: 1, padding: '8px', border: 'none', borderRadius: 10, cursor: 'pointer',
+            fontWeight: 700, fontSize: 12,
+            background: value === o.v ? C.accentBg : C.surfaceAlt,
+            color: value === o.v ? C.accent : C.text2,
+            outline: value === o.v ? `2px solid ${C.accentBorder}` : '2px solid transparent',
+          }}>{o.l}</button>
+        ))}
+      </div>
+    )
+  }
 
   async function handleSave() {
     setSaving(true); setErr('')
@@ -106,6 +126,9 @@ function WorkoutEditModal({ workout: w, onSave, onClose }) {
       } else {
         body.distance_km  = Number(distKm)
         body.duration_sec = durToSecs(dur)
+        if (w.sport_type === 'swim') body.pool_type = poolType
+        if (w.sport_type === 'bike') { body.course_type = courseType; body.elevation_m = Number(elevM); body.avg_power_w = Number(avgPow) }
+        if (w.sport_type === 'run')  body.elevation_m = Number(elevM)
       }
       await onSave(w.id, body)
     } catch(e) { setErr(e.message) }
@@ -124,28 +147,26 @@ function WorkoutEditModal({ workout: w, onSave, onClose }) {
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={iSt} />
         </div>
 
-        {isBrick && segs ? (
-          segs.map((s, i) => (
-            <div key={i} style={{ background: C.surfaceAlt, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: SPORT_COLOR[s.sport] || C.accent, marginBottom: 8 }}>
-                {SPORT_ICON[s.sport]} {SPORT_LABEL[s.sport]}
+        {isBrick && segs ? segs.map((s, i) => (
+          <div key={i} style={{ background: C.surfaceAlt, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: SPORT_COLOR[s.sport] || C.accent, marginBottom: 8 }}>
+              {SPORT_ICON[s.sport]} {SPORT_LABEL[s.sport]}
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>거리 (km)</label>
+                <input type="number" min={0} step={0.01} value={s.distance_km}
+                  onChange={e => setSegs(prev => prev.map((x, j) => j === i ? { ...x, distance_km: e.target.value } : x))}
+                  style={iSt} />
               </div>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={lSt}>거리 (km)</label>
-                  <input type="number" min={0} step={0.01} value={s.distance_km}
-                    onChange={e => setSegs(prev => prev.map((x, j) => j === i ? { ...x, distance_km: e.target.value } : x))}
-                    style={iSt} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={lSt}>시간 (h:m:s)</label>
-                  <DurInput value={s.dur} onChange={v => setSegs(prev => prev.map((x, j) => j === i ? { ...x, dur: v } : x))} />
-                </div>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>시간 (h:m:s)</label>
+                <DurInput value={s.dur} onChange={v => setSegs(prev => prev.map((x, j) => j === i ? { ...x, dur: v } : x))} />
               </div>
             </div>
-          ))
-        ) : (
-          <div style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'flex-end' }}>
+          </div>
+        )) : (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
             <div style={{ flex: 1 }}>
               <label style={lSt}>거리 (km)</label>
               <input type="number" min={0} step={0.01} value={distKm} onChange={e => setDistKm(e.target.value)} style={iSt} />
@@ -154,6 +175,39 @@ function WorkoutEditModal({ workout: w, onSave, onClose }) {
               <label style={lSt}>시간 (h:m:s)</label>
               <DurInput value={dur} onChange={setDur} />
             </div>
+          </div>
+        )}
+
+        {w.sport_type === 'swim' && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={lSt}>수영장 종류</label>
+            <Toggle options={[{v:'open',l:'오픈워터'},{v:'indoor',l:'실내'}]} value={poolType} onChange={setPoolType} />
+          </div>
+        )}
+
+        {w.sport_type === 'bike' && (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <label style={lSt}>코스 종류</label>
+              <Toggle options={[{v:'실외',l:'실외'},{v:'실내',l:'실내'}]} value={courseType} onChange={setCourseType} />
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>획득 고도 (m)</label>
+                <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>평균 파워 (W)</label>
+                <input type="number" min={0} value={avgPow} onChange={e => setAvgPow(e.target.value)} style={iSt} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {w.sport_type === 'run' && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={lSt}>획득 고도 (m)</label>
+            <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
           </div>
         )}
 
