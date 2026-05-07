@@ -786,7 +786,7 @@ function TrainingCalendar({ trainings, participants, canManage, membership, onJo
                       </div>
                     )}
                   </div>
-                  {t.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 8 }}>{t.description}</div>}
+                  {t.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 8, whiteSpace: 'pre-wrap' }}>{t.description}</div>}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: parts.length > 0 ? 10 : 0 }}>
                     {t.link_url && <a href={t.link_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, fontWeight: 700, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 7, padding: '4px 10px', textDecoration: 'none' }}>🔗 상세보기</a>}
                     {!isPast && membership?.status === 'approved' && (
