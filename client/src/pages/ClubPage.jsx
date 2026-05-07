@@ -109,7 +109,7 @@ function PendingView() {
 // ── 클럽 메인 화면 ─────────────────────────────────
 function ClubContent({ user, membership, onLeave }) {
   const isAdmin = user?.role === 'admin'
-  const [tab, setTab] = useState('ann')
+  const [tab, setTab] = useState('training')
   const [badges, setBadges] = useState({ ann: 0, training: 0, members: 0, manage: 0 })
 
   const [clubInfo, setClubInfo]   = useState(null)

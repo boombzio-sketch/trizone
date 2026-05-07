@@ -18,7 +18,7 @@ export default function ClubDetailPage() {
   const [pendingMembers, setPendingMembers] = useState([])
   const [announcements, setAnnouncements] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('공지사항')
+  const [tab, setTab] = useState('훈련')
 
   const [joinMsg, setJoinMsg] = useState('')
   const [joining, setJoining] = useState(false)
