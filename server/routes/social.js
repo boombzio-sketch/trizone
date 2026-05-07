@@ -99,6 +99,16 @@ router.get('/feed/club', authMiddleware, async (req, res) => {
   res.json(rows)
 })
 
+// 내 피드
+router.get('/feed/mine', authMiddleware, async (req, res) => {
+  const { offset = 0 } = req.query
+  const rows = await db.prepare(`${FEED_COLS}
+    WHERE w.user_id = ?
+    ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+  `).all(req.user.id, req.user.id, Number(offset))
+  res.json(rows)
+})
+
 // 전체 피드
 router.get('/feed/all', authMiddleware, async (req, res) => {
   const { offset = 0 } = req.query

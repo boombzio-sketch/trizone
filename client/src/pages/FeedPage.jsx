@@ -63,7 +63,7 @@ export default function FeedPage() {
   async function loadFeed() {
     setLoading(true)
     try {
-      const path = tab === 'following' ? '/social/feed' : tab === 'club' ? '/social/feed/club' : '/social/feed/all'
+      const path = tab === 'following' ? '/social/feed' : tab === 'club' ? '/social/feed/club' : tab === 'mine' ? '/social/feed/mine' : '/social/feed/all'
       const rows = await req(path)
       setFeeds(rows)
     } finally { setLoading(false) }
@@ -103,6 +103,7 @@ export default function FeedPage() {
     { key: 'following', label: '팔로잉' },
     { key: 'club',      label: '클럽' },
     { key: 'all',       label: '전체' },
+    { key: 'mine',      label: '내피드' },
   ]
 
   return (
@@ -173,7 +174,7 @@ export default function FeedPage() {
           <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 로딩 중...</div>
         ) : feeds.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 48, color: C.text2, fontSize: 14, lineHeight: 1.9 }}>
-            {tab === 'following' ? '아직 팔로우한 사람이 없어요.' : tab === 'club' ? '클럽 회원의 기록이 없습니다.' : '아직 훈련 기록이 없습니다.'}
+            {tab === 'following' ? '아직 팔로우한 사람이 없어요.' : tab === 'club' ? '클럽 회원의 기록이 없습니다.' : tab === 'mine' ? '아직 내 훈련 기록이 없습니다.' : '아직 훈련 기록이 없습니다.'}
           </div>
         ) : feeds.map(f => (
           <FeedCard
