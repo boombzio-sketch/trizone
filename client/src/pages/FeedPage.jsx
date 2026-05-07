@@ -177,10 +177,11 @@ export default function FeedPage() {
           </div>
         ) : feeds.map(f => (
           <FeedCard
-            key={f.id} feed={f} myId={user?.id}
+            key={f.id} feed={f} myId={user?.id} user={user}
             onStar={() => toggleStar(f.id)}
             openComments={openComments} setOpenComments={setOpenComments}
             onEdit={() => setEditingFeed(f)}
+            onStatusChange={(id, status) => setFeeds(prev => prev.map(x => x.id === id ? { ...x, status } : x))}
           />
         ))}
       </div>
@@ -246,15 +247,26 @@ function EditModal({ feed, onSave, onClose }) {
   )
 }
 
-function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit }) {
+function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onStatusChange }) {
   const sc = SPORT_COLOR[f.sport_type] || C.accent
   const isOpen = openComments === f.id
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [loadingC, setLoadingC] = useState(false)
-  const [replyingTo, setReplyingTo] = useState(null) // { id, nickname }
+  const [replyingTo, setReplyingTo] = useState(null)
+  const [approving, setApproving] = useState(false)
   const vis = VIS_MAP[f.visibility || 'public']
   const status = f.status || 'approved'
+  const canApprove = user?.role === 'admin' || user?.can_approve
+
+  async function handleApprove(newStatus) {
+    setApproving(true)
+    try {
+      await api.setWorkoutStatus(f.id, newStatus)
+      onStatusChange(f.id, newStatus)
+    } catch (e) { alert(e.message) }
+    finally { setApproving(false) }
+  }
 
   async function loadComments() {
     setLoadingC(true)
@@ -306,6 +318,12 @@ function FeedCard({ feed: f, myId, onStar, openComments, setOpenComments, onEdit
               <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
                 {STATUS_LABEL[status]}
               </span>
+              {status === 'pending' && canApprove && !approving && (
+                <>
+                  <button onClick={() => handleApprove('approved')} style={{ background: C.successBg, border: 'none', borderRadius: 6, color: C.success, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>✓</button>
+                  <button onClick={() => handleApprove('rejected')} style={{ background: C.errorBg, border: 'none', borderRadius: 6, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>✕</button>
+                </>
+              )}
               {f.user_id === myId && (
                 <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
               )}
