@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0B0F1A" />
+  <meta name="theme-color" content="#060D18" />
   <title>TRIZONE — 트라이애슬론 커뮤니티</title>
   <link rel="manifest" href="/manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -11,12 +11,32 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      background: #0B0F1A;
-      color: #F1F5F9;
+      background: #060D18;
+      color: #EFF6FF;
       font-family: 'Inter', -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      /* 미묘한 그리드 패턴 — 탄소섬유/트랙 느낌 */
+      background-image:
+        linear-gradient(rgba(56,189,248,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
+
     #root { min-height: 100dvh; }
+
+    /* 스크롤바 — 세련되게 */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.25); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56,189,248,0.5); }
+
+    /* 숫자 데이터 — 타뷸러 폰트로 정렬감 */
+    .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+    /* 버튼 탭 트랜지션 */
+    button { transition: opacity .15s, transform .1s; }
+    button:active { transform: scale(0.97); }
   </style>
 </head>
 <body>

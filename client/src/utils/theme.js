@@ -1,51 +1,70 @@
 export const C = {
-  bg: '#0B0F1A',
-  surface: '#111827',
-  surfaceAlt: '#0E1624',
-  surfaceHigh: '#172236',
-  border: '#1E2D42',
-  borderLight: '#24364E',
+  // 배경 — 깊고 드라마틱한 네이비 블랙
+  bg:          '#060D18',
+  surface:     '#0C1829',
+  surfaceAlt:  '#091320',
+  surfaceHigh: '#102038',
+  border:      '#1A3050',
+  borderLight: '#224068',
 
-  accent: '#4F9CF9',
-  accentBg: 'rgba(79,156,249,0.12)',
-  accentBorder: 'rgba(79,156,249,0.3)',
+  // 브랜드 강조색 — 일렉트릭 스카이 블루
+  accent:       '#38BDF8',
+  accentBg:    'rgba(56,189,248,0.10)',
+  accentBorder:'rgba(56,189,248,0.28)',
 
-  text: '#F1F5F9',
-  text2: '#64748B',
-  text3: '#334155',
+  // 텍스트 — 약간 블루 틴트로 차갑고 선명하게
+  text:  '#EFF6FF',
+  text2: '#6490B8',
+  text3: '#2E4A6A',
 
-  swim: '#0EA5E9',
-  swimBg: 'rgba(14,165,233,0.12)',
-  swimBorder: 'rgba(14,165,233,0.25)',
+  // 종목 — 채도 높여 에너지감 강조
+  swim:       '#22D3EE',   // 비비드 시안 — 물
+  swimBg:    'rgba(34,211,238,0.10)',
+  swimBorder:'rgba(34,211,238,0.28)',
 
-  bike: '#22C55E',
-  bikeBg: 'rgba(34,197,94,0.12)',
-  bikeBorder: 'rgba(34,197,94,0.25)',
+  bike:       '#4ADE80',   // 일렉트릭 그린 — 스피드
+  bikeBg:    'rgba(74,222,128,0.10)',
+  bikeBorder:'rgba(74,222,128,0.28)',
 
-  run: '#F97316',
-  runBg: 'rgba(249,115,22,0.12)',
-  runBorder: 'rgba(249,115,22,0.25)',
+  run:        '#FB923C',   // 파이어 오렌지 — 에너지
+  runBg:     'rgba(251,146,60,0.10)',
+  runBorder: 'rgba(251,146,60,0.28)',
 
-  brick: '#A855F7',
-  brickBg: 'rgba(168,85,247,0.12)',
-  brickBorder: 'rgba(168,85,247,0.25)',
+  brick:      '#C084FC',   // 비비드 퍼플 — 멀티스포츠
+  brickBg:   'rgba(192,132,252,0.10)',
+  brickBorder:'rgba(192,132,252,0.28)',
 
-  error: '#EF4444',
-  errorBg: 'rgba(239,68,68,0.1)',
-  errorBorder: 'rgba(239,68,68,0.3)',
+  // 상태색
+  error:       '#FF4D6A',
+  errorBg:    'rgba(255,77,106,0.10)',
+  errorBorder:'rgba(255,77,106,0.30)',
 
-  success: '#10B981',
-  successBg: 'rgba(16,185,129,0.1)',
-  successBorder: 'rgba(16,185,129,0.3)',
+  success:       '#10F090',
+  successBg:    'rgba(16,240,144,0.10)',
+  successBorder:'rgba(16,240,144,0.28)',
 
-  gold: '#F59E0B',
-  goldBg: 'rgba(245,158,11,0.15)',
-  goldBorder: 'rgba(245,158,11,0.3)',
+  gold:       '#FBBF24',
+  goldBg:    'rgba(251,191,36,0.12)',
+  goldBorder:'rgba(251,191,36,0.30)',
 
-  warn: '#FB923C',
-  warnBg: 'rgba(251,146,60,0.12)',
-  warnBorder: 'rgba(251,146,60,0.3)',
+  warn:       '#FB923C',
+  warnBg:    'rgba(251,146,60,0.12)',
+  warnBorder:'rgba(251,146,60,0.30)',
 }
+
+// 카드 공통 스타일 헬퍼
+export const cardBase = {
+  background: 'linear-gradient(160deg, #0E1E34 0%, #091320 100%)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  borderRadius: 18,
+  boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+}
+
+export const cardSport = (color) => ({
+  ...cardBase,
+  borderTop: `2px solid ${color}`,
+  boxShadow: `0 4px 24px rgba(0,0,0,0.5), 0 0 16px ${color}18`,
+})
 
 export const sportC   = t => ({ swim: C.swim,       bike: C.bike,       run: C.run,       brick: C.brick       }[t] || C.accent)
 export const sportBg  = t => ({ swim: C.swimBg,     bike: C.bikeBg,     run: C.runBg,     brick: C.brickBg     }[t] || C.accentBg)

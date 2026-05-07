@@ -35,13 +35,20 @@ export default function Layout() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: C.bg }}>
       <header style={{
-        background: C.surface, borderBottom: `1px solid ${C.border}`,
+        background: 'linear-gradient(180deg, #0C1E38 0%, #0C1829 100%)',
+        borderBottom: `1px solid rgba(56,189,248,0.12)`,
         height: 56, padding: '0 16px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 100,
+        boxShadow: '0 2px 20px rgba(0,0,0,0.5)',
       }}>
-        <NavLink to="/" style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.05em', color: C.text, textDecoration: 'none' }}>
-          TRI<span style={{ color: C.accent }}>ZONE</span>
+        <NavLink to="/" style={{ textDecoration: 'none' }}>
+          <span style={{
+            fontSize: 22, fontWeight: 900, letterSpacing: '0.06em',
+            background: 'linear-gradient(90deg, #EFF6FF 0%, #38BDF8 60%, #22D3EE 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>TRI<span style={{ letterSpacing: '0.1em' }}>ZONE</span></span>
         </NavLink>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -79,19 +86,22 @@ export default function Layout() {
 
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: C.surface, borderTop: `1px solid ${C.border}`,
+        background: 'linear-gradient(0deg, #080F1C 0%, #0C1829 100%)',
+        borderTop: `1px solid rgba(56,189,248,0.12)`,
         display: 'flex', zIndex: 100,
         paddingBottom: 'env(safe-area-inset-bottom)',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
       }}>
         {TABS.map(t => (
           <NavLink key={t.to} to={t.to} end={t.to === '/'}
             style={({ isActive }) => ({
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
               padding: '8px 4px 7px', gap: 3,
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.03em',
-              color: isActive ? C.accent : C.text2,
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+              color: isActive ? C.accent : C.text3,
               textDecoration: 'none',
               borderTop: isActive ? `2px solid ${C.accent}` : '2px solid transparent',
+              background: isActive ? 'rgba(56,189,248,0.05)' : 'transparent',
             })}
           >
             <span style={{ fontSize: 20, lineHeight: 1, position: 'relative', display: 'inline-block' }}>

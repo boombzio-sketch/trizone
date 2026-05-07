@@ -29,7 +29,7 @@ export function formatPace(sport, pace) {
 }
 
 export const SPORT_LABEL = { swim: '수영', bike: '사이클', run: '런', brick: '브릭' }
-export const SPORT_COLOR = { swim: '#0EA5E9', bike: '#22C55E', run: '#F97316', brick: '#A855F7' }
+export const SPORT_COLOR = { swim: '#22D3EE', bike: '#4ADE80', run: '#FB923C', brick: '#C084FC' }
 export const SPORT_ICON  = { swim: '🏊', bike: '🚴', run: '🏃', brick: '🧱' }
 
 export function formatScore(score) {
