@@ -64,7 +64,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
   const row = await db.prepare('SELECT * FROM workout_logs WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
-  if (row.user_id !== req.user.id) return res.status(403).json({ error: '수정 권한이 없습니다.' });
+  if (row.user_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: '수정 권한이 없습니다.' });
 
   const validVis = ['public','club','followers','private','club_followers'];
   if (visibility && !validVis.includes(visibility)) return res.status(400).json({ error: '유효하지 않은 공개 범위입니다.' });

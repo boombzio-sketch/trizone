@@ -476,7 +476,7 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
                   <button onClick={() => handleApprove('rejected')} style={{ background: C.errorBg, border: 'none', borderRadius: 6, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>✕</button>
                 </>
               )}
-              {f.user_id === myId && (
+              {(f.user_id === myId || user?.role === 'admin') && (
                 <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
               )}
             </div>
