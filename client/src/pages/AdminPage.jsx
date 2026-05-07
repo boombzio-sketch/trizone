@@ -61,10 +61,124 @@ export default function AdminPage() {
   )
 }
 
+function secsToDur(sec) {
+  const s = sec || 0
+  return { h: Math.floor(s / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }
+}
+function durToSecs(d) { return (Number(d.h) || 0) * 3600 + (Number(d.m) || 0) * 60 + (Number(d.s) || 0) }
+
+function DurInput({ value, onChange }) {
+  const iSt = { width: 44, padding: '8px 6px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, textAlign: 'center', outline: 'none', fontFamily: 'inherit' }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <input type="number" min={0} value={value.h} onChange={e => onChange({ ...value, h: e.target.value })} style={iSt} placeholder="h" />
+      <span style={{ color: C.text2 }}>:</span>
+      <input type="number" min={0} max={59} value={value.m} onChange={e => onChange({ ...value, m: e.target.value })} style={iSt} placeholder="m" />
+      <span style={{ color: C.text2 }}>:</span>
+      <input type="number" min={0} max={59} value={value.s} onChange={e => onChange({ ...value, s: e.target.value })} style={iSt} placeholder="s" />
+    </div>
+  )
+}
+
+function WorkoutEditModal({ workout: w, onSave, onClose }) {
+  const isBrick = w.sport_type === 'brick'
+  const initSegs = isBrick ? (() => { try { return JSON.parse(w.brick_segments || '[]') } catch { return [] } })() : null
+
+  const [date, setDate]     = useState(w.logged_at?.slice(0, 10) || '')
+  const [distKm, setDistKm] = useState(w.distance_km || 0)
+  const [dur, setDur]       = useState(secsToDur(w.duration_sec))
+  const [memo, setMemo]     = useState(w.memo || '')
+  const [segs, setSegs]     = useState(initSegs ? initSegs.map(s => ({ ...s, dur: secsToDur(s.duration_sec) })) : null)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr]       = useState('')
+
+  const iSt = { width: '100%', padding: '9px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit' }
+  const lSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }
+
+  async function handleSave() {
+    setSaving(true); setErr('')
+    try {
+      const body = { memo, logged_at: date }
+      if (isBrick && segs) {
+        body.brick_segments = segs.map(s => ({ sport: s.sport, distance_km: Number(s.distance_km), duration_sec: durToSecs(s.dur) }))
+      } else {
+        body.distance_km  = Number(distKm)
+        body.duration_sec = durToSecs(dur)
+      }
+      await onSave(w.id, body)
+    } catch(e) { setErr(e.message) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 400, display: 'flex', alignItems: 'flex-end' }}>
+      <div style={{ background: C.surface, borderRadius: '22px 22px 0 0', width: '100%', padding: 20, border: `1px solid ${C.border}`, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>
+          {SPORT_ICON[w.sport_type]} {SPORT_LABEL[w.sport_type]} 기록 수정
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={lSt}>날짜</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={iSt} />
+        </div>
+
+        {isBrick && segs ? (
+          segs.map((s, i) => (
+            <div key={i} style={{ background: C.surfaceAlt, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: SPORT_COLOR[s.sport] || C.accent, marginBottom: 8 }}>
+                {SPORT_ICON[s.sport]} {SPORT_LABEL[s.sport]}
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={lSt}>거리 (km)</label>
+                  <input type="number" min={0} step={0.01} value={s.distance_km}
+                    onChange={e => setSegs(prev => prev.map((x, j) => j === i ? { ...x, distance_km: e.target.value } : x))}
+                    style={iSt} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={lSt}>시간 (h:m:s)</label>
+                  <DurInput value={s.dur} onChange={v => setSegs(prev => prev.map((x, j) => j === i ? { ...x, dur: v } : x))} />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <label style={lSt}>거리 (km)</label>
+              <input type="number" min={0} step={0.01} value={distKm} onChange={e => setDistKm(e.target.value)} style={iSt} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lSt}>시간 (h:m:s)</label>
+              <DurInput value={dur} onChange={setDur} />
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginBottom: 18 }}>
+          <label style={lSt}>메모</label>
+          <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2}
+            style={{ ...iSt, resize: 'none' }} />
+        </div>
+
+        {err && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 13, color: C.error }}>{err}</div>}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px', background: saving ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 12, color: saving ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            {saving ? '저장 중...' : '💾 저장'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PendingTab({ onBadge }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [photoModal, setPhotoModal] = useState(null)
+  const [editingWorkout, setEditingWorkout] = useState(null)
 
   useEffect(() => { load() }, [])
 
@@ -86,6 +200,12 @@ function PendingTab({ onBadge }) {
     })
   }
 
+  async function handleEdit(id, body) {
+    const updated = await api.editAdminWorkout(id, body)
+    setItems(prev => prev.map(w => w.id === id ? { ...w, ...updated } : w))
+    setEditingWorkout(null)
+  }
+
   if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
 
   if (items.length === 0) return (
@@ -97,6 +217,11 @@ function PendingTab({ onBadge }) {
 
   return (
     <div>
+      {/* 기록 수정 모달 */}
+      {editingWorkout && (
+        <WorkoutEditModal workout={editingWorkout} onSave={handleEdit} onClose={() => setEditingWorkout(null)} />
+      )}
+
       {/* 사진 전체보기 모달 */}
       {photoModal && (
         <div onClick={() => setPhotoModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
@@ -173,6 +298,9 @@ function PendingTab({ onBadge }) {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => handle(w.id, 'rejected')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700 }}>
                   ✕ 반려
+                </button>
+                <button onClick={() => setEditingWorkout(w)} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.accentBg, color: C.accent, fontSize: 13, fontWeight: 700 }}>
+                  ✏️ 수정
                 </button>
                 <button onClick={() => handle(w.id, 'approved')} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700 }}>
                   ✓ 승인

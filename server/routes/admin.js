@@ -146,4 +146,56 @@ router.put('/workouts/:id/status', ...approveOnly, async (req, res) => {
   res.json({ ok: true });
 });
 
+// 기록 내용 수정 (승인 권한자 접근 가능)
+router.put('/workouts/:id/edit', ...approveOnly, async (req, res) => {
+  const id = Number(req.params.id);
+  const { distance_km, duration_sec, memo, logged_at, brick_segments } = req.body;
+
+  const row = await prepare('SELECT * FROM workout_logs WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
+
+  const newDist  = distance_km  !== undefined ? Number(distance_km)  : row.distance_km;
+  const newDur   = duration_sec !== undefined ? Number(duration_sec) : row.duration_sec;
+  const newBrick = brick_segments ? JSON.stringify(brick_segments)   : row.brick_segments;
+  const newMemo  = memo      !== undefined ? memo      : row.memo;
+  const newDate  = logged_at !== undefined ? logged_at : row.logged_at;
+
+  function calcPace(sport, dist, dur) {
+    if (!dist || !dur) return 0;
+    if (sport === 'swim') return (dur / 60) / (dist * 10);
+    if (sport === 'bike') return dist / (dur / 3600);
+    if (sport === 'run')  return (dur / 60) / dist;
+    return 0;
+  }
+  function calcScore(sport, dist, brickJson) {
+    if (sport === 'brick') {
+      try {
+        const segs = JSON.parse(brickJson || '[]');
+        let base = 0;
+        for (const s of segs) {
+          if (s.sport === 'swim') base += (s.distance_km || 0) * 3.0;
+          else if (s.sport === 'bike') base += (s.distance_km || 0) * 1.0;
+          else if (s.sport === 'run')  base += (s.distance_km || 0) * 2.0;
+        }
+        return base * 1.5;
+      } catch { return 0; }
+    }
+    if (sport === 'swim') return dist * 3.0;
+    if (sport === 'bike') return dist * 1.0;
+    if (sport === 'run')  return dist * 2.0;
+    return 0;
+  }
+
+  const newPace  = calcPace(row.sport_type, newDist, newDur);
+  const newScore = calcScore(row.sport_type, newDist, newBrick);
+
+  await prepare(`
+    UPDATE workout_logs
+    SET distance_km=?, duration_sec=?, memo=?, logged_at=?, brick_segments=?, pace=?, score=?
+    WHERE id=?
+  `).run(newDist, newDur, newMemo, newDate, newBrick, newPace, newScore, id);
+
+  res.json(await prepare('SELECT * FROM workout_logs WHERE id=?').get(id));
+});
+
 module.exports = router;

@@ -99,6 +99,7 @@ export const api = {
   deleteAdminMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
   getPendingWorkouts: () => request('/admin/pending'),
   setWorkoutStatus: (id, status) => request(`/admin/workouts/${id}/status`, { method: 'PUT', body: { status } }),
+  editAdminWorkout: (id, body) => request(`/admin/workouts/${id}/edit`, { method: 'PUT', body }),
   getPendingMemberships: () => request('/admin/memberships'),
   setMembershipStatus: (userId, status) => request(`/admin/memberships/${userId}/status`, { method: 'PUT', body: { status } }),
 }
