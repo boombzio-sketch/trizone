@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { api } from '../utils/api'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, formatScore } from '../utils/helpers'
-import { C } from '../utils/theme'
+import { C, cardBase } from '../utils/theme'
 
 const PERIODS = [
   { key: 'weekly',  label: '주간' },
@@ -58,9 +58,9 @@ export default function RankingPage() {
   return (
     <div>
       {/* 나의 기록 */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '14px 14px 12px' }}>
-        <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          나의 기록 {data && `— ${data.from} ~ ${data.to}`}
+      <div style={{ background: 'linear-gradient(180deg, #0C1E38 0%, #091320 100%)', borderBottom: `1px solid rgba(56,189,248,0.15)`, padding: '14px 14px 12px' }}>
+        <div style={{ fontSize: 10, color: C.accent, fontWeight: 800, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          ⚡ 나의 기록 {data && <span style={{ color: C.text3, fontWeight: 600, letterSpacing: 0 }}>  {data.from} ~ {data.to}</span>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 8 }}>
           {[
@@ -68,21 +68,21 @@ export default function RankingPage() {
             { label: '사이클', val: (myData?.bike_km||0).toFixed(2), color: C.bike },
             { label: '런', val: (myData?.run_km||0).toFixed(2), color: C.run },
           ].map(s => (
-            <div key={s.label} style={{ background: C.surfaceAlt, borderRadius: 14, padding: '12px 10px', borderLeft: `3px solid ${s.color}` }}>
-              <div style={{ fontSize: 10, color: s.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{s.val}</div>
-              <div style={{ fontSize: 9, color: C.text3, marginTop: 2 }}>km</div>
+            <div key={s.label} style={{ background: `linear-gradient(135deg, ${s.color}14 0%, transparent 70%)`, border: `1px solid ${s.color}30`, borderRadius: 14, padding: '12px 10px', borderTop: `2px solid ${s.color}` }}>
+              <div style={{ fontSize: 9, color: s.color, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{s.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{s.val}</div>
+              <div style={{ fontSize: 9, color: s.color, marginTop: 2, fontWeight: 600 }}>km</div>
             </div>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: C.text2 }}>총 거리</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: C.accent }}>{(myData?.total_km||0).toFixed(2)}km</span>
+          <div style={{ background: `linear-gradient(135deg, ${C.accent}10 0%, transparent 70%)`, border: `1px solid ${C.accentBorder}`, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: C.text2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>총 거리</span>
+            <span style={{ fontSize: 15, fontWeight: 900, color: C.accent, fontVariantNumeric: 'tabular-nums' }}>{(myData?.total_km||0).toFixed(2)}<span style={{ fontSize: 10, marginLeft: 2 }}>km</span></span>
           </div>
-          <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: C.text2 }}>훈련 횟수</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{myData?.workout_count || 0}회</span>
+          <div style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: C.text2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>훈련 횟수</span>
+            <span style={{ fontSize: 15, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{myData?.workout_count || 0}<span style={{ fontSize: 10, marginLeft: 2 }}>회</span></span>
           </div>
         </div>
       </div>
@@ -150,11 +150,16 @@ export default function RankingPage() {
 
       {/* 내 순위 배너 */}
       {myRank > 0 && myKm > 0 && (
-        <div style={{ margin: '12px 12px 0', background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 11, color: C.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>내 순위</span>
-          <span style={{ fontSize: 28, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{myRank}위</span>
+        <div style={{ margin: '12px 12px 0', background: `linear-gradient(135deg, ${C.accent}18 0%, transparent 70%)`, border: `1px solid ${C.accentBorder}`, borderRadius: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: `0 0 24px ${C.accent}18` }}>
+          <div>
+            <div style={{ fontSize: 9, color: C.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>내 순위</div>
+            <div style={{ fontSize: 36, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.03em' }}>{myRank}<span style={{ fontSize: 14, color: C.text2, marginLeft: 2 }}>위</span></div>
+          </div>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{getMainValue(rankings[myRank-1])}</span>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 9, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>{SPORT_ICON[sport]} 거리</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: C.accent, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{getMainValue(rankings[myRank-1])}</div>
+          </div>
         </div>
       )}
 
@@ -168,31 +173,40 @@ export default function RankingPage() {
           </div>
         ) : rankings.map((r, i) => {
           const isMe = r.user_id === user?.id
-          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+          const podium = [
+            { bg: 'linear-gradient(135deg, #FBBF2420 0%, transparent 60%)', border: '#FBBF2440', rankColor: '#FBBF24', label: '🥇' },
+            { bg: 'linear-gradient(135deg, #CBD5E120 0%, transparent 60%)', border: '#CBD5E140', rankColor: '#CBD5E1', label: '🥈' },
+            { bg: 'linear-gradient(135deg, #FB923C20 0%, transparent 60%)', border: '#FB923C40', rankColor: '#FB923C', label: '🥉' },
+          ][i]
+
           return (
             <div key={r.user_id} style={{
-              display: 'flex', alignItems: 'center', padding: '11px 14px',
+              display: 'flex', alignItems: 'center', padding: podium ? '14px 16px' : '11px 14px',
               borderBottom: `1px solid ${C.border}`, gap: 12,
-              background: isMe ? C.accentBg : 'transparent',
+              background: podium ? podium.bg : isMe ? `${C.accent}10` : 'transparent',
+              borderLeft: podium ? `3px solid ${podium.border}` : isMe ? `3px solid ${C.accent}` : '3px solid transparent',
             }}>
-              <div style={{ width: 28, textAlign: 'center', fontSize: medal ? 20 : 13, fontWeight: 800, color: C.text2, flexShrink: 0 }}>
-                {medal || (i + 1)}
+              <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>
+                {podium
+                  ? <span style={{ fontSize: 22, lineHeight: 1 }}>{podium.label}</span>
+                  : <span style={{ fontSize: 13, fontWeight: 800, color: isMe ? C.accent : C.text3, fontVariantNumeric: 'tabular-nums' }}>{i + 1}</span>
+                }
               </div>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: r.avatar_color+'22', border: `2px solid ${r.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: r.avatar_color }}>
+              <div style={{ width: podium ? 42 : 36, height: podium ? 42 : 36, borderRadius: '50%', flexShrink: 0, background: r.avatar_color+'22', border: `2px solid ${r.avatar_color}${podium ? '' : '90'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: podium ? 15 : 13, fontWeight: 800, color: r.avatar_color, boxShadow: podium ? `0 0 12px ${r.avatar_color}40` : 'none' }}>
                 {r.nickname?.charAt(0)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: isMe ? C.accent : C.text, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ fontSize: podium ? 14 : 13, fontWeight: podium ? 800 : 700, color: isMe ? C.accent : C.text, display: 'flex', alignItems: 'center', gap: 5 }}>
                   {r.nickname}
                   {isMe && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px', fontWeight: 700 }}>나</span>}
                 </div>
                 <div style={{ fontSize: 10, color: C.text2, marginTop: 1 }}>{r.workout_count || 0}회 훈련</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, fontVariantNumeric: 'tabular-nums' }}>{getMainValue(r)}</div>
+                <div style={{ fontSize: podium ? 17 : 14, fontWeight: 900, color: podium ? podium.rankColor : isMe ? C.accent : C.text2, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{getMainValue(r)}</div>
                 {sport === 'all' && (
-                  <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>
-                    🏊{(r.swim_km||0).toFixed(1)}km 🚴{(r.bike_km||0).toFixed(1)}km 🏃{(r.run_km||0).toFixed(1)}km
+                  <div style={{ fontSize: 9, color: C.text3, marginTop: 2 }}>
+                    🏊{(r.swim_km||0).toFixed(1)} 🚴{(r.bike_km||0).toFixed(1)} 🏃{(r.run_km||0).toFixed(1)}
                   </div>
                 )}
               </div>

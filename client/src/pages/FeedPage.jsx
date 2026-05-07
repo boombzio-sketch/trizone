@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
-import { C } from '../utils/theme'
+import { C, cardSport } from '../utils/theme'
 import { api } from '../utils/api'
 import Avatar from '../components/Avatar.jsx'
 
@@ -464,7 +464,7 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
 
   return (
     <div style={{ margin: '0 12px 10px' }}>
-      <div style={{ background: C.surface, borderRadius: 18, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
+      <div style={{ ...cardSport(sc), overflow: 'hidden' }}>
         {/* 작성자 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px 8px' }}>
           <button onClick={() => navigate(`/users/${f.user_id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
@@ -560,7 +560,7 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
         )}
 
         {/* 훈련 내용 */}
-        <div style={{ margin: '0 14px 10px', background: C.surfaceAlt, borderRadius: 14, padding: '14px 16px' }}>
+        <div style={{ margin: '0 14px 10px', background: `linear-gradient(135deg, ${sc}10 0%, transparent 60%)`, border: `1px solid ${sc}20`, borderRadius: 14, padding: '14px 16px' }}>
           {segs ? (
             segs.map((s, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: C.text2, marginBottom: 5 }}>

@@ -170,34 +170,35 @@ export default function MyPage() {
       )}
 
       {/* 프로필 카드 */}
-      <div style={{ background: C.surface, borderRadius: 18, padding: 18, border: `1px solid ${C.border}`, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-          <Avatar nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} size={60} style={{ border: `3px solid ${user?.avatar_color||C.accent}` }} />
+      <div style={{ background: 'linear-gradient(160deg, #0E2040 0%, #091320 100%)', borderRadius: 20, padding: 18, border: `1px solid rgba(56,189,248,0.15)`, marginBottom: 12, boxShadow: '0 4px 32px rgba(0,0,0,0.5)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+          <div style={{ position: 'relative' }}>
+            <Avatar nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} size={64} />
+            <div style={{ position: 'absolute', inset: -3, borderRadius: '50%', border: `2px solid ${user?.avatar_color||C.accent}`, boxShadow: `0 0 14px ${user?.avatar_color||C.accent}60`, pointerEvents: 'none' }} />
+          </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-              {user?.nickname}
-            </div>
-            <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
-              {user?.role === 'admin' && <span style={{ fontSize: 10, background: C.goldBg, color: C.gold, borderRadius: 6, padding: '2px 7px' }}>👑 관리자</span>}
-              {user?.can_approve && user?.role !== 'admin' && <span style={{ fontSize: 10, background: 'rgba(0,220,130,0.12)', color: '#00DC82', borderRadius: 6, padding: '2px 7px' }}>✅ 승인관리자</span>}
-              {user?.is_club_leader && <span style={{ fontSize: 10, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 7px' }}>🏆 클럽관리자</span>}
+            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{user?.nickname}</div>
+            <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+              {user?.role === 'admin' && <span style={{ fontSize: 10, background: C.goldBg, color: C.gold, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>👑 관리자</span>}
+              {user?.can_approve && user?.role !== 'admin' && <span style={{ fontSize: 10, background: 'rgba(16,240,144,0.12)', color: C.success, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>✅ 승인관리자</span>}
+              {user?.is_club_leader && <span style={{ fontSize: 10, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>🏆 클럽관리자</span>}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <button onClick={openEdit} style={{ fontSize: 12, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 700 }}>수정</button>
-            <button onClick={logout} style={{ fontSize: 12, color: C.text2, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>로그아웃</button>
+            <button onClick={logout} style={{ fontSize: 12, color: C.text2, background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>로그아웃</button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderTop: `1px solid rgba(56,189,248,0.1)`, paddingTop: 16 }}>
           {[
             { label: '팔로워', val: profile?.follower_count || 0, onClick: openFollowers },
             { label: '팔로잉', val: profile?.following_count || 0, onClick: openFollowing },
-            { label: '훈련 횟수', val: stats.reduce((a,s) => a+(s.cnt||0), 0), onClick: null },
+            { label: '총 훈련', val: stats.reduce((a,s) => a+(s.cnt||0), 0), onClick: null },
           ].map((item, i) => (
             <button key={i} onClick={item.onClick} style={{ background: 'none', border: 'none', cursor: item.onClick ? 'pointer' : 'default', textAlign: 'center', padding: '4px 0' }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: C.accent, fontVariantNumeric: 'tabular-nums' }}>{item.val}</div>
-              <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{item.label}</div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: C.accent, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>{item.val}</div>
+              <div style={{ fontSize: 10, color: C.text2, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</div>
             </button>
           ))}
         </div>
@@ -206,21 +207,24 @@ export default function MyPage() {
       {/* 최근 훈련 */}
       {profile?.recentWorkouts?.length > 0 && (<>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>최근 훈련</div>
-        {profile.recentWorkouts.map(w => (
-          <div key={w.id} style={{ margin: '0 0 8px', background: C.surface, borderRadius: 12, overflow: 'hidden', borderLeft: `3px solid ${SPORT_COLOR[w.sport_type]}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: SPORT_COLOR[w.sport_type]+'18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>{SPORT_ICON[w.sport_type]}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: SPORT_COLOR[w.sport_type] }}>{SPORT_LABEL[w.sport_type]}</div>
-                <div style={{ fontSize: 11, color: C.text2 }}>{formatDuration(w.duration_sec)}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: C.accent }}>{(w.distance_km||0).toFixed(2)}km</div>
-                <div style={{ fontSize: 10, color: C.text3 }}>{w.logged_at}</div>
+        {profile.recentWorkouts.map(w => {
+          const sc = SPORT_COLOR[w.sport_type]
+          return (
+            <div key={w.id} style={{ margin: '0 0 8px', background: `linear-gradient(135deg, ${sc}10 0%, transparent 60%)`, borderRadius: 14, overflow: 'hidden', border: `1px solid ${sc}25`, borderTop: `2px solid ${sc}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 12, background: sc+'18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, border: `1px solid ${sc}30` }}>{SPORT_ICON[w.sport_type]}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: sc, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{SPORT_LABEL[w.sport_type]}</div>
+                  <div style={{ fontSize: 11, color: C.text2 }}>{formatDuration(w.duration_sec)}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{(w.distance_km||0).toFixed(2)}<span style={{ fontSize: 10, color: sc, marginLeft: 2 }}>km</span></div>
+                  <div style={{ fontSize: 10, color: C.text3 }}>{w.logged_at}</div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </>)}
 
       {/* 관리자 문의 */}
