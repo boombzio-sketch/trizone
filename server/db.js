@@ -184,13 +184,6 @@ async function initDb() {
     );
   }
 
-  // Existing users → approved membership in club id=1
-  await pool.query(`
-    INSERT INTO club_memberships (club_id, user_id, status)
-    SELECT 1, id, 'approved' FROM users
-    ON CONFLICT (club_id, user_id) DO NOTHING
-  `);
-
   // Admins → auto-approved leader application
   await pool.query(`
     INSERT INTO club_leader_applications (user_id, status)
