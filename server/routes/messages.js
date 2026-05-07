@@ -18,9 +18,9 @@ router.post('/', authMiddleware, async (req, res) => {
 // 내 문의 내역
 router.get('/mine', authMiddleware, async (req, res) => {
   const rows = await db.prepare(`
-    ${THREAD_COLS},
-    (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id) as reply_count,
-    (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id AND r.is_read = false AND r.from_user_id != m.from_user_id) as unread_replies
+    SELECT m.*, u.nickname as from_nickname, u.avatar_color as from_avatar_color, u.avatar_image as from_avatar_image,
+      (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id) as reply_count,
+      (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id AND r.from_user_id != m.from_user_id) as unread_replies
     FROM messages m JOIN users u ON m.from_user_id = u.id
     WHERE m.from_user_id = ? AND m.parent_id IS NULL
     ORDER BY m.created_at DESC
@@ -33,8 +33,8 @@ router.get('/inbox', authMiddleware, async (req, res) => {
   if (req.user.role !== 'admin' && !req.user.can_approve)
     return res.status(403).json({ error: '권한이 없습니다.' })
   const rows = await db.prepare(`
-    ${THREAD_COLS},
-    (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id) as reply_count
+    SELECT m.*, u.nickname as from_nickname, u.avatar_color as from_avatar_color, u.avatar_image as from_avatar_image,
+      (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id) as reply_count
     FROM messages m JOIN users u ON m.from_user_id = u.id
     WHERE m.parent_id IS NULL
     ORDER BY m.created_at DESC
