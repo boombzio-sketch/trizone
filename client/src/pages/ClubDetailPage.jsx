@@ -99,11 +99,19 @@ export default function ClubDetailPage() {
   async function handleJoinTraining(tid) {
     await api.joinClubTraining(id, tid)
     setTrainings(prev => prev.map(t => t.id === tid ? { ...t, my_status: 'joined', participant_count: (t.participant_count||0)+1 } : t))
+    setTrainingParticipants(prev => ({
+      ...prev,
+      [tid]: [...(prev[tid] || []), { user_id: user.id, nickname: user.nickname, avatar_color: user.avatar_color, status: 'joined' }]
+    }))
   }
 
   async function handleLeaveTraining(tid) {
     await api.leaveClubTraining(id, tid)
     setTrainings(prev => prev.map(t => t.id === tid ? { ...t, my_status: null, participant_count: Math.max(0,(t.participant_count||1)-1) } : t))
+    setTrainingParticipants(prev => ({
+      ...prev,
+      [tid]: (prev[tid] || []).filter(p => p.user_id !== user.id)
+    }))
   }
 
   async function loadTrainingParticipants(tid) {
