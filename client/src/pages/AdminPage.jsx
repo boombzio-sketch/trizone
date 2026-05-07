@@ -9,33 +9,58 @@ import Avatar from '../components/Avatar.jsx'
 export default function AdminPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('pending')
+  const [badges, setBadges] = useState({ pending: null, memberships: null, leaderApps: null, members: null })
 
   if (user?.role !== 'admin') return <Navigate to="/" replace />
+
+  const setBadge = (key, count) => setBadges(prev => ({ ...prev, [key]: count }))
+
+  const tabDefs = [
+    { key: 'pending', label: '훈련 승인', badge: badges.pending },
+    { key: 'memberships', label: '클럽 가입', badge: badges.memberships },
+    { key: 'leaderApps', label: '클럽장 신청', badge: badges.leaderApps },
+    { key: 'members', label: '회원 관리', badge: badges.members, badgeStyle: 'count' },
+  ]
 
   return (
     <div>
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '14px 16px 0' }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>⚙️ 관리</div>
         <div style={{ display: 'flex', gap: 0 }}>
-          {[['pending','훈련 승인'],['memberships','클럽 가입'],['leaderApps','클럽장 신청'],['members','회원 관리']].map(([k,l]) => (
-            <button key={k} onClick={() => setTab(k)} style={{
-              padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer',
-              fontSize: 13, fontWeight: 700,
-              color: tab===k ? C.accent : C.text2,
-              borderBottom: tab===k ? `2px solid ${C.accent}` : '2px solid transparent',
-            }}>{l}</button>
+          {tabDefs.map(({ key, label, badge, badgeStyle }) => (
+            <button key={key} onClick={() => setTab(key)} style={{
+              padding: '10px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
+              fontSize: 13, fontWeight: 700, position: 'relative',
+              color: tab === key ? C.accent : C.text2,
+              borderBottom: tab === key ? `2px solid ${C.accent}` : '2px solid transparent',
+            }}>
+              {label}
+              {badge !== null && badge > 0 && (
+                <span style={{
+                  marginLeft: 4,
+                  fontSize: 10, fontWeight: 800, lineHeight: 1,
+                  padding: '2px 5px', borderRadius: 8,
+                  background: badgeStyle === 'count' ? C.surfaceHigh : '#ef4444',
+                  color: badgeStyle === 'count' ? C.text2 : '#fff',
+                  verticalAlign: 'middle',
+                }}>{badge}</span>
+              )}
+              {badgeStyle === 'count' && badge === 0 && (
+                <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 800, padding: '2px 5px', borderRadius: 8, background: C.surfaceHigh, color: C.text2, verticalAlign: 'middle' }}>0</span>
+              )}
+            </button>
           ))}
         </div>
       </div>
-      <div style={{ display: tab === 'pending' ? 'block' : 'none' }}><PendingTab /></div>
-      <div style={{ display: tab === 'memberships' ? 'block' : 'none' }}><MembershipsTab /></div>
-      <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab /></div>
-      <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} /></div>
+      <div style={{ display: tab === 'pending' ? 'block' : 'none' }}><PendingTab onBadge={c => setBadge('pending', c)} /></div>
+      <div style={{ display: tab === 'memberships' ? 'block' : 'none' }}><MembershipsTab onBadge={c => setBadge('memberships', c)} /></div>
+      <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>
+      <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>
     </div>
   )
 }
 
-function PendingTab() {
+function PendingTab({ onBadge }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [photoModal, setPhotoModal] = useState(null)
@@ -44,13 +69,20 @@ function PendingTab() {
 
   async function load() {
     setLoading(true)
-    try { setItems(await api.getPendingWorkouts()) }
-    finally { setLoading(false) }
+    try {
+      const data = await api.getPendingWorkouts()
+      setItems(data)
+      onBadge(data.length)
+    } finally { setLoading(false) }
   }
 
   async function handle(id, status) {
     await api.setWorkoutStatus(id, status)
-    setItems(prev => prev.filter(w => w.id !== id))
+    setItems(prev => {
+      const next = prev.filter(w => w.id !== id)
+      onBadge(next.length)
+      return next
+    })
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
@@ -153,19 +185,23 @@ function PendingTab() {
   )
 }
 
-function LeaderAppsTab() {
+function LeaderAppsTab({ onBadge }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     api.getClubLeaderApps()
-      .then(setItems)
+      .then(data => { setItems(data); onBadge(data.length) })
       .finally(() => setLoading(false))
   }, [])
 
   async function handle(userId, status) {
     await api.setClubLeaderAppStatus(userId, status)
-    setItems(prev => prev.filter(m => m.user_id !== userId))
+    setItems(prev => {
+      const next = prev.filter(m => m.user_id !== userId)
+      onBadge(next.length)
+      return next
+    })
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳</div>
@@ -202,7 +238,7 @@ function LeaderAppsTab() {
   )
 }
 
-function MembershipsTab() {
+function MembershipsTab({ onBadge }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -210,13 +246,20 @@ function MembershipsTab() {
 
   async function load() {
     setLoading(true)
-    try { setItems(await api.getPendingMemberships()) }
-    finally { setLoading(false) }
+    try {
+      const data = await api.getPendingMemberships()
+      setItems(data)
+      onBadge(data.length)
+    } finally { setLoading(false) }
   }
 
   async function handle(userId, status) {
     await api.setMembershipStatus(userId, status)
-    setItems(prev => prev.filter(m => m.user_id !== userId))
+    setItems(prev => {
+      const next = prev.filter(m => m.user_id !== userId)
+      onBadge(next.length)
+      return next
+    })
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
@@ -263,7 +306,7 @@ function MembershipsTab() {
 
 const AVATAR_COLORS = ['#4F9CF9','#0EA5E9','#22C55E','#F97316','#A855F7','#EF4444','#F59E0B','#10B981','#EC4899','#14B8A6']
 
-function MembersTab({ user: currentUser }) {
+function MembersTab({ user: currentUser, onBadge }) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -275,7 +318,7 @@ function MembersTab({ user: currentUser }) {
   useEffect(() => {
     setLoading(true)
     api.getAdminMembers()
-      .then(setMembers)
+      .then(data => { setMembers(data); onBadge(data.length) })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -309,7 +352,11 @@ function MembersTab({ user: currentUser }) {
     if (!confirm(`${member.nickname} 회원을 삭제할까요?\n모든 데이터가 삭제됩니다.`)) return
     try {
       await api.deleteAdminMember(member.id)
-      setMembers(prev => prev.filter(m => m.id !== member.id))
+      setMembers(prev => {
+        const next = prev.filter(m => m.id !== member.id)
+        onBadge(next.length)
+        return next
+      })
     } catch (e) { alert(e.message) }
   }
 
