@@ -155,18 +155,25 @@ router.delete('/:id/leave', authMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── 부클럽장 여부 확인 헬퍼 ──────────────────────────────────
+
+async function isSubLeaderOf(clubId, userId) {
+  const m = await prepare("SELECT club_role FROM club_memberships WHERE club_id=? AND user_id=? AND status='approved'").get(clubId, userId);
+  return m?.club_role === 'sub_leader';
+}
+
 // ── 회원 목록 / 승인 ─────────────────────────────────────────
 
 router.get('/:id/members', authMiddleware, async (req, res) => {
   const rows = await prepare(`
-    SELECT u.id, u.nickname, u.avatar_color, u.avatar_image, cm.applied_at,
+    SELECT u.id, u.nickname, u.avatar_color, u.avatar_image, cm.applied_at, cm.club_role,
            COUNT(w.id) as total_workouts,
            COALESCE(SUM(CASE WHEN w.status='approved' THEN w.distance_km ELSE 0 END), 0) as total_km
     FROM club_memberships cm
     JOIN users u ON cm.user_id=u.id
     LEFT JOIN workout_logs w ON w.user_id=u.id
     WHERE cm.club_id=? AND cm.status='approved'
-    GROUP BY u.id, cm.applied_at ORDER BY u.nickname
+    GROUP BY u.id, u.nickname, u.avatar_color, u.avatar_image, cm.applied_at, cm.club_role ORDER BY u.nickname
   `).all(Number(req.params.id));
   res.json(rows);
 });
@@ -192,6 +199,25 @@ router.put('/:id/members/:userId/status', authMiddleware, async (req, res) => {
   const { status } = req.body;
   if (!['approved','rejected'].includes(status)) return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
   await prepare('UPDATE club_memberships SET status=? WHERE club_id=? AND user_id=?').run(status, Number(req.params.id), Number(req.params.userId));
+  res.json({ ok: true });
+});
+
+// 부클럽장 권한 부여/해제 (클럽장 or admin만 가능)
+router.put('/:id/members/:userId/club-role', authMiddleware, async (req, res) => {
+  const clubId = Number(req.params.id);
+  const targetId = Number(req.params.userId);
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId);
+  if (!club) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
+  if (club.leader_id !== req.user.id && req.user.role !== 'admin')
+    return res.status(403).json({ error: '권한이 없습니다.' });
+  if (targetId === club.leader_id)
+    return res.status(400).json({ error: '클럽장의 역할은 변경할 수 없습니다.' });
+
+  const { club_role } = req.body;
+  if (!['member', 'sub_leader'].includes(club_role))
+    return res.status(400).json({ error: '유효하지 않은 역할입니다.' });
+
+  await prepare("UPDATE club_memberships SET club_role=? WHERE club_id=? AND user_id=? AND status='approved'").run(club_role, clubId, targetId);
   res.json({ ok: true });
 });
 
@@ -261,10 +287,12 @@ router.get('/:id/trainings', authMiddleware, async (req, res) => {
 });
 
 router.post('/:id/trainings', authMiddleware, async (req, res) => {
-  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(Number(req.params.id));
+  const clubId = Number(req.params.id);
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId);
   if (!club) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
-  if (club.leader_id !== req.user.id && req.user.role !== 'admin')
-    return res.status(403).json({ error: '권한이 없습니다.' });
+  const canManage = club.leader_id === req.user.id || req.user.role === 'admin'
+    || await isSubLeaderOf(clubId, req.user.id);
+  if (!canManage) return res.status(403).json({ error: '권한이 없습니다.' });
   const { title, train_date, train_time, location, description, capacity, link_url } = req.body;
   if (!title || !train_date || !location) return res.status(400).json({ error: '훈련명, 날짜, 장소는 필수입니다.' });
   const result = await prepare(`
@@ -280,9 +308,11 @@ router.post('/:id/trainings', authMiddleware, async (req, res) => {
 });
 
 router.put('/:id/trainings/:tid', authMiddleware, async (req, res) => {
-  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(Number(req.params.id));
-  if (club?.leader_id !== req.user.id && req.user.role !== 'admin')
-    return res.status(403).json({ error: '권한이 없습니다.' });
+  const clubId = Number(req.params.id);
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId);
+  const canManage = club?.leader_id === req.user.id || req.user.role === 'admin'
+    || await isSubLeaderOf(clubId, req.user.id);
+  if (!canManage) return res.status(403).json({ error: '권한이 없습니다.' });
   const { title, train_date, train_time, location, description, capacity, link_url } = req.body;
   await prepare(`UPDATE club_trainings SET title=?, train_date=?, train_time=?, location=?, description=?, capacity=?, link_url=?
     WHERE id=? AND club_id=?`).run(title, train_date, train_time||'', location, description||'', capacity||0, link_url||'', Number(req.params.tid), Number(req.params.id));
@@ -290,9 +320,11 @@ router.put('/:id/trainings/:tid', authMiddleware, async (req, res) => {
 });
 
 router.delete('/:id/trainings/:tid', authMiddleware, async (req, res) => {
-  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(Number(req.params.id));
-  if (club?.leader_id !== req.user.id && req.user.role !== 'admin')
-    return res.status(403).json({ error: '권한이 없습니다.' });
+  const clubId = Number(req.params.id);
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId);
+  const canManage = club?.leader_id === req.user.id || req.user.role === 'admin'
+    || await isSubLeaderOf(clubId, req.user.id);
+  if (!canManage) return res.status(403).json({ error: '권한이 없습니다.' });
   await prepare('DELETE FROM club_training_participants WHERE training_id=?').run(Number(req.params.tid));
   await prepare('DELETE FROM club_trainings WHERE id=? AND club_id=?').run(Number(req.params.tid), Number(req.params.id));
   res.json({ ok: true });
@@ -310,11 +342,13 @@ router.delete('/:id/trainings/:tid/leave', authMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
-// 출석 체크 (leader/admin)
+// 출석 체크 (leader/sub_leader/admin)
 router.put('/:id/trainings/:tid/attendance/:userId', authMiddleware, async (req, res) => {
-  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(Number(req.params.id));
-  if (club?.leader_id !== req.user.id && req.user.role !== 'admin')
-    return res.status(403).json({ error: '권한이 없습니다.' });
+  const clubId = Number(req.params.id);
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId);
+  const canManage = club?.leader_id === req.user.id || req.user.role === 'admin'
+    || await isSubLeaderOf(clubId, req.user.id);
+  if (!canManage) return res.status(403).json({ error: '권한이 없습니다.' });
   const { status } = req.body;
   if (!['joined','attended','absent'].includes(status)) return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
   await prepare('UPDATE club_training_participants SET status=? WHERE training_id=? AND user_id=?').run(status, Number(req.params.tid), Number(req.params.userId));

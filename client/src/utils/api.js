@@ -78,6 +78,7 @@ export const api = {
   postClubAnnouncement: (id, body) => request(`/clubs/${id}/announcements`, { method: 'POST', body }),
   deleteClubAnnouncement: (clubId, annId) => request(`/clubs/${clubId}/announcements/${annId}`, { method: 'DELETE' }),
   transferClubLeader: (clubId, newLeaderId) => request(`/clubs/${clubId}/transfer-leader`, { method: 'PUT', body: { new_leader_id: newLeaderId } }),
+  setClubMemberClubRole: (clubId, userId, club_role) => request(`/clubs/${clubId}/members/${userId}/club-role`, { method: 'PUT', body: { club_role } }),
   getClubTrainings: (clubId) => request(`/clubs/${clubId}/trainings`),
   createClubTraining: (clubId, body) => request(`/clubs/${clubId}/trainings`, { method: 'POST', body }),
   updateClubTraining: (clubId, tid, body) => request(`/clubs/${clubId}/trainings/${tid}`, { method: 'PUT', body }),

@@ -51,6 +51,8 @@ export default function ClubDetailPage() {
   const isLeader = club?.leader_id === user?.id
   const isAdmin = user?.role === 'admin'
   const canManage = isLeader || isAdmin
+  const isSubLeader = !isLeader && !isAdmin && membership?.club_role === 'sub_leader' && membership?.status === 'approved'
+  const canManageTraining = canManage || isSubLeader
 
   useEffect(() => { loadAll() }, [id])
 
@@ -221,6 +223,13 @@ export default function ClubDetailPage() {
     }
   }
 
+  async function handleSetSubLeader(userId, newRole) {
+    try {
+      await api.setClubMemberClubRole(id, userId, newRole)
+      setMembers(prev => prev.map(m => m.id === userId ? { ...m, club_role: newRole } : m))
+    } catch(e) { alert(e.message) }
+  }
+
   async function handlePostAnn(e) {
     e.preventDefault()
     if (!annTitle.trim()) return
@@ -351,7 +360,7 @@ export default function ClubDetailPage() {
       {tab === '훈련' && (
         <div style={{ padding: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            {canManage ? (
+            {canManageTraining ? (
               <button onClick={() => { setShowTrainingForm(s => !s); setEditingTraining(null); setTrainingForm({ title:'', train_date:'', train_time:'', location:'', description:'', capacity:'', link_url:'' }) }}
                 style={{ fontSize: 12, fontWeight: 700, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer' }}>
                 {showTrainingForm && !editingTraining ? '취소' : '+ 훈련 만들기'}
@@ -396,7 +405,7 @@ export default function ClubDetailPage() {
             <TrainingCalendar
               trainings={trainings}
               participants={trainingParticipants}
-              canManage={canManage}
+              canManage={canManageTraining}
               membership={membership}
               isPast={t => t.train_date < new Date().toISOString().slice(0,10)}
               onJoin={handleJoinTraining}
@@ -431,7 +440,7 @@ export default function ClubDetailPage() {
                         {!t.capacity && <span>👥 {t.participant_count}명 신청</span>}
                       </div>
                     </div>
-                    {canManage && (
+                    {canManageTraining && (
                       <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                         <button onClick={() => { setEditingTraining(t); setTrainingForm({ title:t.title, train_date:t.train_date, train_time:t.train_time||'', location:t.location, description:t.description||'', capacity:t.capacity||'', link_url:t.link_url||'' }); setShowTrainingForm(true) }} style={{ background: C.accentBg, border: 'none', borderRadius: 7, color: C.accent, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '4px 8px' }}>수정</button>
                         <button onClick={() => handleDeleteTraining(t.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 7, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '4px 8px' }}>삭제</button>
@@ -471,7 +480,7 @@ export default function ClubDetailPage() {
                         {p.status === 'attended' && <span style={{ fontSize: 10, fontWeight: 700, color: C.success, background: C.successBg, borderRadius: 5, padding: '2px 7px' }}>✓ 참석</span>}
                         {p.status === 'absent' && <span style={{ fontSize: 10, fontWeight: 700, color: C.error, background: C.errorBg, borderRadius: 5, padding: '2px 7px' }}>✗ 불참</span>}
                         {p.status === 'joined' && <span style={{ fontSize: 10, color: C.text2 }}>신청</span>}
-                        {canManage && (
+                        {canManageTraining && (
                           <div style={{ display: 'flex', gap: 4 }}>
                             <button onClick={() => handleAttendance(t.id, p.user_id, p.status)} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: p.status==='attended' ? C.success : C.successBg, color: p.status==='attended' ? '#fff' : C.success }}>참석</button>
                             <button onClick={() => handleAbsent(t.id, p.user_id, p.status)} style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', border: 'none', borderRadius: 6, cursor: 'pointer', background: p.status==='absent' ? C.error : C.errorBg, color: p.status==='absent' ? '#fff' : C.error }}>불참</button>
@@ -532,7 +541,8 @@ export default function ClubDetailPage() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: m.id===user?.id ? C.accent : C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
                   {m.nickname}
-                  {club.leader_id === m.id && <span style={{ fontSize: 9, background: C.goldBg, color: C.gold, borderRadius: 4, padding: '1px 5px' }}>👑</span>}
+                  {club.leader_id === m.id && <span style={{ fontSize: 9, background: C.goldBg, color: C.gold, borderRadius: 4, padding: '1px 5px' }}>👑 클럽장</span>}
+                  {club.leader_id !== m.id && m.club_role === 'sub_leader' && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>⭐ 부클럽장</span>}
                   {m.id === user?.id && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>나</span>}
                 </div>
                 <div style={{ fontSize: 10, color: C.text2, marginTop: 1 }}>
@@ -548,6 +558,32 @@ export default function ClubDetailPage() {
       {/* 관리 탭 (클럽장/admin) */}
       {tab === '관리' && canManage && (
         <div style={{ padding: '12px' }}>
+
+          {/* 부클럽장 관리 */}
+          <div style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>⭐ 부클럽장 관리</div>
+            <div style={{ fontSize: 11, color: C.text2, marginBottom: 10 }}>부클럽장은 훈련을 등록·수정·삭제하고 출석을 체크할 수 있습니다.</div>
+            {members.filter(m => m.id !== club.leader_id).length === 0 ? (
+              <div style={{ fontSize: 12, color: C.text2 }}>관리할 회원이 없습니다.</div>
+            ) : members.filter(m => m.id !== club.leader_id).map(m => (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: m.avatar_color+'22', border: `1.5px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: m.avatar_color, flexShrink: 0 }}>
+                  {m.nickname?.charAt(0)}
+                </div>
+                <div style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 600 }}>{m.nickname}</div>
+                {m.club_role === 'sub_leader' && (
+                  <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>부클럽장</span>
+                )}
+                <button
+                  onClick={() => handleSetSubLeader(m.id, m.club_role === 'sub_leader' ? 'member' : 'sub_leader')}
+                  style={{ fontSize: 11, fontWeight: 700, padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', flexShrink: 0,
+                    background: m.club_role === 'sub_leader' ? C.errorBg : C.accentBg,
+                    color: m.club_role === 'sub_leader' ? C.error : C.accent }}>
+                  {m.club_role === 'sub_leader' ? '권한 해제' : '부클럽장 지정'}
+                </button>
+              </div>
+            ))}
+          </div>
 
           {/* 클럽장 양도 */}
           <div style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
