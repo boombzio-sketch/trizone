@@ -332,13 +332,23 @@ router.delete('/:id/trainings/:tid', authMiddleware, async (req, res) => {
 
 // 참가 신청
 router.post('/:id/trainings/:tid/join', authMiddleware, async (req, res) => {
-  await prepare("INSERT OR IGNORE INTO club_training_participants (training_id, user_id, status) VALUES (?,?,'joined')").run(Number(req.params.tid), req.user.id);
+  const clubId = Number(req.params.id)
+  const tidNum = Number(req.params.tid)
+  const membership = await prepare('SELECT status FROM club_memberships WHERE club_id=? AND user_id=? AND status=?').get(clubId, req.user.id, 'approved')
+  if (!membership && req.user.role !== 'admin') return res.status(403).json({ error: '클럽 회원만 참가할 수 있습니다.' })
+  const training = await prepare('SELECT id FROM club_trainings WHERE id=? AND club_id=?').get(tidNum, clubId)
+  if (!training) return res.status(404).json({ error: '훈련을 찾을 수 없습니다.' })
+  await prepare("INSERT OR IGNORE INTO club_training_participants (training_id, user_id, status) VALUES (?,?,'joined')").run(tidNum, req.user.id);
   res.json({ ok: true });
 });
 
 // 참가 취소
 router.delete('/:id/trainings/:tid/leave', authMiddleware, async (req, res) => {
-  await prepare('DELETE FROM club_training_participants WHERE training_id=? AND user_id=?').run(Number(req.params.tid), req.user.id);
+  const clubId = Number(req.params.id)
+  const tidNum = Number(req.params.tid)
+  const training = await prepare('SELECT id FROM club_trainings WHERE id=? AND club_id=?').get(tidNum, clubId)
+  if (!training) return res.status(404).json({ error: '훈련을 찾을 수 없습니다.' })
+  await prepare('DELETE FROM club_training_participants WHERE training_id=? AND user_id=?').run(tidNum, req.user.id);
   res.json({ ok: true });
 });
 
@@ -355,13 +365,20 @@ router.put('/:id/trainings/:tid/attendance/:userId', authMiddleware, async (req,
   res.json({ ok: true });
 });
 
-// 참가자 목록
+// 참가자 목록 (클럽 회원 또는 관리자만)
 router.get('/:id/trainings/:tid/participants', authMiddleware, async (req, res) => {
+  const clubId = Number(req.params.id)
+  const tidNum = Number(req.params.tid)
+  const membership = await prepare('SELECT status FROM club_memberships WHERE club_id=? AND user_id=? AND status=?').get(clubId, req.user.id, 'approved')
+  const canManage = req.user.role === 'admin' || await isSubLeaderOf(clubId, req.user.id)
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId)
+  if (!membership && !canManage && club?.leader_id !== req.user.id)
+    return res.status(403).json({ error: '클럽 회원만 조회할 수 있습니다.' })
   const rows = await prepare(`
     SELECT p.*, u.nickname, u.avatar_color
     FROM club_training_participants p JOIN users u ON p.user_id=u.id
     WHERE p.training_id=? ORDER BY p.applied_at ASC
-  `).all(Number(req.params.tid));
+  `).all(tidNum);
   res.json(rows);
 });
 

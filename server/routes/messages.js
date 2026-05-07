@@ -1,7 +1,13 @@
 const router = require('express').Router()
-const { prepare } = require('../db')
+const { prepare, pool } = require('../db')
 const { authMiddleware } = require('../middleware')
 const db = { prepare }
+
+async function isStaff(userId) {
+  const { rows } = await pool.query('SELECT role, can_approve FROM users WHERE id = $1', [userId])
+  const u = rows[0]
+  return u && (u.role === 'admin' || u.can_approve)
+}
 
 const THREAD_COLS = `
   SELECT m.*, u.nickname as from_nickname, u.avatar_color as from_avatar_color, u.avatar_image as from_avatar_image
@@ -30,7 +36,7 @@ router.get('/mine', authMiddleware, async (req, res) => {
 
 // 받은 쪽지 목록 (관리자)
 router.get('/inbox', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin' && !req.user.can_approve)
+  if (!await isStaff(req.user.id))
     return res.status(403).json({ error: '권한이 없습니다.' })
   const rows = await db.prepare(`
     SELECT m.*, u.nickname as from_nickname, u.avatar_color as from_avatar_color, u.avatar_image as from_avatar_image,
@@ -47,11 +53,11 @@ router.get('/:id/thread', authMiddleware, async (req, res) => {
   const id = Number(req.params.id)
   const original = await db.prepare(`${THREAD_COLS} WHERE m.id=?`).get(id)
   if (!original) return res.status(404).json({ error: '쪽지를 찾을 수 없습니다.' })
-  if (req.user.role !== 'admin' && !req.user.can_approve && original.from_user_id !== req.user.id)
+  const staff = await isStaff(req.user.id)
+  if (!staff && original.from_user_id !== req.user.id)
     return res.status(403).json({ error: '권한이 없습니다.' })
   const replies = await db.prepare(`${THREAD_COLS} WHERE m.parent_id=? ORDER BY m.created_at ASC`).all(id)
-  // 관리자가 열면 읽음 처리
-  if (req.user.role === 'admin' || req.user.can_approve) {
+  if (staff) {
     await db.prepare('UPDATE messages SET is_read=true WHERE id=?').run(id)
   }
   res.json({ original, replies })
@@ -59,7 +65,7 @@ router.get('/:id/thread', authMiddleware, async (req, res) => {
 
 // 답장 (관리자)
 router.post('/:id/reply', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin' && !req.user.can_approve)
+  if (!await isStaff(req.user.id))
     return res.status(403).json({ error: '권한이 없습니다.' })
   const { body } = req.body
   if (!body?.trim()) return res.status(400).json({ error: '내용을 입력하세요.' })

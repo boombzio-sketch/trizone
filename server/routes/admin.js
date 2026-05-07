@@ -154,6 +154,9 @@ router.put('/workouts/:id/edit', ...approveOnly, async (req, res) => {
 
   const row = await prepare('SELECT * FROM workout_logs WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
+  // 관리자가 아닌 승인권한자는 pending 상태 기록만 수정 가능
+  if (req.user.role !== 'admin' && row.status !== 'pending')
+    return res.status(403).json({ error: '승인 대기 기록만 수정할 수 있습니다.' });
 
   const newDist  = distance_km  !== undefined ? Number(distance_km)  : row.distance_km;
   const newDur   = duration_sec !== undefined ? Number(duration_sec) : row.duration_sec;

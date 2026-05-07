@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { prepare } = require('../db');
-const { authMiddleware } = require('../middleware');
+const { authMiddleware, adminMiddleware } = require('../middleware');
+const adminOnly = [authMiddleware, adminMiddleware];
 const db = { prepare };
 
 function calcScore(sport_type, distance_km, brick_segments) {
@@ -45,8 +46,8 @@ router.get('/', authMiddleware, async (req, res) => {
   res.json(rows);
 });
 
-// 모든 회원 기록
-router.get('/all', authMiddleware, async (req, res) => {
+// 모든 회원 기록 (관리자 전용)
+router.get('/all', ...adminOnly, async (req, res) => {
   const { from, to } = req.query;
   let q = `SELECT w.*, u.nickname, u.avatar_color FROM workout_logs w JOIN users u ON w.user_id = u.id WHERE 1=1`;
   const params = [];

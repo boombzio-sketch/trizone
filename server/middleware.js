@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { pool } = require('./db');
-const SECRET = process.env.JWT_SECRET || 'trizone_secret_2025';
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) throw new Error('JWT_SECRET 환경변수가 설정되지 않았습니다.');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;

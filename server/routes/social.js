@@ -183,7 +183,7 @@ router.get('/users/search', authMiddleware, async (req, res) => {
     LEFT JOIN follows f ON f.follower_id=? AND f.following_id=u.id
     WHERE u.nickname ILIKE ? AND u.id != ?
     LIMIT 20
-  `).all(req.user.id, '%'+q+'%', req.user.id)
+  `).all(req.user.id, '%' + q.replace(/[%_\\]/g, '\\$&') + '%', req.user.id)
   res.json(rows)
 })
 
@@ -196,12 +196,16 @@ router.get('/profile/:userId', authMiddleware, async (req, res) => {
   const following = await db.prepare('SELECT COUNT(*)::int as c FROM follows WHERE follower_id=?').get(uid)
   const iFollow = await db.prepare('SELECT id FROM follows WHERE follower_id=? AND following_id=?').get(req.user.id, uid)
   const stats = await db.prepare(`SELECT sport_type, SUM(distance_km) as km, COUNT(*) as cnt FROM workout_logs WHERE user_id=? GROUP BY sport_type`).all(uid)
+  const isSelf = req.user.id === uid
   const recentWorkouts = await db.prepare(`
     SELECT w.*,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
       (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
       (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
-    FROM workout_logs w WHERE w.user_id=? ORDER BY w.logged_at DESC LIMIT 10
+    FROM workout_logs w
+    WHERE w.user_id=? AND w.status='approved'
+    ${isSelf ? '' : "AND w.visibility NOT IN ('private')"}
+    ORDER BY w.logged_at DESC LIMIT 10
   `).all(req.user.id, uid)
   res.json({ user, follower_count: followers.c, following_count: following.c, i_follow: !!iFollow, stats, recentWorkouts })
 })
