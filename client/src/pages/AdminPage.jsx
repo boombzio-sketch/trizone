@@ -19,7 +19,7 @@ export default function AdminPage() {
     { key: 'pending', label: '훈련 승인', badge: badges.pending },
     { key: 'memberships', label: '클럽 가입', badge: badges.memberships },
     { key: 'leaderApps', label: '클럽장 신청', badge: badges.leaderApps },
-    { key: 'members', label: '회원 관리', badge: badges.members, badgeStyle: 'count' },
+    { key: 'members', label: '회원 관리', badge: badges.members },
   ]
 
   return (
@@ -27,7 +27,7 @@ export default function AdminPage() {
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '14px 16px 0' }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>⚙️ 관리</div>
         <div style={{ display: 'flex', gap: 0 }}>
-          {tabDefs.map(({ key, label, badge, badgeStyle }) => (
+          {tabDefs.map(({ key, label, badge }) => (
             <button key={key} onClick={() => setTab(key)} style={{
               padding: '10px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
               fontSize: 13, fontWeight: 700, position: 'relative',
@@ -35,18 +35,14 @@ export default function AdminPage() {
               borderBottom: tab === key ? `2px solid ${C.accent}` : '2px solid transparent',
             }}>
               {label}
-              {badge !== null && badge > 0 && (
-                <span style={{
-                  marginLeft: 4,
-                  fontSize: 10, fontWeight: 800, lineHeight: 1,
-                  padding: '2px 5px', borderRadius: 8,
-                  background: badgeStyle === 'count' ? C.surfaceHigh : '#ef4444',
-                  color: badgeStyle === 'count' ? C.text2 : '#fff',
-                  verticalAlign: 'middle',
-                }}>{badge}</span>
-              )}
-              {badgeStyle === 'count' && badge === 0 && (
-                <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 800, padding: '2px 5px', borderRadius: 8, background: C.surfaceHigh, color: C.text2, verticalAlign: 'middle' }}>0</span>
+              {badge !== null && (
+                typeof badge === 'object' ? (
+                  <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 8, background: badge.today > 0 ? '#ef4444' : C.surfaceHigh, color: badge.today > 0 ? '#fff' : C.text2, verticalAlign: 'middle' }}>
+                    {badge.today}/{badge.total}
+                  </span>
+                ) : badge > 0 ? (
+                  <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 800, padding: '2px 5px', borderRadius: 8, background: '#ef4444', color: '#fff', verticalAlign: 'middle' }}>{badge}</span>
+                ) : null
               )}
             </button>
           ))}
@@ -318,7 +314,12 @@ function MembersTab({ user: currentUser, onBadge }) {
   useEffect(() => {
     setLoading(true)
     api.getAdminMembers()
-      .then(data => { setMembers(data); onBadge(data.length) })
+      .then(data => {
+        setMembers(data)
+        const today = new Date().toISOString().slice(0, 10)
+        const todayCount = data.filter(m => m.created_at?.slice(0, 10) === today).length
+        onBadge({ today: todayCount, total: data.length })
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -354,7 +355,8 @@ function MembersTab({ user: currentUser, onBadge }) {
       await api.deleteAdminMember(member.id)
       setMembers(prev => {
         const next = prev.filter(m => m.id !== member.id)
-        onBadge(next.length)
+        const today = new Date().toISOString().slice(0, 10)
+        onBadge({ today: next.filter(m => m.created_at?.slice(0, 10) === today).length, total: next.length })
         return next
       })
     } catch (e) { alert(e.message) }
