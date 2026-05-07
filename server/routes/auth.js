@@ -47,7 +47,8 @@ router.post('/login', async (req, res) => {
 // 내 정보
 router.get('/me', authMiddleware, async (req, res) => {
   const user = await db.prepare('SELECT id, nickname, role, avatar_color, avatar_image, created_at, can_approve FROM users WHERE id = ?').get(req.user.id);
-  res.json(user);
+  const leaderOf = await db.prepare('SELECT COUNT(*)::int as cnt FROM clubs WHERE leader_id = ?').get(req.user.id);
+  res.json({ ...user, is_club_leader: leaderOf.cnt > 0 });
 });
 
 module.exports = router;

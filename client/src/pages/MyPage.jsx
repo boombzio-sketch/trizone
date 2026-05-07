@@ -148,11 +148,14 @@ export default function MyPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
           <Avatar nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} size={60} style={{ border: `3px solid ${user?.avatar_color||C.accent}` }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
               {user?.nickname}
-              {user?.role === 'admin' && <span style={{ fontSize: 10, background: C.goldBg, color: C.gold, borderRadius: 6, padding: '2px 7px' }}>👑 관리자</span>}
             </div>
-            <div style={{ fontSize: 11, color: C.text2, marginTop: 3 }}>철인</div>
+            <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
+              {user?.role === 'admin' && <span style={{ fontSize: 10, background: C.goldBg, color: C.gold, borderRadius: 6, padding: '2px 7px' }}>👑 관리자</span>}
+              {user?.can_approve && user?.role !== 'admin' && <span style={{ fontSize: 10, background: 'rgba(0,220,130,0.12)', color: '#00DC82', borderRadius: 6, padding: '2px 7px' }}>✅ 승인관리자</span>}
+              {user?.is_club_leader && <span style={{ fontSize: 10, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 7px' }}>🏆 클럽관리자</span>}
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <button onClick={openEdit} style={{ fontSize: 12, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 700 }}>수정</button>
