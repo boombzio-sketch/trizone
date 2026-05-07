@@ -184,6 +184,18 @@ async function initDb() {
     );
   }
 
+  // messages table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      from_user_id INTEGER NOT NULL,
+      body TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT false,
+      parent_id INTEGER DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Add can_approve column if not exists
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS can_approve BOOLEAN DEFAULT FALSE`);
 

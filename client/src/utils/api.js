@@ -99,6 +99,14 @@ export const api = {
   deleteAdminMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
   getPendingWorkouts: () => request('/admin/pending'),
   getLikes: (workoutId) => request(`/social/likes/${workoutId}`),
+
+  // 쪽지
+  sendMessage: (body) => request('/messages', { method: 'POST', body: { body } }),
+  getMyMessages: () => request('/messages/mine'),
+  getInbox: () => request('/messages/inbox'),
+  getThread: (id) => request(`/messages/${id}/thread`),
+  replyMessage: (id, body) => request(`/messages/${id}/reply`, { method: 'POST', body: { body } }),
+  deleteMessage: (id) => request(`/messages/${id}`, { method: 'DELETE' }),
   setWorkoutStatus: (id, status) => request(`/admin/workouts/${id}/status`, { method: 'PUT', body: { status } }),
   editAdminWorkout: (id, body) => request(`/admin/workouts/${id}/edit`, { method: 'PUT', body }),
   getPendingMemberships: () => request('/admin/memberships'),
