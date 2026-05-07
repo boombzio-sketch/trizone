@@ -26,7 +26,7 @@ export default function Layout() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.can_approve) && (
             <NavLink to="/admin" style={({ isActive }) => ({
               padding: '6px 12px', borderRadius: 10, textDecoration: 'none',
               fontSize: 12, fontWeight: 700,
