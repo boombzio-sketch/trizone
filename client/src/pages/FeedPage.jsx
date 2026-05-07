@@ -260,7 +260,7 @@ function EditModal({ feed, onSave, onClose }) {
         body.duration_sec = durToSecs(dur)
         if (feed.sport_type === 'swim')  { body.pool_type = poolType }
         if (feed.sport_type === 'bike')  { body.course_type = courseType; body.elevation_m = Number(elevM); body.avg_power_w = Number(avgPow) }
-        if (feed.sport_type === 'run')   { body.elevation_m = Number(elevM) }
+        if (feed.sport_type === 'run')   { body.elevation_m = Number(elevM); body.course_type = courseType }
       }
       await onSave(feed.id, body)
     } catch(e) { setErr(e.message) }
@@ -341,12 +341,18 @@ function EditModal({ feed, onSave, onClose }) {
           </>
         )}
 
-        {/* 런: 고도 */}
+        {/* 런: 코스 + 고도 */}
         {feed.sport_type === 'run' && (
-          <div style={{ marginBottom: 12 }}>
-            <label style={lSt}>획득 고도 (m)</label>
-            <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
-          </div>
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={lSt}>코스 종류</label>
+              <ToggleBtns options={[{ value: '실외', label: '실외' }, { value: '실내', label: '실내' }]} value={courseType} onChange={setCourseType} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={lSt}>획득 고도 (m)</label>
+              <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
+            </div>
+          </>
         )}
 
         {/* 메모 */}

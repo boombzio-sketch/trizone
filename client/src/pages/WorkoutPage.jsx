@@ -450,7 +450,7 @@ function LogEditModal({ log, onSave, onClose }) {
         body.duration_sec = durToSecs(dur)
         if (log.sport_type === 'swim') body.pool_type = poolType
         if (log.sport_type === 'bike') { body.course_type = courseType; body.elevation_m = Number(elevM); body.avg_power_w = Number(avgPow) }
-        if (log.sport_type === 'run')  { body.elevation_m = Number(elevM) }
+        if (log.sport_type === 'run')  { body.elevation_m = Number(elevM); body.course_type = courseType }
       }
       await onSave(log.id, body)
     } catch(e) { setErr(e.message) }
@@ -527,10 +527,16 @@ function LogEditModal({ log, onSave, onClose }) {
         )}
 
         {log.sport_type === 'run' && (
-          <div style={{ marginBottom: 12 }}>
-            <label style={lSt}>획득 고도 (m)</label>
-            <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
-          </div>
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={lSt}>코스 종류</label>
+              <Toggle options={[{v:'실외',l:'실외'},{v:'실내',l:'실내'}]} value={courseType} onChange={setCourseType} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={lSt}>획득 고도 (m)</label>
+              <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
+            </div>
+          </>
         )}
 
         <div style={{ marginBottom: 12 }}>
