@@ -402,6 +402,8 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
   const [loadingC, setLoadingC] = useState(false)
   const [replyingTo, setReplyingTo] = useState(null)
   const [approving, setApproving] = useState(false)
+  const [likeList, setLikeList] = useState(null)
+  const [loadingLikes, setLoadingLikes] = useState(false)
   const vis = VIS_MAP[f.visibility || 'public']
   const status = f.status || 'approved'
   const canApprove = user?.role === 'admin' || user?.can_approve
@@ -561,10 +563,40 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
           {f.memo && <div style={{ marginTop: 10, fontSize: 12, color: C.text2, borderTop: `1px solid ${C.border}`, paddingTop: 10, fontStyle: 'italic' }}>{f.memo}</div>}
         </div>
 
+        {/* 좋아요 목록 팝업 */}
+        {likeList !== null && (
+          <div onClick={() => setLikeList(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '60vh', display: 'flex', flexDirection: 'column', border: `1px solid ${C.border}` }}>
+              <div style={{ padding: '16px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>⭐ 좋아요 {likeList.length}명</span>
+                <button onClick={() => setLikeList(null)} style={{ background: 'none', border: 'none', color: C.text2, fontSize: 18, cursor: 'pointer', padding: 4 }}>✕</button>
+              </div>
+              <div style={{ overflowY: 'auto', padding: '8px 0' }}>
+                {loadingLikes ? (
+                  <div style={{ textAlign: 'center', padding: 24, color: C.text2, fontSize: 13 }}>불러오는 중...</div>
+                ) : likeList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 24, color: C.text2, fontSize: 13 }}>아직 좋아요가 없습니다</div>
+                ) : likeList.map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px' }}>
+                    <Avatar nickname={u.nickname} avatar_color={u.avatar_color} avatar_image={u.avatar_image} size={36} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{u.nickname}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 액션 */}
         <div style={{ display: 'flex', padding: '2px 6px 10px', alignItems: 'center' }}>
-          <button onClick={onStar} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: f.my_like ? C.gold : C.text2, fontWeight: 700 }}>
-            <span style={{ fontSize: 18 }}>{f.my_like ? '⭐' : '☆'}</span> {f.like_count || 0}
+          <button onClick={onStar} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 8px 7px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: f.my_like ? C.gold : C.text2, fontWeight: 700 }}>
+            <span style={{ fontSize: 18 }}>{f.my_like ? '⭐' : '☆'}</span>
+          </button>
+          <button onClick={async () => {
+            setLikeList([]); setLoadingLikes(true)
+            try { setLikeList(await api.getLikes(f.id)) } finally { setLoadingLikes(false) }
+          }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: C.text2, fontWeight: 700, padding: '7px 12px 7px 2px' }}>
+            {f.like_count || 0}
           </button>
           <button onClick={toggleComments} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: isOpen ? C.accent : C.text2, fontWeight: 700 }}>
             <span style={{ fontSize: 16 }}>💬</span> {f.comment_count || 0}

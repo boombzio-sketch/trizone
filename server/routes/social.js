@@ -123,6 +123,17 @@ router.post('/like/:workoutId', authMiddleware, async (req, res) => {
   res.json({ liked: true, count: cnt.c })
 })
 
+// 좋아요 누른 사람 목록
+router.get('/likes/:workoutId', authMiddleware, async (req, res) => {
+  const rows = await db.prepare(`
+    SELECT u.id, u.nickname, u.avatar_color, u.avatar_image
+    FROM likes l JOIN users u ON l.user_id = u.id
+    WHERE l.workout_id = ?
+    ORDER BY l.created_at DESC
+  `).all(Number(req.params.workoutId))
+  res.json(rows)
+})
+
 // ── 댓글 ──────────────────────────────────────────
 router.get('/comments/:workoutId', authMiddleware, async (req, res) => {
   const rows = await db.prepare(`
