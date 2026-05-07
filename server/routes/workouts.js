@@ -56,16 +56,43 @@ router.get('/all', authMiddleware, async (req, res) => {
   res.json(await db.prepare(q).all(...params));
 });
 
-// 기록 수정 (메모, 공개 범위)
+// 기록 수정
 router.put('/:id', authMiddleware, async (req, res) => {
   const id = Number(req.params.id);
-  const { memo, visibility } = req.body;
+  const { memo, visibility, logged_at, distance_km, duration_sec,
+          pool_type, elevation_m, course_type, avg_power_w, brick_segments } = req.body;
+
   const row = await db.prepare('SELECT * FROM workout_logs WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
   if (row.user_id !== req.user.id) return res.status(403).json({ error: '수정 권한이 없습니다.' });
-  const valid = ['public','club','followers','private'];
-  if (visibility && !valid.includes(visibility)) return res.status(400).json({ error: '유효하지 않은 공개 범위입니다.' });
-  await db.prepare('UPDATE workout_logs SET memo=?, visibility=? WHERE id=?').run(memo ?? row.memo, visibility || row.visibility, id);
+
+  const validVis = ['public','club','followers','private','club_followers'];
+  if (visibility && !validVis.includes(visibility)) return res.status(400).json({ error: '유효하지 않은 공개 범위입니다.' });
+
+  const newDist  = distance_km  !== undefined ? Number(distance_km)  : row.distance_km;
+  const newDur   = duration_sec !== undefined ? Number(duration_sec) : row.duration_sec;
+  const newBrick = brick_segments ? JSON.stringify(brick_segments)   : row.brick_segments;
+
+  const pace  = calcPace(row.sport_type, newDist, newDur);
+  const score = calcScore(row.sport_type, newDist, newBrick);
+
+  await db.prepare(`
+    UPDATE workout_logs
+    SET memo=?, visibility=?, logged_at=?, distance_km=?, duration_sec=?,
+        pool_type=?, elevation_m=?, course_type=?, avg_power_w=?,
+        brick_segments=?, pace=?, score=?
+    WHERE id=?
+  `).run(
+    memo      ?? row.memo,
+    visibility || row.visibility,
+    logged_at  || row.logged_at,
+    newDist, newDur,
+    pool_type    !== undefined ? pool_type    : row.pool_type,
+    elevation_m  !== undefined ? elevation_m  : row.elevation_m,
+    course_type  !== undefined ? course_type  : row.course_type,
+    avg_power_w  !== undefined ? avg_power_w  : row.avg_power_w,
+    newBrick, pace, score, id
+  );
   res.json(await db.prepare('SELECT * FROM workout_logs WHERE id=?').get(id));
 });
 
