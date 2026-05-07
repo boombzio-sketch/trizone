@@ -1,13 +1,14 @@
 const router = require('express').Router();
 const { prepare } = require('../db');
-const { authMiddleware, adminMiddleware } = require('../middleware');
+const { authMiddleware, adminMiddleware, canApproveMiddleware } = require('../middleware');
 
-router.use(authMiddleware, adminMiddleware);
+const adminOnly   = [authMiddleware, adminMiddleware];
+const approveOnly = [authMiddleware, canApproveMiddleware];
 
 // 전체 회원 목록
-router.get('/members', async (req, res) => {
+router.get('/members', ...adminOnly, async (req, res) => {
   const members = await prepare(`
-    SELECT u.id, u.nickname, u.role, u.avatar_color, u.avatar_image, u.created_at,
+    SELECT u.id, u.nickname, u.role, u.avatar_color, u.avatar_image, u.created_at, u.can_approve,
            COUNT(w.id) as workout_count
     FROM users u
     LEFT JOIN workout_logs w ON w.user_id = u.id
@@ -18,7 +19,7 @@ router.get('/members', async (req, res) => {
 });
 
 // 회원 정보 수정
-router.put('/members/:id', async (req, res) => {
+router.put('/members/:id', ...adminOnly, async (req, res) => {
   const { nickname, avatar_color, avatar_image, password } = req.body;
   if (!nickname?.trim()) return res.status(400).json({ error: '닉네임을 입력하세요.' });
 
@@ -39,7 +40,7 @@ router.put('/members/:id', async (req, res) => {
 });
 
 // 역할 변경
-router.put('/members/:id/role', async (req, res) => {
+router.put('/members/:id/role', ...adminOnly, async (req, res) => {
   const { role } = req.body;
   if (!['admin', 'member'].includes(role))
     return res.status(400).json({ error: '유효하지 않은 역할입니다.' });
@@ -49,8 +50,15 @@ router.put('/members/:id/role', async (req, res) => {
   res.json({ ok: true });
 });
 
+// 훈련 승인 권한 부여/회수
+router.put('/members/:id/can-approve', ...adminOnly, async (req, res) => {
+  const { can_approve } = req.body;
+  await prepare('UPDATE users SET can_approve = ? WHERE id = ?').run(!!can_approve, Number(req.params.id));
+  res.json({ ok: true });
+});
+
 // 회원 삭제
-router.delete('/members/:id', async (req, res) => {
+router.delete('/members/:id', ...adminOnly, async (req, res) => {
   const uid = Number(req.params.id);
   if (uid === req.user.id)
     return res.status(400).json({ error: '자신의 계정은 삭제할 수 없습니다.' });
@@ -73,7 +81,7 @@ router.delete('/members/:id', async (req, res) => {
 });
 
 // 클럽장 신청 목록
-router.get('/club-leader-apps', async (req, res) => {
+router.get('/club-leader-apps', ...adminOnly, async (req, res) => {
   const rows = await prepare(`
     SELECT cla.*, u.nickname, u.avatar_color
     FROM club_leader_applications cla JOIN users u ON cla.user_id=u.id
@@ -83,7 +91,7 @@ router.get('/club-leader-apps', async (req, res) => {
 });
 
 // 클럽장 신청 승인/거절
-router.put('/club-leader-apps/:userId/status', async (req, res) => {
+router.put('/club-leader-apps/:userId/status', ...adminOnly, async (req, res) => {
   const { status } = req.body;
   if (!['approved','rejected'].includes(status)) return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
   await prepare('UPDATE club_leader_applications SET status=? WHERE user_id=?').run(status, Number(req.params.userId));
@@ -91,7 +99,7 @@ router.put('/club-leader-apps/:userId/status', async (req, res) => {
 });
 
 // 클럽 가입 신청 목록
-router.get('/memberships', async (req, res) => {
+router.get('/memberships', ...adminOnly, async (req, res) => {
   const rows = await prepare(`
     SELECT cm.id, cm.user_id, cm.status, cm.message, cm.applied_at,
            u.nickname, u.avatar_color, u.created_at as user_created_at
@@ -104,7 +112,7 @@ router.get('/memberships', async (req, res) => {
 });
 
 // 가입 승인/거절
-router.put('/memberships/:userId/status', async (req, res) => {
+router.put('/memberships/:userId/status', ...adminOnly, async (req, res) => {
   const { status } = req.body;
   if (!['approved', 'rejected'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
@@ -112,8 +120,8 @@ router.put('/memberships/:userId/status', async (req, res) => {
   res.json({ ok: true });
 });
 
-// 훈련 기록 승인 대기 목록
-router.get('/pending', async (req, res) => {
+// 훈련 기록 승인 대기 목록 (승인 권한자 접근 가능)
+router.get('/pending', ...approveOnly, async (req, res) => {
   const rows = await prepare(`
     SELECT w.id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
            w.memo, w.score, w.brick_segments, w.photo,
@@ -129,8 +137,8 @@ router.get('/pending', async (req, res) => {
   res.json(rows);
 });
 
-// 기록 승인/반려
-router.put('/workouts/:id/status', async (req, res) => {
+// 기록 승인/반려 (승인 권한자 접근 가능)
+router.put('/workouts/:id/status', ...approveOnly, async (req, res) => {
   const { status } = req.body;
   if (!['approved', 'rejected'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태입니다.' });

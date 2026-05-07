@@ -184,6 +184,9 @@ async function initDb() {
     );
   }
 
+  // Add can_approve column if not exists
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS can_approve BOOLEAN DEFAULT FALSE`);
+
   // Admins → auto-approved leader application
   await pool.query(`
     INSERT INTO club_leader_applications (user_id, status)

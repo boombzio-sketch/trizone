@@ -349,6 +349,15 @@ function MembersTab({ user: currentUser, onBadge }) {
     } catch (e) { alert(e.message) }
   }
 
+  async function handleApproveToggle(member) {
+    const next = !member.can_approve
+    if (!confirm(`${member.nickname}의 훈련 승인 권한을 ${next ? '부여' : '회수'}할까요?`)) return
+    try {
+      await api.setApprovePermission(member.id, next)
+      setMembers(prev => prev.map(m => m.id === member.id ? { ...m, can_approve: next } : m))
+    } catch (e) { alert(e.message) }
+  }
+
   async function handleDelete(member) {
     if (!confirm(`${member.nickname} 회원을 삭제할까요?\n모든 데이터가 삭제됩니다.`)) return
     try {
@@ -467,6 +476,9 @@ function MembersTab({ user: currentUser, onBadge }) {
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button onClick={() => openEdit(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: C.accentBg, color: C.accent }}>수정</button>
             {m.id !== currentUser?.id && <>
+              <button onClick={() => handleApproveToggle(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: m.can_approve ? 'rgba(0,220,130,0.12)' : C.surfaceAlt, color: m.can_approve ? '#00DC82' : C.text2 }}>
+                {m.can_approve ? '승인권한✓' : '승인권한'}
+              </button>
               <button onClick={() => handleRoleToggle(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: m.role==='admin' ? C.surfaceAlt : 'rgba(168,85,247,0.12)', color: m.role==='admin' ? C.text2 : C.brick }}>
                 {m.role === 'admin' ? '해제' : '관리자'}
               </button>

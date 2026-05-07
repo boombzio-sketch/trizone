@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { pool } = require('./db');
 const SECRET = process.env.JWT_SECRET || 'trizone_secret_2025';
 
 function authMiddleware(req, res, next) {
@@ -20,4 +21,11 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
-module.exports = { authMiddleware, adminMiddleware, SECRET };
+async function canApproveMiddleware(req, res, next) {
+  if (req.user?.role === 'admin') return next();
+  const { rows } = await pool.query('SELECT can_approve FROM users WHERE id = $1', [req.user.id]);
+  if (rows[0]?.can_approve) return next();
+  return res.status(403).json({ error: '훈련 승인 권한이 없습니다.' });
+}
+
+module.exports = { authMiddleware, adminMiddleware, canApproveMiddleware, SECRET };
