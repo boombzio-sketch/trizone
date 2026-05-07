@@ -120,9 +120,20 @@ router.get('/feed/all', authMiddleware, async (req, res) => {
   res.json(rows)
 })
 
+// 기록 접근 가능 여부 확인 헬퍼
+async function canAccessWorkout(workoutId, userId) {
+  const w = await db.prepare('SELECT user_id, visibility, status FROM workout_logs WHERE id=?').get(workoutId)
+  if (!w) return false
+  if (w.user_id === userId) return true         // 본인
+  if (w.status !== 'approved') return false     // 미승인
+  if (w.visibility === 'private') return false  // 비공개
+  return true
+}
+
 // ── 좋아요 ──────────────────────────────────────────
 router.post('/like/:workoutId', authMiddleware, async (req, res) => {
   const wid = Number(req.params.workoutId)
+  if (!await canAccessWorkout(wid, req.user.id)) return res.status(403).json({ error: '접근할 수 없는 기록입니다.' })
   const existing = await db.prepare('SELECT id FROM likes WHERE workout_id=? AND user_id=?').get(wid, req.user.id)
   if (existing) {
     await db.prepare('DELETE FROM likes WHERE workout_id=? AND user_id=?').run(wid, req.user.id)
@@ -136,29 +147,35 @@ router.post('/like/:workoutId', authMiddleware, async (req, res) => {
 
 // 좋아요 누른 사람 목록
 router.get('/likes/:workoutId', authMiddleware, async (req, res) => {
+  const wid = Number(req.params.workoutId)
+  if (!await canAccessWorkout(wid, req.user.id)) return res.status(403).json({ error: '접근할 수 없는 기록입니다.' })
   const rows = await db.prepare(`
     SELECT u.id, u.nickname, u.avatar_color, u.avatar_image
     FROM likes l JOIN users u ON l.user_id = u.id
     WHERE l.workout_id = ?
     ORDER BY l.created_at DESC
-  `).all(Number(req.params.workoutId))
+  `).all(wid)
   res.json(rows)
 })
 
 // ── 댓글 ──────────────────────────────────────────
 router.get('/comments/:workoutId', authMiddleware, async (req, res) => {
+  const wid = Number(req.params.workoutId)
+  if (!await canAccessWorkout(wid, req.user.id)) return res.status(403).json({ error: '접근할 수 없는 기록입니다.' })
   const rows = await db.prepare(`
     SELECT c.*, u.nickname, u.avatar_color
     FROM comments c JOIN users u ON c.user_id=u.id
     WHERE c.workout_id=? ORDER BY c.created_at ASC
-  `).all(Number(req.params.workoutId))
+  `).all(wid)
   res.json(rows)
 })
 
 router.post('/comments/:workoutId', authMiddleware, async (req, res) => {
+  const wid = Number(req.params.workoutId)
+  if (!await canAccessWorkout(wid, req.user.id)) return res.status(403).json({ error: '접근할 수 없는 기록입니다.' })
   const { body, parent_id } = req.body
   if (!body?.trim()) return res.status(400).json({ error: '댓글 내용을 입력하세요.' })
-  const result = await db.prepare('INSERT INTO comments (workout_id, user_id, body, parent_id) VALUES (?,?,?,?)').run(Number(req.params.workoutId), req.user.id, body.trim(), parent_id || null)
+  const result = await db.prepare('INSERT INTO comments (workout_id, user_id, body, parent_id) VALUES (?,?,?,?)').run(wid, req.user.id, body.trim(), parent_id || null)
   const row = await db.prepare(`SELECT c.*, u.nickname, u.avatar_color FROM comments c JOIN users u ON c.user_id=u.id WHERE c.id=?`).get(result.lastInsertRowid)
   res.json(row)
 })
@@ -195,7 +212,7 @@ router.get('/profile/:userId', authMiddleware, async (req, res) => {
   const followers = await db.prepare('SELECT COUNT(*)::int as c FROM follows WHERE following_id=?').get(uid)
   const following = await db.prepare('SELECT COUNT(*)::int as c FROM follows WHERE follower_id=?').get(uid)
   const iFollow = await db.prepare('SELECT id FROM follows WHERE follower_id=? AND following_id=?').get(req.user.id, uid)
-  const stats = await db.prepare(`SELECT sport_type, SUM(distance_km) as km, COUNT(*) as cnt FROM workout_logs WHERE user_id=? GROUP BY sport_type`).all(uid)
+  const stats = await db.prepare(`SELECT sport_type, SUM(distance_km) as km, COUNT(*) as cnt FROM workout_logs WHERE user_id=? AND status='approved' GROUP BY sport_type`).all(uid)
   const isSelf = req.user.id === uid
   const recentWorkouts = await db.prepare(`
     SELECT w.*,
@@ -204,7 +221,7 @@ router.get('/profile/:userId', authMiddleware, async (req, res) => {
       (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
     FROM workout_logs w
     WHERE w.user_id=? AND w.status='approved'
-    ${isSelf ? '' : "AND w.visibility NOT IN ('private')"}
+    ${isSelf ? '' : "AND w.visibility = 'public'"}
     ORDER BY w.logged_at DESC LIMIT 10
   `).all(req.user.id, uid)
   res.json({ user, follower_count: followers.c, following_count: following.c, i_follow: !!iFollow, stats, recentWorkouts })

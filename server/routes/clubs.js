@@ -149,10 +149,13 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
 });
 
 router.delete('/:id/leave', authMiddleware, async (req, res) => {
-  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(Number(req.params.id));
-  if (club?.leader_id === req.user.id) return res.status(400).json({ error: '클럽장은 탈퇴할 수 없습니다.' });
-  await prepare("UPDATE club_memberships SET status='left' WHERE club_id=? AND user_id=?").run(Number(req.params.id), req.user.id);
-  res.json({ ok: true });
+  const clubId = Number(req.params.id)
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId)
+  if (club?.leader_id === req.user.id) return res.status(400).json({ error: '클럽장은 탈퇴할 수 없습니다.' })
+  const membership = await prepare("SELECT status FROM club_memberships WHERE club_id=? AND user_id=?").get(clubId, req.user.id)
+  if (!membership || membership.status !== 'approved') return res.status(400).json({ error: '가입된 클럽이 아닙니다.' })
+  await prepare("UPDATE club_memberships SET status='left' WHERE club_id=? AND user_id=?").run(clubId, req.user.id)
+  res.json({ ok: true })
 });
 
 // ── 부클럽장 여부 확인 헬퍼 ──────────────────────────────────
@@ -165,6 +168,11 @@ async function isSubLeaderOf(clubId, userId) {
 // ── 회원 목록 / 승인 ─────────────────────────────────────────
 
 router.get('/:id/members', authMiddleware, async (req, res) => {
+  const clubId = Number(req.params.id)
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId)
+  const membership = await prepare("SELECT status FROM club_memberships WHERE club_id=? AND user_id=? AND status='approved'").get(clubId, req.user.id)
+  if (!membership && req.user.role !== 'admin' && club?.leader_id !== req.user.id)
+    return res.status(403).json({ error: '클럽 회원만 조회할 수 있습니다.' })
   const rows = await prepare(`
     SELECT u.id, u.nickname, u.avatar_color, u.avatar_image, cm.applied_at, cm.club_role,
            COUNT(w.id) as total_workouts,
@@ -246,10 +254,15 @@ router.put('/:id/transfer-leader', authMiddleware, async (req, res) => {
 // ── 공지사항 ─────────────────────────────────────────────────
 
 router.get('/:id/announcements', authMiddleware, async (req, res) => {
+  const clubId = Number(req.params.id)
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId)
+  const membership = await prepare("SELECT status FROM club_memberships WHERE club_id=? AND user_id=? AND status='approved'").get(clubId, req.user.id)
+  if (!membership && req.user.role !== 'admin' && club?.leader_id !== req.user.id)
+    return res.status(403).json({ error: '클럽 회원만 조회할 수 있습니다.' })
   const rows = await prepare(`
     SELECT a.*, u.nickname, u.avatar_color FROM club_announcements a
     JOIN users u ON a.user_id=u.id WHERE a.club_id=? ORDER BY a.created_at DESC LIMIT 30
-  `).all(Number(req.params.id));
+  `).all(clubId);
   res.json(rows);
 });
 
@@ -276,13 +289,18 @@ router.delete('/:id/announcements/:annId', authMiddleware, async (req, res) => {
 // ── 훈련 모집 ─────────────────────────────────────────────────
 
 router.get('/:id/trainings', authMiddleware, async (req, res) => {
+  const clubId = Number(req.params.id)
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId)
+  const membership = await prepare("SELECT status FROM club_memberships WHERE club_id=? AND user_id=? AND status='approved'").get(clubId, req.user.id)
+  if (!membership && req.user.role !== 'admin' && club?.leader_id !== req.user.id && !await isSubLeaderOf(clubId, req.user.id))
+    return res.status(403).json({ error: '클럽 회원만 조회할 수 있습니다.' })
   const rows = await prepare(`
     SELECT t.*, u.nickname as creator_name,
            (SELECT COUNT(*)::int FROM club_training_participants WHERE training_id=t.id) as participant_count,
            (SELECT status FROM club_training_participants WHERE training_id=t.id AND user_id=?) as my_status
     FROM club_trainings t JOIN users u ON t.created_by=u.id
     WHERE t.club_id=? ORDER BY t.train_date DESC, t.train_time DESC
-  `).all(req.user.id, Number(req.params.id));
+  `).all(req.user.id, clubId);
   res.json(rows);
 });
 
@@ -384,13 +402,18 @@ router.get('/:id/trainings/:tid/participants', authMiddleware, async (req, res) 
 
 // 회원별 훈련 참가 횟수
 router.get('/:id/training-stats', authMiddleware, async (req, res) => {
+  const clubId = Number(req.params.id)
+  const club = await prepare('SELECT leader_id FROM clubs WHERE id=?').get(clubId)
+  const membership = await prepare("SELECT status FROM club_memberships WHERE club_id=? AND user_id=? AND status='approved'").get(clubId, req.user.id)
+  if (!membership && req.user.role !== 'admin' && club?.leader_id !== req.user.id)
+    return res.status(403).json({ error: '클럽 회원만 조회할 수 있습니다.' })
   const rows = await prepare(`
     SELECT p.user_id, COUNT(*) as total, SUM(CASE WHEN p.status='attended' THEN 1 ELSE 0 END) as attended
     FROM club_training_participants p
     JOIN club_trainings t ON p.training_id=t.id
     WHERE t.club_id=?
     GROUP BY p.user_id
-  `).all(Number(req.params.id));
+  `).all(clubId);
   res.json(rows);
 });
 

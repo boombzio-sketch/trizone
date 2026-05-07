@@ -15,8 +15,9 @@ function authMiddleware(req, res, next) {
   }
 }
 
-function adminMiddleware(req, res, next) {
-  if (req.user?.role !== 'admin') {
+async function adminMiddleware(req, res, next) {
+  const { rows } = await pool.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+  if (rows[0]?.role !== 'admin') {
     return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
   }
   next();

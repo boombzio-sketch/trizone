@@ -32,13 +32,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
   const isSelf = req.user.id === uid;
   const recentWorkouts = await db.prepare(`
     SELECT * FROM workout_logs WHERE user_id = ? AND status = 'approved'
-    ${isSelf ? '' : "AND visibility NOT IN ('private')"}
+    ${isSelf ? '' : "AND visibility = 'public'"}
     ORDER BY logged_at DESC LIMIT 10
   `).all(uid);
 
   const stats = await db.prepare(`
     SELECT sport_type, SUM(distance_km) as total_km, COUNT(*) as count
-    FROM workout_logs WHERE user_id = ?
+    FROM workout_logs WHERE user_id = ? AND status = 'approved'
     GROUP BY sport_type
   `).all(uid);
 

@@ -101,7 +101,7 @@ router.put('/club-leader-apps/:userId/status', ...adminOnly, async (req, res) =>
 // 클럽 가입 신청 목록
 router.get('/memberships', ...adminOnly, async (req, res) => {
   const rows = await prepare(`
-    SELECT cm.id, cm.user_id, cm.status, cm.message, cm.applied_at,
+    SELECT cm.id, cm.club_id, cm.user_id, cm.status, cm.message, cm.applied_at,
            u.nickname, u.avatar_color, u.created_at as user_created_at
     FROM club_memberships cm
     JOIN users u ON cm.user_id = u.id
@@ -111,12 +111,14 @@ router.get('/memberships', ...adminOnly, async (req, res) => {
   res.json(rows);
 });
 
-// 가입 승인/거절
-router.put('/memberships/:userId/status', ...adminOnly, async (req, res) => {
+// 가입 승인/거절 (club_id + user_id 조합으로 특정)
+router.put('/memberships/:clubId/:userId/status', ...adminOnly, async (req, res) => {
   const { status } = req.body;
   if (!['approved', 'rejected'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
-  await prepare('UPDATE club_memberships SET status=? WHERE user_id=?').run(status, Number(req.params.userId));
+  await prepare('UPDATE club_memberships SET status=? WHERE club_id=? AND user_id=?').run(
+    status, Number(req.params.clubId), Number(req.params.userId)
+  );
   res.json({ ok: true });
 });
 
@@ -143,6 +145,9 @@ router.put('/workouts/:id/status', ...approveOnly, async (req, res) => {
   const { status } = req.body;
   if (!['approved', 'rejected'].includes(status))
     return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
+  const row = await prepare('SELECT status FROM workout_logs WHERE id=?').get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
+  if (row.status !== 'pending') return res.status(400).json({ error: '대기 중인 기록만 처리할 수 있습니다.' });
   await prepare('UPDATE workout_logs SET status = ? WHERE id = ?').run(status, Number(req.params.id));
   res.json({ ok: true });
 });

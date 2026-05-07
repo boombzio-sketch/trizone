@@ -444,10 +444,10 @@ function MembershipsTab({ onBadge }) {
     } finally { setLoading(false) }
   }
 
-  async function handle(userId, status) {
-    await api.setMembershipStatus(userId, status)
+  async function handle(clubId, userId, status) {
+    await api.setMembershipStatus(clubId, userId, status)
     setItems(prev => {
-      const next = prev.filter(m => m.user_id !== userId)
+      const next = prev.filter(m => !(m.club_id === clubId && m.user_id === userId))
       onBadge(next.length)
       return next
     })
@@ -482,10 +482,10 @@ function MembershipsTab({ onBadge }) {
             </div>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => handle(m.user_id, 'rejected')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700 }}>
+            <button onClick={() => handle(m.club_id, m.user_id, 'rejected')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700 }}>
               ✕ 거절
             </button>
-            <button onClick={() => handle(m.user_id, 'approved')} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700 }}>
+            <button onClick={() => handle(m.club_id, m.user_id, 'approved')} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700 }}>
               ✓ 승인
             </button>
           </div>

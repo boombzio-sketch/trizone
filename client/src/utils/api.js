@@ -110,7 +110,7 @@ export const api = {
   setWorkoutStatus: (id, status) => request(`/admin/workouts/${id}/status`, { method: 'PUT', body: { status } }),
   editAdminWorkout: (id, body) => request(`/admin/workouts/${id}/edit`, { method: 'PUT', body }),
   getPendingMemberships: () => request('/admin/memberships'),
-  setMembershipStatus: (userId, status) => request(`/admin/memberships/${userId}/status`, { method: 'PUT', body: { status } }),
+  setMembershipStatus: (clubId, userId, status) => request(`/admin/memberships/${clubId}/${userId}/status`, { method: 'PUT', body: { status } }),
 }
 
 export function setToken(token) {
