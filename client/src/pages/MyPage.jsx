@@ -44,8 +44,6 @@ export default function MyPage() {
   }
 
   const stats = profile?.stats || []
-  const byType = { swim: 0, bike: 0, run: 0 }
-  stats.forEach(s => { if (byType[s.sport_type] !== undefined) byType[s.sport_type] = s.km || 0 })
 
   return (
     <div style={{ padding: 14 }}>
@@ -58,7 +56,7 @@ export default function MyPage() {
               {user?.nickname}
               {user?.role === 'admin' && <span style={{ fontSize: 10, background: C.goldBg, color: C.gold, borderRadius: 6, padding: '2px 7px' }}>👑 관리자</span>}
             </div>
-            <div style={{ fontSize: 11, color: C.text2, marginTop: 3 }}>철인3종 훈련 중</div>
+            <div style={{ fontSize: 11, color: C.text2, marginTop: 3 }}>철인</div>
           </div>
           <button onClick={logout} style={{ fontSize: 12, color: C.text2, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>로그아웃</button>
         </div>
@@ -75,18 +73,6 @@ export default function MyPage() {
             </button>
           ))}
         </div>
-      </div>
-
-      {/* 종목별 누적 */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>종목별 누적</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 16 }}>
-        {['swim','bike','run'].map(s => (
-          <div key={s} style={{ background: C.surface, borderRadius: 14, padding: '14px 10px', borderLeft: `3px solid ${SPORT_COLOR[s]}`, textAlign: 'center' }}>
-            <div style={{ fontSize: 22, marginBottom: 6 }}>{SPORT_ICON[s]}</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: SPORT_COLOR[s], fontVariantNumeric: 'tabular-nums' }}>{(byType[s]||0).toFixed(1)}</div>
-            <div style={{ fontSize: 9, color: C.text3, marginTop: 2, textTransform: 'uppercase' }}>km</div>
-          </div>
-        ))}
       </div>
 
       {/* 최근 훈련 */}
