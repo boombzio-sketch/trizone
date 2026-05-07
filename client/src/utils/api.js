@@ -99,6 +99,7 @@ export const api = {
   deleteAdminMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
   getPendingWorkouts: () => request('/admin/pending'),
   getLikes: (workoutId) => request(`/social/likes/${workoutId}`),
+  getUnreadCount: (since) => request(`/social/notifications/unread?since=${encodeURIComponent(since)}`),
 
   // 쪽지
   sendMessage: (body) => request('/messages', { method: 'POST', body: { body } }),

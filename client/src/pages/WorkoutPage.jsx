@@ -66,11 +66,26 @@ export default function WorkoutPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  useEffect(() => { if (tab === 'log') loadLogs() }, [tab])
+  useEffect(() => { if (tab === 'log' || tab === 'cal') loadLogs() }, [tab])
 
   async function loadLogs() {
-    const rows = await api.getWorkouts('limit=50')
+    const rows = await api.getWorkouts('limit=200')
     setLogs(rows)
+  }
+
+  function downloadCSV() {
+    const headers = ['날짜','종목','거리(km)','시간','상태','메모']
+    const rows = logs.map(l => [
+      l.logged_at, SPORT_LABEL[l.sport_type] || l.sport_type,
+      (l.distance_km || 0).toFixed(2), formatDuration(l.duration_sec),
+      l.status, (l.memo || '').replace(/,/g, ' ')
+    ])
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `trizone_${new Date().toISOString().slice(0,10)}.csv`
+    a.click(); URL.revokeObjectURL(url)
   }
 
   function today() { return new Date().toISOString().slice(0,10) }
@@ -139,7 +154,7 @@ export default function WorkoutPage() {
   return (
     <div>
       <div style={{ display: 'flex', background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 14px' }}>
-        {[['log','📋 기록 목록'],['add','➕ 기록 추가']].map(([k,l]) => (
+        {[['log','📋 목록'],['cal','📅 달력'],['add','➕ 추가']].map(([k,l]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             flex: 1, padding: '14px 0', border: 'none',
             borderBottom: tab===k ? `2px solid ${C.accent}` : '2px solid transparent',
@@ -153,12 +168,21 @@ export default function WorkoutPage() {
 
       {tab === 'log' ? (
         <div>
+          {logs.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 14px 2px' }}>
+              <button onClick={downloadCSV} style={{ fontSize: 12, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontWeight: 700 }}>
+                📥 CSV 내보내기
+              </button>
+            </div>
+          )}
           {logs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 48, color: C.text2, fontSize: 14 }}>
-              아직 훈련 기록이 없습니다.<br />"기록 추가" 탭에서 첫 훈련을 입력해보세요!
+              아직 훈련 기록이 없습니다.<br />"추가" 탭에서 첫 훈련을 입력해보세요!
             </div>
           ) : logs.map(log => <LogItem key={log.id} log={log} onDelete={handleDelete} onEdit={setEditingLog} />)}
         </div>
+      ) : tab === 'cal' ? (
+        <CalendarTab logs={logs} />
       ) : (
         <form onSubmit={handleSubmit} style={{ padding: 16 }}>
           {/* 종목 선택 */}
@@ -369,6 +393,100 @@ function LogItem({ log, onDelete, onEdit }) {
       </div>
       {log.photo && (
         <img src={log.photo} alt="훈련 사진" style={{ width: '100%', display: 'block', maxHeight: 180, objectFit: 'cover' }} />
+      )}
+    </div>
+  )
+}
+
+function CalendarTab({ logs }) {
+  const [cur, setCur] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } })
+  const [selected, setSelected] = useState(null)
+
+  const byDate = {}
+  logs.forEach(l => {
+    const d = l.logged_at?.slice(0, 10)
+    if (!d) return
+    if (!byDate[d]) byDate[d] = []
+    byDate[d].push(l)
+  })
+
+  const firstDay = new Date(cur.y, cur.m, 1).getDay()
+  const daysInMonth = new Date(cur.y, cur.m + 1, 0).getDate()
+  const today = new Date().toISOString().slice(0, 10)
+  const cells = Array(Math.ceil((firstDay + daysInMonth) / 7) * 7).fill(null)
+  for (let i = 0; i < daysInMonth; i++) cells[firstDay + i] = i + 1
+
+  const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+  const DAY_NAMES = ['일','월','화','수','목','금','토']
+
+  const selDate = selected ? `${cur.y}-${String(cur.m+1).padStart(2,'0')}-${String(selected).padStart(2,'0')}` : null
+  const selLogs = selDate ? (byDate[selDate] || []) : []
+
+  return (
+    <div style={{ padding: '14px 14px 24px' }}>
+      {/* 월 네비게이션 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <button onClick={() => { setCur(p => { const d = new Date(p.y, p.m-1); return { y: d.getFullYear(), m: d.getMonth() } }); setSelected(null) }}
+          style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', color: C.text2, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>‹</button>
+        <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{cur.y}년 {MONTH_NAMES[cur.m]}</span>
+        <button onClick={() => { setCur(p => { const d = new Date(p.y, p.m+1); return { y: d.getFullYear(), m: d.getMonth() } }); setSelected(null) }}
+          style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', color: C.text2, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>›</button>
+      </div>
+
+      {/* 요일 헤더 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 6 }}>
+        {DAY_NAMES.map((d, i) => (
+          <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: i === 0 ? '#ef4444' : i === 6 ? C.accent : C.text2, padding: '4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* 날짜 그리드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />
+          const dateStr = `${cur.y}-${String(cur.m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+          const dayLogs = byDate[dateStr] || []
+          const isToday = dateStr === today
+          const isSel = selected === day
+          const dow = i % 7
+          return (
+            <button key={i} onClick={() => setSelected(isSel ? null : day)} style={{
+              border: 'none', borderRadius: 10, padding: '6px 2px', cursor: dayLogs.length ? 'pointer' : 'default',
+              background: isSel ? C.accentBg : isToday ? C.surfaceHigh : 'transparent',
+              outline: isSel ? `2px solid ${C.accentBorder}` : isToday ? `1.5px solid ${C.accent}` : 'none',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            }}>
+              <span style={{ fontSize: 12, fontWeight: isToday ? 800 : 500, color: isSel ? C.accent : dow === 0 ? '#ef4444' : dow === 6 ? C.accent : C.text }}>{day}</span>
+              <div style={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center', minHeight: 12 }}>
+                {dayLogs.slice(0, 3).map((l, j) => (
+                  <span key={j} style={{ fontSize: 10 }}>{SPORT_ICON[l.sport_type]}</span>
+                ))}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 선택된 날짜 기록 */}
+      {selDate && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 10 }}>{selDate} 기록</div>
+          {selLogs.length === 0
+            ? <div style={{ textAlign: 'center', padding: '16px 0', color: C.text3, fontSize: 13 }}>훈련 기록이 없습니다</div>
+            : selLogs.map(l => (
+              <div key={l.id} style={{ background: C.surface, borderRadius: 12, padding: '10px 14px', marginBottom: 8, borderLeft: `3px solid ${SPORT_COLOR[l.sport_type]}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 20 }}>{SPORT_ICON[l.sport_type]}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: SPORT_COLOR[l.sport_type] }}>{SPORT_LABEL[l.sport_type]}</div>
+                  <div style={{ fontSize: 11, color: C.text2 }}>{(l.distance_km||0).toFixed(2)}km · {formatDuration(l.duration_sec)}</div>
+                </div>
+                <span style={{ fontSize: 10, color: l.status === 'approved' ? C.success : l.status === 'pending' ? C.warn : C.error, fontWeight: 700 }}>
+                  {l.status === 'approved' ? '승인' : l.status === 'pending' ? '대기' : '반려'}
+                </span>
+              </div>
+            ))
+          }
+        </div>
       )}
     </div>
   )

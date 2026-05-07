@@ -204,6 +204,17 @@ router.get('/users/search', authMiddleware, async (req, res) => {
   res.json(rows)
 })
 
+// 미확인 알림 수 (내 기록에 달린 새 댓글)
+router.get('/notifications/unread', authMiddleware, async (req, res) => {
+  const since = req.query.since || '1970-01-01'
+  const row = await db.prepare(`
+    SELECT COUNT(*)::int as c FROM comments c
+    JOIN workout_logs w ON c.workout_id = w.id
+    WHERE w.user_id = ? AND c.user_id != ? AND c.created_at > ?
+  `).get(req.user.id, req.user.id, since)
+  res.json({ count: row.c })
+})
+
 // 유저 프로필 (팔로우 수 포함)
 router.get('/profile/:userId', authMiddleware, async (req, res) => {
   const uid = Number(req.params.userId)

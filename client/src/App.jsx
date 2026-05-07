@@ -10,6 +10,7 @@ import AdminPage from './pages/AdminPage.jsx'
 import RacePage from './pages/RacePage.jsx'
 import ClubListPage from './pages/ClubListPage.jsx'
 import ClubDetailPage from './pages/ClubDetailPage.jsx'
+import UserProfilePage from './pages/UserProfilePage.jsx'
 import Layout from './components/Layout.jsx'
 
 function PrivateRoute({ children }) {
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="clubs" element={<ClubListPage />} />
             <Route path="clubs/:id" element={<ClubDetailPage />} />
             <Route path="admin" element={<AdminPage />} />
+            <Route path="users/:id" element={<UserProfilePage />} />
           </Route>
         </Routes>
       </BrowserRouter>

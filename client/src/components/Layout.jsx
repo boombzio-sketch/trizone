@@ -1,7 +1,11 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { C } from '../utils/theme'
 import Avatar from './Avatar.jsx'
+import { useState, useEffect } from 'react'
+import { api } from '../utils/api'
+
+const NOTIF_KEY = 'tz_notif_last_check'
 
 const TABS = [
   { to: '/',        icon: '⚡', label: '피드' },
@@ -12,6 +16,21 @@ const TABS = [
 
 export default function Layout() {
   const { user } = useAuth()
+  const location = useLocation()
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    const since = localStorage.getItem(NOTIF_KEY) || '1970-01-01'
+    api.getUnreadCount(since).then(r => setUnread(r.count)).catch(() => {})
+  }, [user])
+
+  useEffect(() => {
+    if (location.pathname === '/') {
+      localStorage.setItem(NOTIF_KEY, new Date().toISOString())
+      setUnread(0)
+    }
+  }, [location.pathname])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: C.bg }}>
@@ -75,7 +94,14 @@ export default function Layout() {
               borderTop: isActive ? `2px solid ${C.accent}` : '2px solid transparent',
             })}
           >
-            <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
+            <span style={{ fontSize: 20, lineHeight: 1, position: 'relative', display: 'inline-block' }}>
+              {t.icon}
+              {t.to === '/' && unread > 0 && (
+                <span style={{ position: 'absolute', top: -2, right: -4, minWidth: 14, height: 14, borderRadius: 99, background: '#ef4444', color: '#fff', fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
+            </span>
             {t.label}
           </NavLink>
         ))}

@@ -411,6 +411,7 @@ function EditModal({ feed, onSave, onClose }) {
 function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onDelete, onStatusChange }) {
   const sc = SPORT_COLOR[f.sport_type] || C.accent
   const isOpen = openComments === f.id
+  const navigate = useNavigate()
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [loadingC, setLoadingC] = useState(false)
@@ -466,10 +467,14 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
       <div style={{ background: C.surface, borderRadius: 18, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
         {/* 작성자 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px 8px' }}>
-          <Avatar nickname={f.nickname} avatar_color={f.avatar_color} avatar_image={f.avatar_image} size={38} />
+          <button onClick={() => navigate(`/users/${f.user_id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+            <Avatar nickname={f.nickname} avatar_color={f.avatar_color} avatar_image={f.avatar_image} size={38} />
+          </button>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {f.nickname}
+              <button onClick={() => navigate(`/users/${f.user_id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: C.text }}>
+                {f.nickname}
+              </button>
               {f.user_id === myId && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>나</span>}
             </div>
             <div style={{ fontSize: 10, color: C.text3, marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
