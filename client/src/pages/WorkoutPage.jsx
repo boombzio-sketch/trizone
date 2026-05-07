@@ -126,6 +126,14 @@ export default function WorkoutPage() {
     await api.deleteWorkout(id); loadLogs()
   }
 
+  const [editingLog, setEditingLog] = useState(null)
+
+  async function handleEditSave(id, body) {
+    await api.editWorkout(id, body)
+    setEditingLog(null)
+    loadLogs()
+  }
+
   const sc = SPORT_COLOR[sport]
 
   return (
@@ -141,13 +149,15 @@ export default function WorkoutPage() {
         ))}
       </div>
 
+      {editingLog && <LogEditModal log={editingLog} onSave={handleEditSave} onClose={() => setEditingLog(null)} />}
+
       {tab === 'log' ? (
         <div>
           {logs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 48, color: C.text2, fontSize: 14 }}>
               아직 훈련 기록이 없습니다.<br />"기록 추가" 탭에서 첫 훈련을 입력해보세요!
             </div>
-          ) : logs.map(log => <LogItem key={log.id} log={log} onDelete={handleDelete} />)}
+          ) : logs.map(log => <LogItem key={log.id} log={log} onDelete={handleDelete} onEdit={setEditingLog} />)}
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={{ padding: 16 }}>
@@ -320,7 +330,7 @@ export default function WorkoutPage() {
   )
 }
 
-function LogItem({ log, onDelete }) {
+function LogItem({ log, onDelete, onEdit }) {
   const sc = SPORT_COLOR[log.sport_type] || C.text2
   const segs = log.sport_type === 'brick' ? JSON.parse(log.brick_segments || '[]') : null
   const status = log.status || 'approved'
@@ -351,7 +361,10 @@ function LogItem({ log, onDelete }) {
         </div>
         <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
           <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{log.score?.toFixed(2)}km</span>
-          <button onClick={() => onDelete(log.id)} style={{ fontSize: 11, color: C.text3, background: 'none', border: 'none', cursor: 'pointer' }}>🗑️</button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => onEdit(log)} style={{ fontSize: 11, color: C.accent, background: C.accentBg, border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontWeight: 700 }}>수정</button>
+            <button onClick={() => onDelete(log.id)} style={{ fontSize: 11, color: C.text3, background: 'none', border: 'none', cursor: 'pointer' }}>🗑️</button>
+          </div>
         </div>
       </div>
       {log.photo && (
@@ -366,6 +379,197 @@ function Field({ label, children }) {
     <div style={{ marginBottom: 14 }}>
       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
       {children}
+    </div>
+  )
+}
+
+function secsToDur(sec) {
+  const s = sec || 0
+  return { h: Math.floor(s / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }
+}
+function durToSecs(d) { return (Number(d.h)||0)*3600 + (Number(d.m)||0)*60 + (Number(d.s)||0) }
+
+function LogEditModal({ log, onSave, onClose }) {
+  const isBrick = log.sport_type === 'brick'
+  const initSegs = isBrick ? (() => { try { return JSON.parse(log.brick_segments||'[]') } catch { return [] } })() : null
+
+  const [date, setDate]           = useState(log.logged_at?.slice(0,10) || '')
+  const [distKm, setDistKm]       = useState(log.distance_km || 0)
+  const [dur, setDur]             = useState(secsToDur(log.duration_sec))
+  const [poolType, setPoolType]   = useState(log.pool_type || 'open')
+  const [courseType, setCourseType] = useState(log.course_type || '실외')
+  const [elevM, setElevM]         = useState(log.elevation_m || 0)
+  const [avgPow, setAvgPow]       = useState(log.avg_power_w || 0)
+  const [memo, setMemo]           = useState(log.memo || '')
+  const [visibility, setVisibility] = useState(log.visibility || 'public')
+  const [segs, setSegs]           = useState(initSegs ? initSegs.map(s => ({ ...s, dur: secsToDur(s.duration_sec) })) : null)
+  const [saving, setSaving]       = useState(false)
+  const [err, setErr]             = useState('')
+
+  const iSt = { width: '100%', padding: '9px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }
+  const lSt = { display: 'block', fontSize: 10, fontWeight: 700, color: C.text2, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }
+  const sc  = SPORT_COLOR[log.sport_type] || C.accent
+
+  function DurInput({ value, onChange }) {
+    const dSt = { width: 44, padding: '9px 4px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, textAlign: 'center', outline: 'none', fontFamily: 'inherit' }
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <input type="number" min={0} value={value.h} onChange={e => onChange({...value, h: e.target.value})} style={dSt} placeholder="h" />
+        <span style={{ color: C.text2, fontSize: 13 }}>:</span>
+        <input type="number" min={0} max={59} value={value.m} onChange={e => onChange({...value, m: e.target.value})} style={dSt} placeholder="m" />
+        <span style={{ color: C.text2, fontSize: 13 }}>:</span>
+        <input type="number" min={0} max={59} value={value.s} onChange={e => onChange({...value, s: e.target.value})} style={dSt} placeholder="s" />
+      </div>
+    )
+  }
+
+  function Toggle({ options, value, onChange }) {
+    return (
+      <div style={{ display: 'flex', gap: 6 }}>
+        {options.map(o => (
+          <button key={o.v} type="button" onClick={() => onChange(o.v)} style={{
+            flex: 1, padding: '8px', border: 'none', borderRadius: 10, cursor: 'pointer',
+            fontWeight: 700, fontSize: 12,
+            background: value === o.v ? sc+'22' : C.surfaceAlt,
+            color: value === o.v ? sc : C.text2,
+            outline: value === o.v ? `2px solid ${sc}` : '2px solid transparent',
+          }}>{o.l}</button>
+        ))}
+      </div>
+    )
+  }
+
+  async function handleSave() {
+    setSaving(true); setErr('')
+    try {
+      const body = { memo, visibility, logged_at: date }
+      if (isBrick && segs) {
+        body.brick_segments = segs.map(s => ({ sport: s.sport, distance_km: Number(s.distance_km), duration_sec: durToSecs(s.dur) }))
+      } else {
+        body.distance_km  = Number(distKm)
+        body.duration_sec = durToSecs(dur)
+        if (log.sport_type === 'swim') body.pool_type = poolType
+        if (log.sport_type === 'bike') { body.course_type = courseType; body.elevation_m = Number(elevM); body.avg_power_w = Number(avgPow) }
+        if (log.sport_type === 'run')  { body.elevation_m = Number(elevM) }
+      }
+      await onSave(log.id, body)
+    } catch(e) { setErr(e.message) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }}>
+      <div style={{ background: C.surface, borderRadius: '22px 22px 0 0', width: '100%', padding: 20, border: `1px solid ${C.border}`, maxHeight: '92vh', overflowY: 'auto' }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: sc, marginBottom: 16 }}>
+          {SPORT_ICON[log.sport_type]} {SPORT_LABEL[log.sport_type]} 기록 수정
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={lSt}>날짜</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={iSt} />
+        </div>
+
+        {isBrick && segs ? segs.map((s, i) => (
+          <div key={i} style={{ background: C.surfaceAlt, borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: SPORT_COLOR[s.sport]||C.accent, marginBottom: 8 }}>
+              {SPORT_ICON[s.sport]} {SPORT_LABEL[s.sport]}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>거리 (km)</label>
+                <input type="number" min={0} step={0.01} value={s.distance_km}
+                  onChange={e => setSegs(prev => prev.map((x,j) => j===i ? {...x, distance_km: e.target.value} : x))}
+                  style={iSt} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>시간</label>
+                <DurInput value={s.dur} onChange={v => setSegs(prev => prev.map((x,j) => j===i ? {...x, dur: v} : x))} />
+              </div>
+            </div>
+          </div>
+        )) : (
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={lSt}>거리 (km)</label>
+              <input type="number" min={0} step={0.01} value={distKm} onChange={e => setDistKm(e.target.value)} style={iSt} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lSt}>시간 (h:m:s)</label>
+              <DurInput value={dur} onChange={setDur} />
+            </div>
+          </div>
+        )}
+
+        {log.sport_type === 'swim' && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={lSt}>수영장 종류</label>
+            <Toggle options={[{v:'open',l:'오픈워터'},{v:'indoor',l:'실내'}]} value={poolType} onChange={setPoolType} />
+          </div>
+        )}
+
+        {log.sport_type === 'bike' && (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={lSt}>코스 종류</label>
+              <Toggle options={[{v:'실외',l:'실외'},{v:'실내',l:'실내'}]} value={courseType} onChange={setCourseType} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>획득 고도 (m)</label>
+                <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lSt}>평균 파워 (W)</label>
+                <input type="number" min={0} value={avgPow} onChange={e => setAvgPow(e.target.value)} style={iSt} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {log.sport_type === 'run' && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={lSt}>획득 고도 (m)</label>
+            <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
+          </div>
+        )}
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={lSt}>메모</label>
+          <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} style={{ ...iSt, resize: 'none' }} />
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <label style={lSt}>공개 범위</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+            {VIS_OPTIONS.map(v => {
+              const active = v.key==='club' ? visibility==='club'||visibility==='club_followers'
+                           : v.key==='followers' ? visibility==='followers'||visibility==='club_followers'
+                           : visibility===v.key
+              return (
+                <button key={v.key} type="button" onClick={() => setVisibility(toggleVis(visibility, v.key))} style={{
+                  padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
+                  background: active ? v.color+'20' : C.surfaceAlt,
+                  outline: active ? `2px solid ${v.color}` : '2px solid transparent',
+                  color: active ? v.color : C.text2,
+                  fontSize: 11, fontWeight: 700,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                }}>
+                  <span style={{ fontSize: 18 }}>{v.icon}</span>{v.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {err && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: C.error }}>{err}</div>}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px', background: saving ? C.surfaceHigh : sc, border: 'none', borderRadius: 12, color: saving ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            {saving ? '저장 중...' : '💾 저장'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
