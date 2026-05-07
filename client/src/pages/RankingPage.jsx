@@ -14,8 +14,15 @@ const SPORTS = [{ key: 'swim', label: '🏊 수영' }, { key: 'bike', label: '�
 
 const today = new Date().toISOString().slice(0, 10)
 
+const SCOPES = [
+  { key: 'following', label: '팔로잉' },
+  { key: 'club',      label: '클럽' },
+  { key: 'all',       label: '전체' },
+]
+
 export default function RankingPage() {
   const { user } = useAuth()
+  const [scope, setScope] = useState('club')
   const [period, setPeriod] = useState('weekly')
   const [sport, setSport] = useState('swim')
   const [customFrom, setCustomFrom] = useState(today)
@@ -27,10 +34,10 @@ export default function RankingPage() {
     if (period === 'custom' && (!customFrom || !customTo)) return
     setLoading(true)
     const call = period === 'custom'
-      ? api.getRankingCustom(customFrom, customTo, sport)
-      : api.getRanking(period, sport)
+      ? api.getRankingCustom(customFrom, customTo, sport, scope)
+      : api.getRanking(period, sport, scope)
     call.then(r => setData(r)).finally(() => setLoading(false))
-  }, [period, sport, customFrom, customTo])
+  }, [period, sport, scope, customFrom, customTo])
 
   const rankings = data?.rankings || []
   const myRank = rankings.findIndex(r => r.user_id === user?.id) + 1
@@ -78,6 +85,18 @@ export default function RankingPage() {
             <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{myData?.workout_count || 0}회</span>
           </div>
         </div>
+      </div>
+
+      {/* 범위 탭 */}
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, display: 'flex' }}>
+        {SCOPES.map(s => (
+          <button key={s.key} onClick={() => setScope(s.key)} style={{
+            flex: 1, padding: '11px 4px', border: 'none', background: 'transparent', cursor: 'pointer',
+            fontSize: 13, fontWeight: 700,
+            color: scope === s.key ? C.accent : C.text2,
+            borderBottom: scope === s.key ? `2px solid ${C.accent}` : '2px solid transparent',
+          }}>{s.label}</button>
+        ))}
       </div>
 
       {/* 기간 필터 */}

@@ -48,8 +48,18 @@ function calcDistances(workouts) {
 
 // 랭킹
 router.get('/', authMiddleware, async (req, res) => {
-  const { period = 'weekly', sport = 'all', from: qFrom, to: qTo } = req.query;
+  const { period = 'weekly', sport = 'all', scope = 'club', from: qFrom, to: qTo } = req.query;
   const { from, to } = (qFrom && qTo) ? { from: qFrom, to: qTo } : getDateRange(period);
+  const uid = req.user.id;
+
+  let allowedIds = null;
+  if (scope === 'club') {
+    const rows = await prepare("SELECT user_id FROM club_memberships WHERE status='approved'").all();
+    allowedIds = new Set(rows.map(r => r.user_id));
+  } else if (scope === 'following') {
+    const rows = await prepare('SELECT following_id FROM follows WHERE follower_id=?').all(uid);
+    allowedIds = new Set([uid, ...rows.map(r => r.following_id)]);
+  }
 
   const workouts = await prepare(`
     SELECT user_id, sport_type, distance_km, brick_segments
@@ -57,7 +67,8 @@ router.get('/', authMiddleware, async (req, res) => {
   `).all(from, to);
 
   const distStats = calcDistances(workouts);
-  const users = await prepare('SELECT id as user_id, nickname, avatar_color FROM users').all();
+  let users = await prepare('SELECT id as user_id, nickname, avatar_color FROM users').all();
+  if (allowedIds) users = users.filter(u => allowedIds.has(u.user_id));
 
   let rankings = users.map(u => {
     const s = distStats[u.user_id] || { swim: 0, bike: 0, run: 0, count: 0 };
@@ -78,7 +89,7 @@ router.get('/', authMiddleware, async (req, res) => {
   else if (sport === 'run')  rankings.sort((a,b) => b.run_km  - a.run_km);
   else                       rankings.sort((a,b) => b.total_km - a.total_km);
 
-  res.json({ period, sport, from, to, rankings });
+  res.json({ period, sport, scope, from, to, rankings });
 });
 
 // 클럽 대시보드

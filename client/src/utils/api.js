@@ -36,8 +36,8 @@ export const api = {
   myStats: () => request('/workouts/stats/me'),
 
   // 랭킹
-  getRanking: (period, sport) => request(`/ranking?period=${period}&sport=${sport}`),
-  getRankingCustom: (from, to, sport) => request(`/ranking?period=custom&from=${from}&to=${to}&sport=${sport}`),
+  getRanking: (period, sport, scope = 'club') => request(`/ranking?period=${period}&sport=${sport}&scope=${scope}`),
+  getRankingCustom: (from, to, sport, scope = 'club') => request(`/ranking?period=custom&from=${from}&to=${to}&sport=${sport}&scope=${scope}`),
   getDashboard: () => request('/ranking/dashboard'),
 
   // 클럽
