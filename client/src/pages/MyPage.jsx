@@ -186,10 +186,10 @@ export default function MyPage() {
               <div style={{ width: 34, height: 34, borderRadius: 10, background: SPORT_COLOR[w.sport_type]+'18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>{SPORT_ICON[w.sport_type]}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: SPORT_COLOR[w.sport_type] }}>{SPORT_LABEL[w.sport_type]}</div>
-                <div style={{ fontSize: 11, color: C.text2 }}>{w.distance_km}km · {formatDuration(w.duration_sec)}</div>
+                <div style={{ fontSize: 11, color: C.text2 }}>{formatDuration(w.duration_sec)}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: C.accent }}>{(w.score||0).toFixed(1)}pt</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: C.accent }}>{(w.distance_km||0).toFixed(2)}km</div>
                 <div style={{ fontSize: 10, color: C.text3 }}>{w.logged_at}</div>
               </div>
             </div>
