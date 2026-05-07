@@ -39,7 +39,7 @@ router.post('/login', async (req, res) => {
   if (!bcrypt.compareSync(password, user.password_hash))
     return res.status(401).json({ error: '비밀번호가 틀렸습니다.' });
 
-  const payload = { id: user.id, nickname: user.nickname, role: user.role, avatar_color: user.avatar_color };
+  const payload = { id: user.id, nickname: user.nickname, role: user.role, avatar_color: user.avatar_color, can_approve: user.can_approve || false };
   const token = jwt.sign(payload, SECRET, { expiresIn: '30d' });
   res.json({ token, user: payload });
 });
