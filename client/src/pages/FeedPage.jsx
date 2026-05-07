@@ -48,7 +48,7 @@ function toggleVis(current, key) {
 export default function FeedPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('following')
+  const [tab, setTab] = useState('club')
   const [feeds, setFeeds] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQ, setSearchQ] = useState('')
