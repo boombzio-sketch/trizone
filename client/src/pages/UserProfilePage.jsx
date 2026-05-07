@@ -26,6 +26,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true)
   const [following, setFollowing] = useState(false)
   const [followerCount, setFollowerCount] = useState(0)
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -59,6 +60,19 @@ export default function UserProfilePage() {
 
   return (
     <div style={{ paddingBottom: 32 }}>
+      {showAvatarModal && (
+        <div onClick={() => setShowAvatarModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+          {user.avatar_image
+            ? <img src={user.avatar_image} alt={user.nickname} draggable={false} style={{ width: 240, height: 240, borderRadius: '50%', objectFit: 'cover', border: `4px solid ${user.avatar_color||C.accent}`, boxShadow: `0 0 40px ${user.avatar_color||C.accent}60`, pointerEvents: 'none' }} />
+            : <div style={{ width: 200, height: 200, borderRadius: '50%', background: (user.avatar_color||C.accent)+'22', border: `4px solid ${user.avatar_color||C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80, fontWeight: 900, color: user.avatar_color||C.accent, boxShadow: `0 0 40px ${user.avatar_color||C.accent}60` }}>
+                {user.nickname?.charAt(0) || '?'}
+              </div>
+          }
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{user.nickname}</div>
+          <button onClick={() => setShowAvatarModal(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: C.accent, fontSize: 20, cursor: 'pointer', padding: 0, lineHeight: 1 }}>‹</button>
@@ -69,7 +83,7 @@ export default function UserProfilePage() {
         {/* 프로필 카드 */}
         <div style={{ background: C.surface, borderRadius: 18, padding: 18, border: `1px solid ${C.border}`, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-            <Avatar nickname={user.nickname} avatar_color={user.avatar_color} avatar_image={user.avatar_image} size={64} />
+            <Avatar nickname={user.nickname} avatar_color={user.avatar_color} avatar_image={user.avatar_image} size={64} onClick={() => setShowAvatarModal(true)} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{user.nickname}</div>
               <div style={{ fontSize: 11, color: C.text3, marginTop: 3 }}>가입 {user.created_at?.slice(0,10)}</div>

@@ -42,6 +42,7 @@ export default function MyPage() {
     finally { setEditSaving(false) }
   }
   const [profile, setProfile] = useState(null)
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [showFollowers, setShowFollowers] = useState(false)
   const [showFollowing, setShowFollowing] = useState(false)
   const [followerList, setFollowerList] = useState([])
@@ -172,8 +173,8 @@ export default function MyPage() {
       {/* 프로필 카드 */}
       <div style={{ background: 'linear-gradient(160deg, #0E2040 0%, #091320 100%)', borderRadius: 20, padding: 18, border: `1px solid rgba(56,189,248,0.15)`, marginBottom: 12, boxShadow: '0 4px 32px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-          <div style={{ position: 'relative' }}>
-            <Avatar nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} size={64} />
+          <div style={{ position: 'relative' }} onClick={() => setShowAvatarModal(true)}>
+            <Avatar nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} size={64} onClick={() => setShowAvatarModal(true)} />
             <div style={{ position: 'absolute', inset: -3, borderRadius: '50%', border: `2px solid ${user?.avatar_color||C.accent}`, boxShadow: `0 0 14px ${user?.avatar_color||C.accent}60`, pointerEvents: 'none' }} />
           </div>
           <div style={{ flex: 1 }}>
@@ -273,8 +274,27 @@ export default function MyPage() {
         <ThreadModal thread={selectedThread} user={user} onClose={() => setSelectedThread(null)} />
       )}
 
+      {showAvatarModal && (
+        <AvatarModal nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} onClose={() => setShowAvatarModal(false)} />
+      )}
       {showFollowers && <FollowModal title="팔로워" list={followerList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowers(false)} />}
       {showFollowing && <FollowModal title="팔로잉" list={followingList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowing(false)} />}
+    </div>
+  )
+}
+
+function AvatarModal({ nickname, avatar_color, avatar_image, onClose }) {
+  const color = avatar_color || C.accent
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+      {avatar_image
+        ? <img src={avatar_image} alt={nickname} draggable={false} style={{ width: 240, height: 240, borderRadius: '50%', objectFit: 'cover', border: `4px solid ${color}`, boxShadow: `0 0 40px ${color}60`, pointerEvents: 'none' }} />
+        : <div style={{ width: 200, height: 200, borderRadius: '50%', background: color + '22', border: `4px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 80, fontWeight: 900, color, boxShadow: `0 0 40px ${color}60` }}>
+            {nickname?.charAt(0) || '?'}
+          </div>
+      }
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{nickname}</div>
+      <button onClick={onClose} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
     </div>
   )
 }
