@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
@@ -25,6 +25,7 @@ export default function MyPage() {
   const [editForm, setEditForm] = useState({ password: '', avatar_color: '', avatar_image: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
+  const [cropUrl, setCropUrl] = useState(null)
 
   function openEdit() {
     setEditForm({ password: '', avatar_color: user?.avatar_color || '#4DB8FF', avatar_image: user?.avatar_image || '' })
@@ -114,16 +115,8 @@ export default function MyPage() {
                     📷 선택
                     <input type="file" accept="image/*" onChange={e => {
                       const file = e.target.files[0]; if (!file) return
-                      const img = new Image(), url = URL.createObjectURL(file)
-                      img.onload = () => {
-                        const s = 120, c = document.createElement('canvas')
-                        c.width = s; c.height = s
-                        const min = Math.min(img.width, img.height)
-                        c.getContext('2d').drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, s, s)
-                        URL.revokeObjectURL(url)
-                        setEditForm(p => ({ ...p, avatar_image: c.toDataURL('image/jpeg', 0.85) }))
-                      }
-                      img.src = url; e.target.value = ''
+                      setCropUrl(URL.createObjectURL(file))
+                      e.target.value = ''
                     }} style={{ display: 'none' }} />
                   </label>
                   {editForm.avatar_image && (
@@ -274,11 +267,170 @@ export default function MyPage() {
         <ThreadModal thread={selectedThread} user={user} onClose={() => setSelectedThread(null)} />
       )}
 
+      {cropUrl && (
+        <AvatarCropModal
+          imageUrl={cropUrl}
+          onSave={dataUrl => { setEditForm(p => ({ ...p, avatar_image: dataUrl })); URL.revokeObjectURL(cropUrl); setCropUrl(null) }}
+          onClose={() => { URL.revokeObjectURL(cropUrl); setCropUrl(null) }}
+        />
+      )}
       {showAvatarModal && (
         <AvatarModal nickname={user?.nickname} avatar_color={user?.avatar_color} avatar_image={user?.avatar_image} onClose={() => setShowAvatarModal(false)} />
       )}
       {showFollowers && <FollowModal title="팔로워" list={followerList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowers(false)} />}
       {showFollowing && <FollowModal title="팔로잉" list={followingList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowing(false)} />}
+    </div>
+  )
+}
+
+function AvatarCropModal({ imageUrl, onSave, onClose }) {
+  const DISPLAY = 260
+  const OUTPUT  = 600
+
+  const imgRef  = useRef(null)
+  const drag    = useRef(null)
+  const pinch   = useRef(null)
+  const vals    = useRef({ us: 1, ox: 0, oy: 0, nw: 1, nh: 1 })
+
+  const [loaded, setLoaded] = useState(false)
+  const [nw, setNw] = useState(1)
+  const [nh, setNh] = useState(1)
+  const [us, setUs] = useState(1)   // user scale multiplier
+  const [ox, setOx] = useState(0)   // offset x
+  const [oy, setOy] = useState(0)   // offset y
+
+  useEffect(() => { vals.current = { us, ox, oy, nw, nh } })
+
+  function minS(w, h) { return Math.max(DISPLAY / w, DISPLAY / h) }
+
+  function clamp(x, y, sc, w, h) {
+    const v = vals.current
+    const rw = w ?? v.nw, rh = h ?? v.nh
+    const as = minS(rw, rh) * sc
+    const mx = Math.max(0, (rw * as - DISPLAY) / 2)
+    const my = Math.max(0, (rh * as - DISPLAY) / 2)
+    return { x: Math.max(-mx, Math.min(mx, x)), y: Math.max(-my, Math.min(my, y)) }
+  }
+
+  function applyOffset(x, y) {
+    const { x: cx, y: cy } = clamp(x, y, vals.current.us)
+    setOx(cx); setOy(cy)
+  }
+
+  // Touch handlers (attached imperatively to avoid passive listener issue)
+  useEffect(() => {
+    const el = imgRef.current?.parentElement
+    if (!el) return
+
+    function tStart(e) {
+      e.preventDefault()
+      const v = vals.current
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        pinch.current = { dist: Math.hypot(dx, dy), scale: v.us, ox: v.ox, oy: v.oy }
+        drag.current = null
+      } else {
+        drag.current = { sx: e.touches[0].clientX - v.ox, sy: e.touches[0].clientY - v.oy }
+        pinch.current = null
+      }
+    }
+
+    function tMove(e) {
+      e.preventDefault()
+      const v = vals.current
+      if (e.touches.length === 2 && pinch.current) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        const newUs = Math.max(1, Math.min(5, pinch.current.scale * Math.hypot(dx, dy) / pinch.current.dist))
+        const c = clamp(pinch.current.ox, pinch.current.oy, newUs)
+        setUs(newUs); setOx(c.x); setOy(c.y)
+      } else if (e.touches.length === 1 && drag.current) {
+        applyOffset(e.touches[0].clientX - drag.current.sx, e.touches[0].clientY - drag.current.sy)
+      }
+    }
+
+    function tEnd(e) {
+      if (e.touches.length < 2) pinch.current = null
+      if (e.touches.length === 0) drag.current = null
+    }
+
+    el.addEventListener('touchstart', tStart, { passive: false })
+    el.addEventListener('touchmove',  tMove,  { passive: false })
+    el.addEventListener('touchend',   tEnd)
+    return () => {
+      el.removeEventListener('touchstart', tStart)
+      el.removeEventListener('touchmove',  tMove)
+      el.removeEventListener('touchend',   tEnd)
+    }
+  }, [loaded])
+
+  function mDown(e) { drag.current = { sx: e.clientX - vals.current.ox, sy: e.clientY - vals.current.oy } }
+  function mMove(e) { if (drag.current) applyOffset(e.clientX - drag.current.sx, e.clientY - drag.current.sy) }
+  function mUp()    { drag.current = null }
+
+  function zoom(d) {
+    const v = vals.current
+    const next = Math.max(1, Math.min(5, v.us + d))
+    const c = clamp(v.ox, v.oy, next)
+    setUs(next); setOx(c.x); setOy(c.y)
+  }
+
+  function handleSave() {
+    const v = vals.current
+    const as = minS(v.nw, v.nh) * v.us
+    const canvas = document.createElement('canvas')
+    canvas.width = OUTPUT; canvas.height = OUTPUT
+    const r  = (DISPLAY / 2) / as
+    const cx = v.nw / 2 - v.ox / as
+    const cy = v.nh / 2 - v.oy / as
+    canvas.getContext('2d').drawImage(imgRef.current, cx - r, cy - r, r * 2, r * 2, 0, 0, OUTPUT, OUTPUT)
+    onSave(canvas.toDataURL('image/jpeg', 0.95))
+  }
+
+  const as   = minS(nw, nh) * us
+  const imgL = DISPLAY / 2 - nw * as / 2 + ox
+  const imgT = DISPLAY / 2 - nh * as / 2 + oy
+  const btn  = { background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: '#050A12', zIndex: 600, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        드래그로 위치 · 핀치로 확대/축소
+      </div>
+
+      {/* 크롭 원 */}
+      <div style={{
+        width: DISPLAY, height: DISPLAY, borderRadius: '50%', overflow: 'hidden',
+        position: 'relative', cursor: 'grab', userSelect: 'none', touchAction: 'none',
+        boxShadow: '0 0 0 2px rgba(255,255,255,0.5), 0 0 0 5px rgba(0,0,0,0.8), 0 0 48px rgba(56,189,248,0.25)',
+        opacity: loaded ? 1 : 0, transition: 'opacity .3s',
+      }}
+        onMouseDown={mDown} onMouseMove={mMove} onMouseUp={mUp} onMouseLeave={mUp}
+      >
+        <img ref={imgRef} src={imageUrl} alt="" draggable={false}
+          onLoad={e => { setNw(e.target.naturalWidth); setNh(e.target.naturalHeight); setLoaded(true) }}
+          style={{ position: 'absolute', width: nw * as, height: nh * as, left: imgL, top: imgT, pointerEvents: 'none', userSelect: 'none' }}
+        />
+      </div>
+      {!loaded && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, position: 'absolute' }}>⏳</div>}
+
+      {/* 줌 버튼 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <button onClick={() => zoom(-0.15)} style={{ ...btn, width: 44, height: 44, fontSize: 24 }}>−</button>
+        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, minWidth: 52, textAlign: 'center', letterSpacing: '0.05em' }}>
+          {Math.round(us * 100)}%
+        </span>
+        <button onClick={() => zoom(0.15)} style={{ ...btn, width: 44, height: 44, fontSize: 24 }}>+</button>
+      </div>
+
+      {/* 저장/취소 */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button onClick={onClose} style={{ ...btn, padding: '12px 26px', fontSize: 14 }}>취소</button>
+        <button onClick={handleSave} style={{ padding: '12px 36px', background: '#38BDF8', border: 'none', borderRadius: 12, color: '#000', fontSize: 14, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }}>
+          ✓ 저장
+        </button>
+      </div>
     </div>
   )
 }
