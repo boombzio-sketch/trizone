@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { api } from '../utils/api'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import { C } from '../utils/theme'
 import Avatar from '../components/Avatar.jsx'
@@ -16,8 +17,30 @@ async function req(path, opts = {}) {
   return data
 }
 
+const AVATAR_COLORS = ['#4DB8FF','#00DC82','#FFA000','#CC64FF','#FF5080','#00BFFF','#FF8C42','#A8FF3E','#4F9CF9','#EF4444','#F59E0B','#10B981']
+
 export default function MyPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, refreshUser } = useAuth()
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ password: '', avatar_color: '', avatar_image: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  function openEdit() {
+    setEditForm({ password: '', avatar_color: user?.avatar_color || '#4DB8FF', avatar_image: user?.avatar_image || '' })
+    setEditError('')
+    setEditOpen(true)
+  }
+
+  async function handleSave() {
+    setEditSaving(true); setEditError('')
+    try {
+      await api.updateProfile(editForm)
+      await refreshUser()
+      setEditOpen(false)
+    } catch (e) { setEditError(e.message) }
+    finally { setEditSaving(false) }
+  }
   const [profile, setProfile] = useState(null)
   const [showFollowers, setShowFollowers] = useState(false)
   const [showFollowing, setShowFollowing] = useState(false)
@@ -47,6 +70,79 @@ export default function MyPage() {
 
   return (
     <div style={{ padding: 14 }}>
+
+      {/* 프로필 편집 모달 */}
+      {editOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>프로필 수정</div>
+
+            {/* 아바타 미리보기 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              <Avatar nickname={user?.nickname} avatar_color={editForm.avatar_color} avatar_image={editForm.avatar_image} size={56} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 6 }}>프로필 사진</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <label style={{ padding: '6px 12px', background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: C.accent }}>
+                    📷 선택
+                    <input type="file" accept="image/*" onChange={e => {
+                      const file = e.target.files[0]; if (!file) return
+                      const img = new Image(), url = URL.createObjectURL(file)
+                      img.onload = () => {
+                        const s = 120, c = document.createElement('canvas')
+                        c.width = s; c.height = s
+                        const min = Math.min(img.width, img.height)
+                        c.getContext('2d').drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, s, s)
+                        URL.revokeObjectURL(url)
+                        setEditForm(p => ({ ...p, avatar_image: c.toDataURL('image/jpeg', 0.85) }))
+                      }
+                      img.src = url; e.target.value = ''
+                    }} style={{ display: 'none' }} />
+                  </label>
+                  {editForm.avatar_image && (
+                    <button onClick={() => setEditForm(p => ({ ...p, avatar_image: '' }))}
+                      style={{ padding: '6px 12px', background: C.errorBg, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: C.error }}>
+                      삭제
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 색상 */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>아바타 색상</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {AVATAR_COLORS.map(color => (
+                  <button key={color} type="button" onClick={() => setEditForm(p => ({ ...p, avatar_color: color }))} style={{
+                    width: 30, height: 30, borderRadius: '50%', border: 'none', cursor: 'pointer', background: color,
+                    outline: editForm.avatar_color === color ? `3px solid ${C.text}` : '3px solid transparent',
+                    outlineOffset: 2,
+                  }} />
+                ))}
+              </div>
+            </div>
+
+            {/* 비밀번호 */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>새 비밀번호</div>
+              <input type="password" value={editForm.password} onChange={e => setEditForm(p => ({ ...p, password: e.target.value }))}
+                placeholder="변경 시만 입력 (4자 이상)"
+                style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+
+            {editError && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 13, color: C.error }}>{editError}</div>}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setEditOpen(false)} style={{ flex: 1, padding: '11px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+              <button onClick={handleSave} disabled={editSaving} style={{ flex: 2, padding: '11px', background: editSaving ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 12, color: editSaving ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                {editSaving ? '저장 중...' : '💾 저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 프로필 카드 */}
       <div style={{ background: C.surface, borderRadius: 18, padding: 18, border: `1px solid ${C.border}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
@@ -58,7 +154,10 @@ export default function MyPage() {
             </div>
             <div style={{ fontSize: 11, color: C.text2, marginTop: 3 }}>철인</div>
           </div>
-          <button onClick={logout} style={{ fontSize: 12, color: C.text2, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>로그아웃</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button onClick={openEdit} style={{ fontSize: 12, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 700 }}>수정</button>
+            <button onClick={logout} style={{ fontSize: 12, color: C.text2, background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>로그아웃</button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>

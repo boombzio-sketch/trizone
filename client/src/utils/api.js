@@ -25,6 +25,7 @@ export const api = {
   register: (body) => request('/auth/register', { method: 'POST', body }),
   login: (body) => request('/auth/login', { method: 'POST', body }),
   me: () => request('/auth/me'),
+  updateProfile: (body) => request('/users/me', { method: 'PUT', body }),
 
   // 훈련 기록
   getWorkouts: (params = '') => request(`/workouts?${params}`),
