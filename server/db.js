@@ -19,6 +19,13 @@ const isLocal = /(?:localhost|127\.0\.0\.1)/.test(process.env.DATABASE_URL);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: isLocal ? false : { rejectUnauthorized: false },
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+pool.on('error', (err) => {
+  console.error('[pg pool error]', err.message);
 });
 
 // Translate the small subset of SQLite-flavored SQL the codebase uses into Postgres.
@@ -198,7 +205,8 @@ async function initDb() {
     ON CONFLICT (club_id, user_id) DO NOTHING
   `);
 
-  console.log('✅ Postgres DB 초기화 완료');
+  const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM users');
+  console.log(`✅ Postgres DB 초기화 완료 — 현재 회원 수: ${rows[0].cnt}명`);
 }
 
 // Tiny wrapper that mimics the old better-sqlite3 / sql.js API surface
