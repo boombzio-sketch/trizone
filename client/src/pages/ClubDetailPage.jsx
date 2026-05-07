@@ -564,6 +564,31 @@ export default function ClubDetailPage() {
       {tab === '관리' && canManage && (
         <div style={{ padding: '12px' }}>
 
+          {/* 가입 신청 대기 */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>
+            가입 신청 대기 <span style={{ color: C.warn }}>({pendingMembers.length})</span>
+          </div>
+          {pendingMembers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 32, color: C.text2, fontSize: 13 }}>대기 중인 신청이 없습니다.</div>
+          ) : pendingMembers.map(m => (
+            <div key={m.user_id} style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 10, border: `1px solid ${C.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: m.message ? 10 : 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: m.avatar_color+'22', border: `2px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: m.avatar_color, flexShrink: 0 }}>
+                  {m.nickname?.charAt(0)}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.nickname}</div>
+                  <div style={{ fontSize: 10, color: C.text2 }}>{m.applied_at?.slice(0,10)} 신청</div>
+                </div>
+              </div>
+              {m.message && <div style={{ background: C.surfaceAlt, borderRadius: 8, padding: '8px 10px', marginBottom: 10, fontSize: 12, color: C.text2, fontStyle: 'italic' }}>"{m.message}"</div>}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => handleMemberStatus(m.user_id, 'rejected')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: 10, background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✕ 거절</button>
+                <button onClick={() => handleMemberStatus(m.user_id, 'approved')} style={{ flex: 2, padding: '9px', border: 'none', borderRadius: 10, background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✓ 승인</button>
+              </div>
+            </div>
+          ))}
+
           {/* 부클럽장 관리 */}
           <div style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>⭐ 부클럽장 관리</div>
@@ -654,30 +679,6 @@ export default function ClubDetailPage() {
             </div>
           )}
 
-          {/* 가입 신청 대기 */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>
-            가입 신청 대기 <span style={{ color: C.warn }}>({pendingMembers.length})</span>
-          </div>
-          {pendingMembers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 32, color: C.text2, fontSize: 13 }}>대기 중인 신청이 없습니다.</div>
-          ) : pendingMembers.map(m => (
-            <div key={m.user_id} style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 10, border: `1px solid ${C.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: m.message ? 10 : 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: m.avatar_color+'22', border: `2px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: m.avatar_color, flexShrink: 0 }}>
-                  {m.nickname?.charAt(0)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.nickname}</div>
-                  <div style={{ fontSize: 10, color: C.text2 }}>{m.applied_at?.slice(0,10)} 신청</div>
-                </div>
-              </div>
-              {m.message && <div style={{ background: C.surfaceAlt, borderRadius: 8, padding: '8px 10px', marginBottom: 10, fontSize: 12, color: C.text2, fontStyle: 'italic' }}>"{m.message}"</div>}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => handleMemberStatus(m.user_id, 'rejected')} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: 10, background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✕ 거절</button>
-                <button onClick={() => handleMemberStatus(m.user_id, 'approved')} style={{ flex: 2, padding: '9px', border: 'none', borderRadius: 10, background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✓ 승인</button>
-              </div>
-            </div>
-          ))}
         </div>
       )}
     </div>
