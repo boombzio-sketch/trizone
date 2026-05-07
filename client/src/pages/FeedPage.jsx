@@ -295,6 +295,8 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
   const allPhotos = photoList.length > 0 ? photoList : (f.photo ? [f.photo] : [])
   const coverIdx = f.cover_photo_index || 0
   const [photoModalIdx, setPhotoModalIdx] = useState(null)
+  const swipeTouchX = useRef(null)
+  const swipeHandled = useRef(false)
 
   return (
     <div style={{ margin: '0 12px 10px' }}>
@@ -333,7 +335,18 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
 
         {/* 사진 모달 */}
         {photoModalIdx !== null && (
-          <div onClick={() => setPhotoModalIdx(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            onClick={() => { if (!swipeHandled.current) setPhotoModalIdx(null) }}
+            onTouchStart={e => { swipeTouchX.current = e.touches[0].clientX; swipeHandled.current = false }}
+            onTouchEnd={e => {
+              if (swipeTouchX.current === null) return
+              const dx = e.changedTouches[0].clientX - swipeTouchX.current
+              swipeTouchX.current = null
+              if (Math.abs(dx) < 50) return
+              swipeHandled.current = true
+              setPhotoModalIdx(i => dx < 0 ? (i + 1) % allPhotos.length : (i - 1 + allPhotos.length) % allPhotos.length)
+            }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img src={allPhotos[photoModalIdx]} alt="" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8 }} />
             {allPhotos.length > 1 && (
               <>

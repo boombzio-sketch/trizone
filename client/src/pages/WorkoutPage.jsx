@@ -350,7 +350,7 @@ function LogItem({ log, onDelete }) {
           {log.memo && <div style={{ fontSize: 11, color: C.text3, marginTop: 3, fontStyle:'italic' }}>{log.memo}</div>}
         </div>
         <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{log.score?.toFixed(1)}pt</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{log.score?.toFixed(2)}km</span>
           <button onClick={() => onDelete(log.id)} style={{ fontSize: 11, color: C.text3, background: 'none', border: 'none', cursor: 'pointer' }}>🗑️</button>
         </div>
       </div>
