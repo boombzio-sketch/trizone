@@ -114,6 +114,13 @@ export default function RankingPage() {
         </div>
 
 
+        {/* 기간 날짜 표시 */}
+        {data && period !== 'custom' && (
+          <div style={{ textAlign: 'center', marginTop: 10, fontSize: 15, fontWeight: 700, color: C.text2, letterSpacing: '0.02em' }}>
+            {data.from} ~ {data.to}
+          </div>
+        )}
+
         {/* 커스텀 날짜 선택 */}
         {period === 'custom' && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
