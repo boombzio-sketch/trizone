@@ -35,6 +35,9 @@ export default function RankingPage() {
   const rankings = data?.rankings || []
   const myRank = rankings.findIndex(r => r.user_id === user?.id) + 1
   const myData = rankings.find(r => r.user_id === user?.id) || null
+  const myKm = myData
+    ? (sport === 'swim' ? myData.swim_km : sport === 'bike' ? myData.bike_km : sport === 'run' ? myData.run_km : myData.total_km) || 0
+    : 0
 
   function getMainValue(row) {
     if (sport === 'swim') return `${(row.swim_km||0).toFixed(1)}km`
@@ -120,7 +123,7 @@ export default function RankingPage() {
       </div>
 
       {/* 내 순위 배너 */}
-      {myRank > 0 && (
+      {myRank > 0 && myKm > 0 && (
         <div style={{ margin: '12px 12px 0', background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 11, color: C.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>내 순위</span>
           <span style={{ fontSize: 28, fontWeight: 900, color: C.text, fontVariantNumeric: 'tabular-nums' }}>{myRank}위</span>
