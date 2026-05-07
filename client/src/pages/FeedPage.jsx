@@ -347,7 +347,7 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
               setPhotoModalIdx(i => dx < 0 ? (i + 1) % allPhotos.length : (i - 1 + allPhotos.length) % allPhotos.length)
             }}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={allPhotos[photoModalIdx]} alt="" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8 }} />
+            <img src={allPhotos[photoModalIdx]} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }} />
             {allPhotos.length > 1 && (
               <>
                 <button onClick={e => { e.stopPropagation(); setPhotoModalIdx(i => (i - 1 + allPhotos.length) % allPhotos.length) }}
