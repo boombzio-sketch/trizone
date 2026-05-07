@@ -11,15 +11,20 @@ export default function AdminPage() {
   const [tab, setTab] = useState('pending')
   const [badges, setBadges] = useState({ pending: null, memberships: null, leaderApps: null, members: null })
 
-  if (user?.role !== 'admin') return <Navigate to="/" replace />
+  const isAdmin     = user?.role === 'admin'
+  const canApprove  = isAdmin || user?.can_approve
+
+  if (!canApprove) return <Navigate to="/" replace />
 
   const setBadge = (key, count) => setBadges(prev => ({ ...prev, [key]: count }))
 
   const tabDefs = [
     { key: 'pending', label: '훈련 승인', badge: badges.pending },
-    { key: 'memberships', label: '클럽 가입', badge: badges.memberships },
-    { key: 'leaderApps', label: '클럽장 신청', badge: badges.leaderApps },
-    { key: 'members', label: '회원 관리', badge: badges.members },
+    ...(isAdmin ? [
+      { key: 'memberships', label: '클럽 가입', badge: badges.memberships },
+      { key: 'leaderApps', label: '클럽장 신청', badge: badges.leaderApps },
+      { key: 'members', label: '회원 관리', badge: badges.members },
+    ] : []),
   ]
 
   return (
@@ -49,9 +54,9 @@ export default function AdminPage() {
         </div>
       </div>
       <div style={{ display: tab === 'pending' ? 'block' : 'none' }}><PendingTab onBadge={c => setBadge('pending', c)} /></div>
-      <div style={{ display: tab === 'memberships' ? 'block' : 'none' }}><MembershipsTab onBadge={c => setBadge('memberships', c)} /></div>
-      <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>
-      <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>
+      {isAdmin && <div style={{ display: tab === 'memberships' ? 'block' : 'none' }}><MembershipsTab onBadge={c => setBadge('memberships', c)} /></div>}
+      {isAdmin && <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>}
+      {isAdmin && <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>}
     </div>
   )
 }
