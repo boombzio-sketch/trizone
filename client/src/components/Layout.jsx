@@ -21,9 +21,9 @@ export default function Layout() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 100,
       }}>
-        <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.05em', color: C.text }}>
+        <NavLink to="/" style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.05em', color: C.text, textDecoration: 'none' }}>
           TRI<span style={{ color: C.accent }}>ZONE</span>
-        </div>
+        </NavLink>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {(user?.role === 'admin' || user?.can_approve) && (
