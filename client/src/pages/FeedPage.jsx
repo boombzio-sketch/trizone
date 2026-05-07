@@ -99,6 +99,12 @@ export default function FeedPage() {
     setEditingFeed(null)
   }
 
+  async function handleDelete(id) {
+    if (!confirm('이 기록을 삭제할까요?')) return
+    await api.deleteWorkout(id)
+    setFeeds(prev => prev.filter(f => f.id !== id))
+  }
+
   const TABS = [
     { key: 'following', label: '팔로잉' },
     { key: 'club',      label: '클럽' },
@@ -182,6 +188,7 @@ export default function FeedPage() {
             onStar={() => toggleStar(f.id)}
             openComments={openComments} setOpenComments={setOpenComments}
             onEdit={() => setEditingFeed(f)}
+            onDelete={handleDelete}
             onStatusChange={(id, status) => setFeeds(prev => prev.map(x => x.id === id ? { ...x, status } : x))}
           />
         ))}
@@ -401,7 +408,7 @@ function EditModal({ feed, onSave, onClose }) {
   )
 }
 
-function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onStatusChange }) {
+function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onDelete, onStatusChange }) {
   const sc = SPORT_COLOR[f.sport_type] || C.accent
   const isOpen = openComments === f.id
   const [comments, setComments] = useState([])
@@ -483,7 +490,10 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
                 </>
               )}
               {(f.user_id === myId || user?.role === 'admin') && (
-                <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
+                  <button onClick={() => onDelete(f.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 6, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>삭제</button>
+                </div>
               )}
             </div>
           </div>
