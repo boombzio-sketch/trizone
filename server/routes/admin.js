@@ -8,7 +8,7 @@ const approveOnly = [authMiddleware, canApproveMiddleware];
 // 전체 회원 목록
 router.get('/members', ...adminOnly, async (req, res) => {
   const members = await prepare(`
-    SELECT u.id, u.nickname, u.role, u.avatar_color, u.avatar_image, u.created_at, u.can_approve,
+    SELECT u.id, u.nickname, u.email, u.role, u.avatar_color, u.avatar_image, u.created_at, u.can_approve,
            COUNT(w.id) as workout_count
     FROM users u
     LEFT JOIN workout_logs w ON w.user_id = u.id
@@ -20,23 +20,34 @@ router.get('/members', ...adminOnly, async (req, res) => {
 
 // 회원 정보 수정
 router.put('/members/:id', ...adminOnly, async (req, res) => {
-  const { nickname, avatar_color, avatar_image, password } = req.body;
+  const { nickname, avatar_color, avatar_image, password, email } = req.body;
   if (!nickname?.trim()) return res.status(400).json({ error: '닉네임을 입력하세요.' });
 
   const uid = Number(req.params.id);
-  const exists = await prepare('SELECT id FROM users WHERE nickname=? AND id!=?').get(nickname.trim(), uid);
-  if (exists) return res.status(409).json({ error: '이미 사용 중인 닉네임입니다.' });
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (password) {
-    if (password.length < 4) return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
-    const bcrypt = require('bcryptjs');
-    const hash = bcrypt.hashSync(password, 10);
-    await prepare('UPDATE users SET nickname=?, avatar_color=?, avatar_image=?, password_hash=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', avatar_image ?? null, hash, uid);
-  } else {
-    await prepare('UPDATE users SET nickname=?, avatar_color=?, avatar_image=? WHERE id=?').run(nickname.trim(), avatar_color || '#4DB8FF', avatar_image ?? null, uid);
+  const nickExists = await prepare('SELECT id FROM users WHERE nickname=? AND id!=?').get(nickname.trim(), uid);
+  if (nickExists) return res.status(409).json({ error: '이미 사용 중인 닉네임입니다.' });
+
+  const normalizedEmail = email?.trim() ? email.trim().toLowerCase() : null;
+  if (normalizedEmail) {
+    if (!EMAIL_RE.test(normalizedEmail)) return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
+    const emailExists = await prepare('SELECT id FROM users WHERE email=? AND id!=?').get(normalizedEmail, uid);
+    if (emailExists) return res.status(409).json({ error: '이미 사용 중인 이메일입니다.' });
   }
 
-  res.json(await prepare('SELECT id, nickname, role, avatar_color, avatar_image, created_at FROM users WHERE id=?').get(uid));
+  const bcrypt = require('bcryptjs');
+  if (password) {
+    if (password.length < 4) return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
+    const hash = bcrypt.hashSync(password, 10);
+    await prepare('UPDATE users SET nickname=?, email=?, avatar_color=?, avatar_image=?, password_hash=? WHERE id=?')
+      .run(nickname.trim(), normalizedEmail, avatar_color || '#4DB8FF', avatar_image ?? null, hash, uid);
+  } else {
+    await prepare('UPDATE users SET nickname=?, email=?, avatar_color=?, avatar_image=? WHERE id=?')
+      .run(nickname.trim(), normalizedEmail, avatar_color || '#4DB8FF', avatar_image ?? null, uid);
+  }
+
+  res.json(await prepare('SELECT id, nickname, email, role, avatar_color, avatar_image, created_at FROM users WHERE id=?').get(uid));
 });
 
 // 역할 변경

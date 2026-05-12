@@ -502,7 +502,7 @@ function MembersTab({ user: currentUser, onBadge }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingMember, setEditingMember] = useState(null)
-  const [editForm, setEditForm] = useState({ nickname: '', avatar_color: '', password: '', avatar_image: '' })
+  const [editForm, setEditForm] = useState({ nickname: '', email: '', avatar_color: '', password: '', avatar_image: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
 
@@ -521,7 +521,7 @@ function MembersTab({ user: currentUser, onBadge }) {
 
   function openEdit(m) {
     setEditingMember(m)
-    setEditForm({ nickname: m.nickname, avatar_color: m.avatar_color, password: '', avatar_image: m.avatar_image || '' })
+    setEditForm({ nickname: m.nickname, email: m.email || '', avatar_color: m.avatar_color, password: '', avatar_image: m.avatar_image || '' })
     setEditError('')
   }
 
@@ -616,6 +616,20 @@ function MembersTab({ user: currentUser, onBadge }) {
             </div>
 
             <div style={{ marginBottom: 14 }}>
+              <label style={labelSt}>
+                이메일
+                {!editingMember?.email && <span style={{ marginLeft: 6, fontSize: 10, background: '#F59E0B22', color: '#F59E0B', borderRadius: 4, padding: '1px 6px' }}>미등록</span>}
+              </label>
+              <input
+                type="email"
+                value={editForm.email}
+                onChange={e => setEditForm(p => ({...p, email: e.target.value}))}
+                placeholder="example@email.com"
+                style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${editingMember?.email ? C.border : '#F59E0B44'}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
               <label style={labelSt}>새 비밀번호 (변경 시만 입력)</label>
               <input type="password" value={editForm.password} onChange={e => setEditForm(p => ({...p, password: e.target.value}))}
                 placeholder="4자 이상, 입력 안 하면 유지"
@@ -666,7 +680,10 @@ function MembersTab({ user: currentUser, onBadge }) {
                 {m.role === 'admin' ? 'ADMIN' : 'MEMBER'}
               </span>
             </div>
-            <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>가입 {m.created_at?.slice(0,10)} · 훈련 {m.workout_count}회</div>
+            <div style={{ fontSize: 10, color: C.text2, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+              가입 {m.created_at?.slice(0,10)} · 훈련 {m.workout_count}회
+              {!m.email && <span style={{ background: '#F59E0B22', color: '#F59E0B', borderRadius: 4, padding: '0px 5px', fontWeight: 700 }}>이메일 미등록</span>}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button onClick={() => openEdit(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: C.accentBg, color: C.accent }}>수정</button>
