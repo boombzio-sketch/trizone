@@ -235,9 +235,7 @@ export default function ClubListPage() {
                 </div>
               </div>
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: (club.leader_color||C.accent)+'22', border: `1.5px solid ${club.leader_color||C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: club.leader_color||C.accent }}>
-                  {club.leader_name?.charAt(0)}
-                </div>
+                <Avatar nickname={club.leader_name} avatar_color={club.leader_color} avatar_image={club.leader_image} size={22} />
                 <span style={{ fontSize: 11, color: C.text2 }}>클럽장 {club.leader_name}</span>
                 <div style={{ flex: 1 }} />
                 <span style={{ fontSize: 11, color: C.text3 }}>→</span>

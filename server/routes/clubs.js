@@ -6,7 +6,7 @@ const REGIONS = ['서울','부산','대구','인천','광주','대전','울산',
 
 async function getClubFull(id) {
   return await prepare(`
-    SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color,
+    SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color, u.avatar_image as leader_image,
            (SELECT COUNT(*)::int FROM club_memberships cm WHERE cm.club_id=c.id AND cm.status='approved') as member_count
     FROM clubs c LEFT JOIN users u ON c.leader_id=u.id WHERE c.id=?
   `).get(Number(id));
@@ -37,7 +37,7 @@ router.post('/my-leader-app', authMiddleware, async (req, res) => {
 
 router.get('/mine', authMiddleware, async (req, res) => {
   const rows = await prepare(`
-    SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color,
+    SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color, u.avatar_image as leader_image,
            (SELECT COUNT(*)::int FROM club_memberships cm2 WHERE cm2.club_id=c.id AND cm2.status='approved') as member_count
     FROM clubs c
     LEFT JOIN users u ON c.leader_id=u.id
@@ -52,7 +52,7 @@ router.get('/mine', authMiddleware, async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
   const { region } = req.query;
   let q = `
-    SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color,
+    SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color, u.avatar_image as leader_image,
            (SELECT COUNT(*)::int FROM club_memberships cm WHERE cm.club_id=c.id AND cm.status='approved') as member_count
     FROM clubs c LEFT JOIN users u ON c.leader_id=u.id
   `;
