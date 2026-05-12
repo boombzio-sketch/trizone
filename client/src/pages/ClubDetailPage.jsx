@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
 import { C } from '../utils/theme'
+import Avatar from '../components/Avatar.jsx'
 
 const REGIONS = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주']
 const TABS = ['공지사항','훈련','회원','관리']
@@ -235,6 +236,14 @@ export default function ClubDetailPage() {
     try {
       await api.setClubMemberClubRole(id, userId, newRole)
       setMembers(prev => prev.map(m => m.id === userId ? { ...m, club_role: newRole } : m))
+    } catch(e) { alert(e.message) }
+  }
+
+  async function handleKickMember(member) {
+    if (!confirm(`${member.nickname} 회원을 탈퇴시킬까요?`)) return
+    try {
+      await api.setClubMemberStatus(id, member.id, 'rejected')
+      setMembers(prev => prev.filter(m => m.id !== member.id))
     } catch(e) { alert(e.message) }
   }
 
@@ -538,25 +547,44 @@ export default function ClubDetailPage() {
       {tab === '회원' && (
         <div style={{ padding: '12px' }}>
           <div style={{ fontSize: 11, color: C.text2, marginBottom: 8 }}>승인 회원 {members.length}명</div>
-          {members.map(m => (
-            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: m.avatar_color+'22', border: `2px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: m.avatar_color, flexShrink: 0 }}>
-                {m.nickname?.charAt(0)}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: m.id===user?.id ? C.accent : C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {m.nickname}
-                  {club.leader_id === m.id && <span style={{ fontSize: 9, background: C.goldBg, color: C.gold, borderRadius: 4, padding: '1px 5px' }}>👑 클럽장</span>}
-                  {club.leader_id !== m.id && m.club_role === 'sub_leader' && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>⭐ 부클럽장</span>}
-                  {m.id === user?.id && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>나</span>}
+          {members.map(m => {
+            const isLeader = club.leader_id === m.id
+            const isMe     = m.id === user?.id
+            const isSub    = m.club_role === 'sub_leader'
+            return (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
+                <Avatar nickname={m.nickname} avatar_color={m.avatar_color} avatar_image={m.avatar_image} size={36} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: isMe ? C.accent : C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {m.nickname}
+                    {isLeader && <span style={{ fontSize: 9, background: C.goldBg, color: C.gold, borderRadius: 4, padding: '1px 5px' }}>👑 클럽장</span>}
+                    {!isLeader && isSub && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>⭐ 부클럽장</span>}
+                    {isMe && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>나</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.text2, marginTop: 1 }}>
+                    {(m.total_km||0).toFixed(1)}km · 훈련 {m.total_workouts||0}회
+                    {trainingStats[m.id] && ` · 모임 ${trainingStats[m.id].attended||0}회 참석`}
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, color: C.text2, marginTop: 1 }}>
-                {(m.total_km||0).toFixed(1)}km · 훈련 {m.total_workouts||0}회
-                {trainingStats[m.id] && ` · 모임 ${trainingStats[m.id].attended||0}회 참석`}
+                {canManage && !isLeader && !isMe && (
+                  <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                    <button
+                      onClick={() => handleSetSubLeader(m.id, isSub ? 'member' : 'sub_leader')}
+                      style={{ fontSize: 11, fontWeight: 700, padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer',
+                        background: isSub ? C.errorBg : C.accentBg,
+                        color: isSub ? C.error : C.accent }}>
+                      {isSub ? '해제' : '부클럽장'}
+                    </button>
+                    <button
+                      onClick={() => handleKickMember(m)}
+                      style={{ fontSize: 11, fontWeight: 700, padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', background: C.errorBg, color: C.error }}>
+                      탈퇴
+                    </button>
+                  </div>
+                )}
               </div>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
