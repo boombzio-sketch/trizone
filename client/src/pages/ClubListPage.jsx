@@ -11,7 +11,7 @@ export default function ClubListPage() {
   const navigate = useNavigate()
   const [clubs, setClubs] = useState([])
   const [myClubs, setMyClubs] = useState([])
-  const [filterMode, setFilterMode] = useState('my') // 'my' | 'region'
+  const [filterMode, setFilterMode] = useState('my') // 'my' | 'all'
   const [region, setRegion] = useState('전체')
   const [loading, setLoading] = useState(true)
   const [leaderApp, setLeaderApp] = useState(null)
@@ -25,7 +25,7 @@ export default function ClubListPage() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => { loadAll() }, [])
-  useEffect(() => { if (filterMode === 'region') loadClubs() }, [region, filterMode])
+  useEffect(() => { if (filterMode === 'all') loadClubs() }, [region, filterMode])
 
   async function loadAll() {
     try {
@@ -110,29 +110,32 @@ export default function ClubListPage() {
           </div>
         </div>
 
-        {/* 필터 */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => setFilterMode('my')} style={{
-            padding: '7px 16px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0,
-            background: filterMode === 'my' ? C.accent : C.surfaceAlt,
-            color: filterMode === 'my' ? '#fff' : C.text2,
-            fontSize: 12, fontWeight: 700,
-          }}>내 클럽</button>
-          <select
-            value={filterMode === 'region' ? region : ''}
-            onChange={e => { setFilterMode('region'); setRegion(e.target.value) }}
-            onClick={() => { if (filterMode !== 'region') { setFilterMode('region'); loadClubs() } }}
-            style={{
-              flex: 1, padding: '7px 12px', background: filterMode === 'region' ? C.accentBg : C.surfaceAlt,
-              border: `1px solid ${filterMode === 'region' ? C.accentBorder : C.border}`,
-              borderRadius: 10, color: filterMode === 'region' ? C.accent : C.text2,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer', outline: 'none',
-              appearance: 'none', backgroundImage: 'none',
-            }}
-          >
-            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+        {/* 모드 탭 */}
+        <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}`, marginLeft: -16, marginRight: -16, paddingLeft: 16 }}>
+          {['my', 'all'].map(m => (
+            <button key={m} onClick={() => { setFilterMode(m); if (m === 'all') loadClubs() }} style={{
+              padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer',
+              fontSize: 13, fontWeight: 700,
+              color: filterMode === m ? C.accent : C.text2,
+              borderBottom: filterMode === m ? `2px solid ${C.accent}` : '2px solid transparent',
+            }}>{m === 'my' ? '내 클럽' : '전체 클럽'}</button>
+          ))}
         </div>
+
+        {/* 지역 버튼 칩 (전체 클럽 모드일 때) */}
+        {filterMode === 'all' && (
+          <div style={{ display: 'flex', gap: 5, overflowX: 'auto', paddingTop: 10, paddingBottom: 2, marginLeft: -16, marginRight: -16, paddingLeft: 16 }}>
+            {REGIONS.map(r => (
+              <button key={r} onClick={() => setRegion(r)} style={{
+                padding: '3px 10px', border: `1px solid ${region === r ? C.accent + '60' : C.border}`,
+                borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                background: region === r ? C.accentBg : C.surfaceAlt,
+                color: region === r ? C.accent : C.text2,
+                fontSize: 12, fontWeight: 600,
+              }}>{r}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 클럽장 신청 폼 */}
@@ -207,7 +210,7 @@ export default function ClubListPage() {
           <div style={{ fontSize: 14, fontWeight: 600 }}>가입된 클럽이 없습니다</div>
           <div style={{ fontSize: 12, color: C.text3, marginTop: 6 }}>지역을 선택해 클럽을 찾아보세요</div>
         </div>
-      ) : filterMode === 'region' && clubs.length === 0 ? (
+      ) : filterMode === 'all' && clubs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
           <div style={{ fontSize: 14, fontWeight: 600 }}>{region === '전체' ? '등록된 클럽이 없습니다' : `${region}에 등록된 클럽이 없습니다`}</div>
