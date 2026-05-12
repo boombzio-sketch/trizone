@@ -49,8 +49,6 @@ async function initDb() {
       avatar_image TEXT DEFAULT NULL,
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS can_approve BOOLEAN DEFAULT FALSE;
     CREATE TABLE IF NOT EXISTS workout_logs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,
@@ -200,6 +198,9 @@ async function initDb() {
 
   // Add can_approve column if not exists
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS can_approve BOOLEAN DEFAULT FALSE`);
+  // Add email column if not exists (UNIQUE only for non-NULL values)
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users(email) WHERE email IS NOT NULL`);
 
   // Add club_role column to club_memberships (member | sub_leader)
   await pool.query(`ALTER TABLE club_memberships ADD COLUMN IF NOT EXISTS club_role TEXT DEFAULT 'member'`);
