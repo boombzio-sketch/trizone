@@ -617,32 +617,6 @@ export default function ClubDetailPage() {
             </div>
           ))}
 
-          {/* 부클럽장 관리 */}
-          <div style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>⭐ 부클럽장 관리</div>
-            <div style={{ fontSize: 11, color: C.text2, marginBottom: 10 }}>부클럽장은 훈련을 등록·수정·삭제하고 출석을 체크할 수 있습니다.</div>
-            {members.filter(m => m.id !== club.leader_id).length === 0 ? (
-              <div style={{ fontSize: 12, color: C.text2 }}>관리할 회원이 없습니다.</div>
-            ) : members.filter(m => m.id !== club.leader_id).map(m => (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: m.avatar_color+'22', border: `1.5px solid ${m.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: m.avatar_color, flexShrink: 0 }}>
-                  {m.nickname?.charAt(0)}
-                </div>
-                <div style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 600 }}>{m.nickname}</div>
-                {m.club_role === 'sub_leader' && (
-                  <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>부클럽장</span>
-                )}
-                <button
-                  onClick={() => handleSetSubLeader(m.id, m.club_role === 'sub_leader' ? 'member' : 'sub_leader')}
-                  style={{ fontSize: 11, fontWeight: 700, padding: '5px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', flexShrink: 0,
-                    background: m.club_role === 'sub_leader' ? C.errorBg : C.accentBg,
-                    color: m.club_role === 'sub_leader' ? C.error : C.accent }}>
-                  {m.club_role === 'sub_leader' ? '권한 해제' : '부클럽장 지정'}
-                </button>
-              </div>
-            ))}
-          </div>
-
           {/* 클럽장 양도 */}
           <div style={{ background: C.surface, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showTransfer ? 12 : 0 }}>
