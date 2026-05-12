@@ -49,6 +49,8 @@ async function initDb() {
       avatar_image TEXT DEFAULT NULL,
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS can_approve BOOLEAN DEFAULT FALSE;
     CREATE TABLE IF NOT EXISTS workout_logs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL,

@@ -5,6 +5,7 @@ import { C } from '../utils/theme'
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -16,8 +17,8 @@ export default function LoginPage() {
     e.preventDefault()
     setError(''); setLoading(true)
     try {
-      if (mode === 'login') await login(nickname, password)
-      else await register(nickname, password)
+      if (mode === 'login') await login(email, password)
+      else await register(email, nickname, password)
       navigate('/')
     } catch (err) {
       setError(err.message)
@@ -49,7 +50,7 @@ export default function LoginPage() {
         {/* 탭 */}
         <div style={{ display: 'flex', background: C.surfaceAlt, borderRadius: 14, padding: 4, marginBottom: 24, border: `1px solid ${C.border}` }}>
           {['login','register'].map(m => (
-            <button key={m} onClick={() => setMode(m)} style={{
+            <button key={m} onClick={() => { setMode(m); setError('') }} style={{
               flex: 1, padding: '10px', border: 'none', borderRadius: 10,
               background: mode === m ? C.surfaceHigh : 'transparent',
               color: mode === m ? C.accent : C.text2,
@@ -63,12 +64,32 @@ export default function LoginPage() {
         {/* 폼 */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 14 }}>
-            <label style={labelSt}>닉네임</label>
-            <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder="예: 아이언맨김씨" style={inputSt} />
+            <label style={labelSt}>이메일</label>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="example@email.com" style={inputSt}
+              autoComplete="email"
+            />
           </div>
+
+          {mode === 'register' && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelSt}>닉네임</label>
+              <input
+                value={nickname} onChange={e => setNickname(e.target.value)}
+                placeholder="예: 아이언맨김씨" style={inputSt}
+                autoComplete="username"
+              />
+            </div>
+          )}
+
           <div style={{ marginBottom: 22 }}>
             <label style={labelSt}>비밀번호</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="4자 이상" style={inputSt} />
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="4자 이상" style={inputSt}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            />
           </div>
 
           {error && (
@@ -87,7 +108,6 @@ export default function LoginPage() {
             {loading ? '처리 중...' : (mode === 'login' ? '로그인' : '회원가입')}
           </button>
         </form>
-
       </div>
     </div>
   )
