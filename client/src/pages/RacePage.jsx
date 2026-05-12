@@ -329,6 +329,9 @@ function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
     ? `${r.reg_start} ~ ${r.reg_end}`
     : r.reg_start ? `${r.reg_start}부터`
     : r.reg_end ? `~${r.reg_end}` : null
+  const today = new Date().toISOString().slice(0, 10)
+  const dDay = Math.ceil((new Date(r.date) - new Date(today)) / 86400000)
+  const dDayStr = dDay === 0 ? 'D-Day' : dDay > 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`
 
   return (
     <div style={{
@@ -348,6 +351,12 @@ function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, lineHeight: 1.3 }}>{r.name}</div>
             <div style={{ fontSize: 10, color: dist.color, marginTop: 2 }}>{dist.sub}</div>
           </div>
+          {!isPast && (
+            <span style={{
+              fontSize: 12, fontWeight: 800, flexShrink: 0,
+              color: dDay <= 30 ? '#EF4444' : C.text2,
+            }}>{dDayStr}</span>
+          )}
           {isAdmin && (
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               <button onClick={() => onEdit(r)} style={{ background: C.accentBg, border: 'none', borderRadius: 8, color: C.accent, cursor: 'pointer', fontSize: 11, fontWeight: 700, padding: '4px 10px' }}>수정</button>
