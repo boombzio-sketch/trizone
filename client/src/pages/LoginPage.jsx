@@ -64,10 +64,12 @@ export default function LoginPage() {
         {/* 폼 */}
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 14 }}>
-            <label style={labelSt}>이메일</label>
+            <label style={labelSt}>이메일{mode === 'login' ? ' 또는 닉네임' : ''}</label>
             <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="example@email.com" style={inputSt}
+              type={mode === 'register' ? 'email' : 'text'}
+              value={email} onChange={e => setEmail(e.target.value)}
+              placeholder={mode === 'register' ? 'example@email.com' : '이메일 또는 닉네임'}
+              style={inputSt}
               autoComplete="email"
             />
           </div>
