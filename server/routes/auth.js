@@ -49,7 +49,10 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: '이메일과 비밀번호를 입력하세요.' });
 
   // 이메일로 조회, 없으면 닉네임으로 조회 (기존 계정 하위 호환)
-  let user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
+  let user = null;
+  try {
+    user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
+  } catch {}
   if (!user) user = await db.prepare('SELECT * FROM users WHERE nickname = ?').get(email);
   if (!user) return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' });
 
