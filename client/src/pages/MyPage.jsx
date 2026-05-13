@@ -22,13 +22,13 @@ const AVATAR_COLORS = ['#4DB8FF','#00DC82','#FFA000','#CC64FF','#FF5080','#00BFF
 export default function MyPage() {
   const { user, logout, refreshUser } = useAuth()
   const [editOpen, setEditOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ password: '', avatar_color: '', avatar_image: '' })
+  const [editForm, setEditForm] = useState({ nickname: '', email: '', password: '', avatar_color: '', avatar_image: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
   const [cropUrl, setCropUrl] = useState(null)
 
   function openEdit() {
-    setEditForm({ password: '', avatar_color: user?.avatar_color || '#4DB8FF', avatar_image: user?.avatar_image || '' })
+    setEditForm({ nickname: user?.nickname || '', email: user?.email || '', password: '', avatar_color: user?.avatar_color || '#4DB8FF', avatar_image: user?.avatar_image || '' })
     setEditError('')
     setEditOpen(true)
   }
@@ -105,13 +105,21 @@ export default function MyPage() {
           <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>프로필 수정</div>
 
+            {/* 닉네임 */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.text2, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>닉네임</div>
+              <input value={editForm.nickname} onChange={e => setEditForm(p => ({ ...p, nickname: e.target.value }))}
+                placeholder="닉네임" autoComplete="off"
+                style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+
             {/* 이메일 */}
-            {user?.email && (
-              <div style={{ marginBottom: 16, padding: '10px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.text2, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>이메일</div>
-                <div style={{ fontSize: 13, color: C.text }}>{user.email}</div>
-              </div>
-            )}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.text2, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>이메일</div>
+              <input type="email" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))}
+                placeholder="example@email.com" autoComplete="email"
+                style={{ width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
 
             {/* 아바타 미리보기 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>

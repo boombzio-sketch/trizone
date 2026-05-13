@@ -17,7 +17,7 @@ export default function MyScreen() {
   const [profile, setProfile] = useState(null)
   const [messages, setMessages] = useState([])
   const [editOpen, setEditOpen] = useState(false)
-  const [editForm, setEditForm] = useState({ password: '', avatar_color: '' })
+  const [editForm, setEditForm] = useState({ nickname: '', email: '', password: '', avatar_color: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
   const [composeOpen, setComposeOpen] = useState(false)
@@ -52,7 +52,7 @@ export default function MyScreen() {
   }
 
   function openEdit() {
-    setEditForm({ password: '', avatar_color: user?.avatar_color || '#4DB8FF' })
+    setEditForm({ nickname: user?.nickname || '', email: user?.email || '', password: '', avatar_color: user?.avatar_color || '#4DB8FF' })
     setEditError('')
     setEditOpen(true)
   }
@@ -191,12 +191,18 @@ export default function MyScreen() {
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>프로필 수정</Text>
-            {user?.email ? (
-              <View style={{ backgroundColor: C.surfaceAlt, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10, marginBottom: 14 }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: C.text2, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.6 }}>이메일</Text>
-                <Text style={{ fontSize: 13, color: C.text }}>{user.email}</Text>
-              </View>
-            ) : null}
+            <Text style={s.fieldLabel}>닉네임</Text>
+            <TextInput style={[s.modalInput, { marginBottom: 12 }]}
+              value={editForm.nickname}
+              onChangeText={v => setEditForm(p => ({ ...p, nickname: v }))}
+              placeholder="닉네임" placeholderTextColor={C.text2}
+              autoCapitalize="none" autoCorrect={false} />
+            <Text style={s.fieldLabel}>이메일</Text>
+            <TextInput style={[s.modalInput, { marginBottom: 12 }]}
+              value={editForm.email}
+              onChangeText={v => setEditForm(p => ({ ...p, email: v }))}
+              placeholder="example@email.com" placeholderTextColor={C.text2}
+              keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
             <Text style={s.fieldLabel}>아바타 색상</Text>
             <View style={s.colorGrid}>
               {AVATAR_COLORS.map(color => (
