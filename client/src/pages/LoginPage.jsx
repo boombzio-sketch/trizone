@@ -13,11 +13,15 @@ export default function LoginPage() {
   const [resetPassword, setResetPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetStep, setResetStep] = useState('request') // 'request' | 'confirm'
   const [resetDone, setResetDone] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
 
-  function switchMode(m) { setMode(m); setError(''); setResetDone(false) }
+  function switchMode(m) {
+    setMode(m); setError(''); setResetDone(false)
+    setResetStep('request'); setResetCode(''); setResetPassword('')
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -26,6 +30,19 @@ export default function LoginPage() {
       if (mode === 'login') await login(email, password)
       else await register(email, nickname, password)
       navigate('/')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleRequestReset(e) {
+    e.preventDefault()
+    setError(''); setLoading(true)
+    try {
+      await api.requestReset(email.trim())
+      setResetStep('confirm')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -79,17 +96,29 @@ export default function LoginPage() {
                   로그인하러 가기
                 </button>
               </>
-            ) : (
-              <form onSubmit={handleReset}>
-                <div style={{ marginBottom: 14 }}>
+            ) : resetStep === 'request' ? (
+              <form onSubmit={handleRequestReset}>
+                <div style={{ marginBottom: 22 }}>
                   <label style={labelSt}>이메일 또는 닉네임</label>
                   <input value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="가입 시 사용한 이메일" style={inputSt} autoComplete="email" />
                 </div>
+                {error && (
+                  <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: C.error }}>{error}</div>
+                )}
+                <button type="submit" disabled={loading} style={{ width: '100%', padding: '15px', background: loading ? C.surfaceHigh : C.accent, color: loading ? C.text2 : '#fff', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer' }}>
+                  {loading ? '전송 중...' : '코드 전송'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleReset}>
+                <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 10, padding: '12px 14px', marginBottom: 20, fontSize: 13, color: '#16A34A' }}>
+                  ✅ <strong>{email}</strong> 으로 코드를 전송했습니다.
+                </div>
                 <div style={{ marginBottom: 14 }}>
-                  <label style={labelSt}>관리자 발급 코드</label>
+                  <label style={labelSt}>인증 코드</label>
                   <input value={resetCode} onChange={e => setResetCode(e.target.value)}
-                    placeholder="6자리 숫자 코드" style={inputSt} inputMode="numeric" />
+                    placeholder="이메일에서 받은 6자리 코드" style={inputSt} inputMode="numeric" />
                 </div>
                 <div style={{ marginBottom: 22 }}>
                   <label style={labelSt}>새 비밀번호</label>
@@ -102,11 +131,16 @@ export default function LoginPage() {
                 <button type="submit" disabled={loading} style={{ width: '100%', padding: '15px', background: loading ? C.surfaceHigh : C.accent, color: loading ? C.text2 : '#fff', border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer' }}>
                   {loading ? '처리 중...' : '비밀번호 재설정'}
                 </button>
+                <button type="button" onClick={() => { setResetStep('request'); setError('') }} style={{ display: 'block', margin: '14px auto 0', background: 'none', border: 'none', color: C.text2, fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
+                  ← 이메일 다시 입력
+                </button>
               </form>
             )}
-            <button onClick={() => switchMode('login')} style={{ display: 'block', margin: '18px auto 0', background: 'none', border: 'none', color: C.text2, fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
-              ← 로그인으로 돌아가기
-            </button>
+            {!resetDone && (
+              <button onClick={() => switchMode('login')} style={{ display: 'block', margin: '18px auto 0', background: 'none', border: 'none', color: C.text2, fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>
+                ← 로그인으로 돌아가기
+              </button>
+            )}
           </div>
         ) : (
           /* ── 로그인 / 회원가입 폼 ── */
