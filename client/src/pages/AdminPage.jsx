@@ -556,8 +556,12 @@ function MembersTab({ user: currentUser, onBadge }) {
   async function handleIssueResetToken(member) {
     if (!confirm(`${member.nickname}의 비밀번호 재설정 코드를 발급할까요?\n(30분간 유효)`)) return
     try {
-      const { code } = await api.issueResetToken(member.id)
-      alert(`재설정 코드: ${code}\n\n${member.nickname}에게 전달하세요.\n유효 시간: 30분`)
+      const result = await api.issueResetToken(member.id)
+      if (result.sent) {
+        alert(`✅ ${result.email}\n으로 재설정 코드를 전송했습니다.`)
+      } else {
+        alert(`재설정 코드: ${result.code}\n\n${member.nickname}에게 전달하세요.\n유효 시간: 30분`)
+      }
     } catch (e) { alert(e.message) }
   }
 

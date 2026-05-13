@@ -94,13 +94,50 @@ router.delete('/members/:id', ...adminOnly, async (req, res) => {
 // 비밀번호 재설정 코드 발급
 router.post('/members/:id/reset-token', ...adminOnly, async (req, res) => {
   const uid = Number(req.params.id);
-  const user = await prepare('SELECT id FROM users WHERE id = ?').get(uid);
+  const user = await prepare('SELECT id, email, nickname FROM users WHERE id = ?').get(uid);
   if (!user) return res.status(404).json({ error: '존재하지 않는 회원입니다.' });
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const expires = new Date(Date.now() + 30 * 60 * 1000).toISOString();
   await prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(code, expires, uid);
-  res.json({ code });
+
+  // 이메일이 등록된 경우 자동 발송
+  if (user.email && process.env.RESEND_API_KEY) {
+    try {
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: process.env.FROM_EMAIL || 'TRIZONE <noreply@trizone.co.kr>',
+        to: user.email,
+        subject: '[TRIZONE] 비밀번호 재설정 코드',
+        html: `
+          <div style="font-family:sans-serif;max-width:400px;margin:0 auto;padding:32px 24px">
+            <div style="font-size:24px;font-weight:900;letter-spacing:2px;margin-bottom:8px">
+              TRI<span style="color:#f97316">ZONE</span>
+            </div>
+            <h2 style="font-size:18px;margin:24px 0 8px">비밀번호 재설정 코드</h2>
+            <p style="color:#64748b;font-size:14px;margin-bottom:24px">
+              안녕하세요, ${user.nickname}님.<br>
+              아래 코드를 로그인 화면의 <strong>비밀번호 찾기</strong>에 입력하세요.
+            </p>
+            <div style="background:#f1f5f9;border-radius:12px;padding:20px;text-align:center;font-size:32px;font-weight:900;letter-spacing:8px;color:#1e293b;margin-bottom:16px">
+              ${code}
+            </div>
+            <p style="color:#94a3b8;font-size:12px;text-align:center">
+              이 코드는 <strong>30분</strong>간 유효하며 한 번만 사용할 수 있습니다.
+            </p>
+          </div>
+        `,
+      });
+      return res.json({ sent: true, email: user.email });
+    } catch (e) {
+      console.error('[resend error]', e.message);
+      // 발송 실패 시 코드를 반환해 관리자가 직접 전달할 수 있도록
+      return res.json({ sent: false, code });
+    }
+  }
+
+  res.json({ sent: false, code });
 });
 
 // 클럽장 신청 목록
