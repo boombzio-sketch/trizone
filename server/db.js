@@ -201,6 +201,9 @@ async function initDb() {
   // Add email column if not exists (UNIQUE only for non-NULL values)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users(email) WHERE email IS NOT NULL`);
+  // Add password reset columns
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT DEFAULT NULL`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ DEFAULT NULL`);
 
   // Add club_role column to club_memberships (member | sub_leader)
   await pool.query(`ALTER TABLE club_memberships ADD COLUMN IF NOT EXISTS club_role TEXT DEFAULT 'member'`);

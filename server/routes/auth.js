@@ -67,6 +67,31 @@ router.post('/login', async (req, res) => {
   res.json({ token, user: payload });
 });
 
+// 비밀번호 재설정 (관리자 발급 코드 사용)
+router.post('/reset-password', async (req, res) => {
+  const { email, code, password } = req.body;
+  if (!email?.trim() || !code?.trim() || !password)
+    return res.status(400).json({ error: '모든 항목을 입력하세요.' });
+  if (password.length < 4)
+    return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
+
+  let user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim().toLowerCase());
+  if (!user) user = await db.prepare('SELECT * FROM users WHERE nickname = ?').get(email.trim());
+  if (!user) return res.status(400).json({ error: '이메일 또는 닉네임을 확인하세요.' });
+
+  if (!user.reset_token || user.reset_token !== code.trim())
+    return res.status(400).json({ error: '코드가 올바르지 않습니다.' });
+
+  if (!user.reset_token_expires || new Date(user.reset_token_expires) < new Date())
+    return res.status(400).json({ error: '만료된 코드입니다. 관리자에게 새 코드를 요청하세요.' });
+
+  const hash = bcrypt.hashSync(password, 10);
+  await db.prepare('UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?')
+    .run(hash, user.id);
+
+  res.json({ ok: true });
+});
+
 // 내 정보
 router.get('/me', authMiddleware, async (req, res) => {
   const user = await db.prepare(

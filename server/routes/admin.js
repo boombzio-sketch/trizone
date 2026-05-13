@@ -91,6 +91,18 @@ router.delete('/members/:id', ...adminOnly, async (req, res) => {
   res.json({ ok: true });
 });
 
+// 비밀번호 재설정 코드 발급
+router.post('/members/:id/reset-token', ...adminOnly, async (req, res) => {
+  const uid = Number(req.params.id);
+  const user = await prepare('SELECT id FROM users WHERE id = ?').get(uid);
+  if (!user) return res.status(404).json({ error: '존재하지 않는 회원입니다.' });
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const expires = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  await prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(code, expires, uid);
+  res.json({ code });
+});
+
 // 클럽장 신청 목록
 router.get('/club-leader-apps', ...adminOnly, async (req, res) => {
   const rows = await prepare(`

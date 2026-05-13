@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3001;
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'https://trizone-client.onrender.com',
+  'https://www.trizone.co.kr',
   ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
 ];
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
