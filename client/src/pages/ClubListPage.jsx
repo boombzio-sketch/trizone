@@ -59,7 +59,6 @@ export default function ClubListPage() {
     setSubmitting(true); setError('')
     try {
       const club = await api.createClub(createForm)
-      setMyClub(club)
       setShowCreateForm(false)
       setClubs(prev => [...prev, club].sort((a,b) => a.region.localeCompare(b.region) || a.name.localeCompare(b.name)))
       navigate(`/clubs/${club.id}`)
