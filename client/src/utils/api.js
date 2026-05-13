@@ -26,6 +26,7 @@ export const api = {
   login: (body) => request('/auth/login', { method: 'POST', body }),
   me: () => request('/auth/me'),
   updateProfile: (body) => request('/users/me', { method: 'PUT', body }),
+  resetPassword: (body) => request('/auth/reset-password', { method: 'POST', body }),
 
   // 훈련 기록
   getWorkouts: (params = '') => request(`/workouts?${params}`),
@@ -93,6 +94,7 @@ export const api = {
   setClubLeaderAppStatus: (userId, status) => request(`/admin/club-leader-apps/${userId}/status`, { method: 'PUT', body: { status } }),
 
   // 관리자
+  issueResetToken: (id) => request(`/admin/members/${id}/reset-token`, { method: 'POST' }),
   getAdminMembers: () => request('/admin/members'),
   setAdminMemberRole: (id, role) => request(`/admin/members/${id}/role`, { method: 'PUT', body: { role } }),
   setApprovePermission: (id, can_approve) => request(`/admin/members/${id}/can-approve`, { method: 'PUT', body: { can_approve } }),
