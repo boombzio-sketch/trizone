@@ -29,15 +29,29 @@ export default function RankingPage() {
   const [customTo, setCustomTo] = useState(today)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [myClubs, setMyClubs] = useState([])
+  const [selectedClubId, setSelectedClubId] = useState(null) // null = 전체 합산
+
+  useEffect(() => {
+    api.getMyClubs().then(clubs => {
+      setMyClubs(clubs)
+      // 클럽 1개면 자동 선택
+      if (clubs.length === 1) setSelectedClubId(clubs[0].id)
+    }).catch(() => {})
+  }, [])
+
+  // scope가 club이 아니면 클럽 선택 초기화
+  useEffect(() => { if (scope !== 'club') setSelectedClubId(null) }, [scope])
 
   useEffect(() => {
     if (period === 'custom' && (!customFrom || !customTo)) return
     setLoading(true)
+    const clubId = scope === 'club' ? selectedClubId : null
     const call = period === 'custom'
-      ? api.getRankingCustom(customFrom, customTo, sport, scope)
-      : api.getRanking(period, sport, scope)
+      ? api.getRankingCustom(customFrom, customTo, sport, scope, clubId)
+      : api.getRanking(period, sport, scope, clubId)
     call.then(r => setData(r)).finally(() => setLoading(false))
-  }, [period, sport, scope, customFrom, customTo])
+  }, [period, sport, scope, customFrom, customTo, selectedClubId])
 
   const rankings = data?.rankings || []
   const myRank = rankings.findIndex(r => r.user_id === user?.id) + 1
@@ -98,6 +112,28 @@ export default function RankingPage() {
           }}>{s.label}</button>
         ))}
       </div>
+
+      {/* 클럽 선택 칩 (클럽 scope + 2개 이상) */}
+      {scope === 'club' && myClubs.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, padding: '8px 14px', background: C.surface, borderBottom: `1px solid ${C.border}`, overflowX: 'auto' }}>
+          <button onClick={() => setSelectedClubId(null)} style={{
+            padding: '5px 12px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer',
+            background: selectedClubId === null ? C.accentBg : C.surfaceAlt,
+            color: selectedClubId === null ? C.accent : C.text2,
+            fontSize: 11, fontWeight: 700,
+            outline: selectedClubId === null ? `1px solid ${C.accentBorder}` : 'none',
+          }}>전체</button>
+          {myClubs.map(c => (
+            <button key={c.id} onClick={() => setSelectedClubId(c.id)} style={{
+              padding: '5px 12px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer',
+              background: selectedClubId === c.id ? C.accentBg : C.surfaceAlt,
+              color: selectedClubId === c.id ? C.accent : C.text2,
+              fontSize: 11, fontWeight: 700,
+              outline: selectedClubId === c.id ? `1px solid ${C.accentBorder}` : 'none',
+            }}>{c.name}</button>
+          ))}
+        </div>
+      )}
 
       {/* 기간 필터 */}
       <div style={{ background: C.bg, padding: '12px 14px 0' }}>

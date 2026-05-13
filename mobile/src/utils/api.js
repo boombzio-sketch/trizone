@@ -46,10 +46,10 @@ export const api = {
   myStats:      ()            => request('/workouts/stats/me'),
 
   // 랭킹
-  getRanking: (period, sport, scope = 'club') =>
-    request(`/ranking?period=${period}&sport=${sport}&scope=${scope}`),
-  getRankingCustom: (from, to, sport, scope = 'club') =>
-    request(`/ranking?period=custom&from=${from}&to=${to}&sport=${sport}&scope=${scope}`),
+  getRanking: (period, sport, scope = 'club', club_id) =>
+    request(`/ranking?period=${period}&sport=${sport}&scope=${scope}${club_id ? `&club_id=${club_id}` : ''}`),
+  getRankingCustom: (from, to, sport, scope = 'club', club_id) =>
+    request(`/ranking?period=custom&from=${from}&to=${to}&sport=${sport}&scope=${scope}${club_id ? `&club_id=${club_id}` : ''}`),
 
   // 클럽
   getClubs:        (region) => request(`/clubs${region && region !== '전체' ? `?region=${encodeURIComponent(region)}` : ''}`),

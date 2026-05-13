@@ -54,8 +54,21 @@ router.get('/', authMiddleware, async (req, res) => {
 
   let allowedIds = null;
   if (scope === 'club') {
-    const rows = await prepare("SELECT user_id FROM club_memberships WHERE status='approved'").all();
-    allowedIds = new Set(rows.map(r => r.user_id));
+    const clubId = req.query.club_id ? Number(req.query.club_id) : null;
+    if (clubId) {
+      const rows = await prepare("SELECT user_id FROM club_memberships WHERE club_id=? AND status='approved'").all(clubId);
+      allowedIds = new Set(rows.map(r => r.user_id));
+    } else {
+      const userClubs = await prepare("SELECT club_id FROM club_memberships WHERE user_id=? AND status='approved'").all(uid);
+      const clubIds = userClubs.map(c => c.club_id);
+      if (clubIds.length > 0) {
+        const placeholders = clubIds.map(() => '?').join(',');
+        const rows = await prepare(`SELECT DISTINCT user_id FROM club_memberships WHERE club_id IN (${placeholders}) AND status='approved'`).all(...clubIds);
+        allowedIds = new Set(rows.map(r => r.user_id));
+      } else {
+        allowedIds = new Set([uid]);
+      }
+    }
   } else if (scope === 'following') {
     const rows = await prepare('SELECT following_id FROM follows WHERE follower_id=?').all(uid);
     allowedIds = new Set([uid, ...rows.map(r => r.following_id)]);
