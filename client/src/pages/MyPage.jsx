@@ -105,6 +105,14 @@ export default function MyPage() {
           <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>프로필 수정</div>
 
+            {/* 이메일 */}
+            {user?.email && (
+              <div style={{ marginBottom: 16, padding: '10px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.text2, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>이메일</div>
+                <div style={{ fontSize: 13, color: C.text }}>{user.email}</div>
+              </div>
+            )}
+
             {/* 아바타 미리보기 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
               <Avatar nickname={user?.nickname} avatar_color={editForm.avatar_color} avatar_image={editForm.avatar_image} size={56} />
