@@ -13,7 +13,7 @@ router.get('/members', ...adminOnly, async (req, res) => {
     FROM users u
     LEFT JOIN workout_logs w ON w.user_id = u.id
     GROUP BY u.id
-    ORDER BY u.created_at ASC
+    ORDER BY u.created_at DESC
   `).all();
   res.json(members);
 });
