@@ -80,23 +80,29 @@ router.get('/feed', authMiddleware, async (req, res) => {
   res.json(rows)
 })
 
-// 클럽 피드
+// 클럽 피드 (어드민: 전체 승인 기록, 일반: 공유 클럽 회원 기록)
 router.get('/feed/club', authMiddleware, async (req, res) => {
   const { offset = 0 } = req.query
-  const rows = await db.prepare(`${FEED_COLS}
-    WHERE (
-      w.user_id = ?
-      OR (COALESCE(w.visibility,'public') IN ('public','club','club_followers')
-          AND w.status = 'approved'
-          AND EXISTS (
-            SELECT 1 FROM club_memberships cm1
-            JOIN club_memberships cm2 ON cm1.club_id = cm2.club_id
-            WHERE cm1.user_id = w.user_id AND cm1.status='approved'
-              AND cm2.user_id = ? AND cm2.status='approved'
-          ))
-    )
-    ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-  `).all(req.user.id, req.user.id, req.user.id, Number(offset))
+  const isAdmin = req.user.role === 'admin'
+  const rows = isAdmin
+    ? await db.prepare(`${FEED_COLS}
+        WHERE w.status = 'approved'
+        ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+      `).all(req.user.id, Number(offset))
+    : await db.prepare(`${FEED_COLS}
+        WHERE (
+          w.user_id = ?
+          OR (COALESCE(w.visibility,'public') IN ('public','club','club_followers')
+              AND w.status = 'approved'
+              AND EXISTS (
+                SELECT 1 FROM club_memberships cm1
+                JOIN club_memberships cm2 ON cm1.club_id = cm2.club_id
+                WHERE cm1.user_id = w.user_id AND cm1.status='approved'
+                  AND cm2.user_id = ? AND cm2.status='approved'
+              ))
+        )
+        ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+      `).all(req.user.id, req.user.id, req.user.id, Number(offset))
   res.json(rows)
 })
 
@@ -110,13 +116,19 @@ router.get('/feed/mine', authMiddleware, async (req, res) => {
   res.json(rows)
 })
 
-// 전체 피드
+// 전체 피드 (어드민: 가시성 무관 전체, 일반: public만)
 router.get('/feed/all', authMiddleware, async (req, res) => {
   const { offset = 0 } = req.query
-  const rows = await db.prepare(`${FEED_COLS}
-    WHERE COALESCE(w.visibility,'public') = 'public' AND w.status = 'approved'
-    ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-  `).all(req.user.id, Number(offset))
+  const isAdmin = req.user.role === 'admin'
+  const rows = isAdmin
+    ? await db.prepare(`${FEED_COLS}
+        WHERE w.status = 'approved'
+        ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+      `).all(req.user.id, Number(offset))
+    : await db.prepare(`${FEED_COLS}
+        WHERE COALESCE(w.visibility,'public') = 'public' AND w.status = 'approved'
+        ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+      `).all(req.user.id, Number(offset))
   res.json(rows)
 })
 
