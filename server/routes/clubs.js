@@ -97,12 +97,13 @@ router.put('/:id', authMiddleware, async (req, res) => {
   res.json(await getClubFull(req.params.id));
 });
 
-// 클럽 삭제 (admin only)
+// 클럽 삭제 (클럽장 또는 관리자)
 router.delete('/:id', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: '관리자만 클럽을 삭제할 수 있습니다.' });
   const cid = Number(req.params.id);
-  const club = await prepare('SELECT id FROM clubs WHERE id=?').get(cid);
-  if (!club) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
+  const target = await prepare('SELECT id, leader_id FROM clubs WHERE id=?').get(cid);
+  if (!target) return res.status(404).json({ error: '클럽을 찾을 수 없습니다.' });
+  if (req.user.role !== 'admin' && target.leader_id !== req.user.id)
+    return res.status(403).json({ error: '클럽장 또는 관리자만 삭제할 수 있습니다.' });
 
   // 관련 훈련 참가자 먼저 삭제
   const trainings = await prepare('SELECT id FROM club_trainings WHERE club_id=?').all(cid);

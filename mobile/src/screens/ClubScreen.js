@@ -800,6 +800,19 @@ function ManageTab({ club, setClub, clubId, members, pending, setPending, onBack
   const [newLeaderId, setNewLeaderId]   = useState('')
   const [transferring, setTransferring] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
+  const [deleting, setDeleting]         = useState(false)
+
+  async function deleteClub() {
+    Alert.alert('클럽 삭제', `${club?.name} 클럽을 삭제합니다.\n모든 데이터가 삭제되며 복구할 수 없습니다.`, [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => {
+        setDeleting(true)
+        try { await api.deleteClub(clubId); onBack() }
+        catch (e) { Alert.alert('오류', e.message) }
+        finally { setDeleting(false) }
+      }},
+    ])
+  }
 
   const approvedMembers = members.filter(m => {
     const mid = m.user_id || m.id
@@ -904,6 +917,22 @@ function ManageTab({ club, setClub, clubId, members, pending, setPending, onBack
             </TouchableOpacity>
           </>
         )}
+      </View>
+
+      <View style={s.divider} />
+
+      {/* 클럽 삭제 */}
+      <View style={[s.formBox, { marginTop:20, borderColor:C.errorBorder, backgroundColor:C.errorBg }]}>
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
+          <View>
+            <Text style={[s.memberNick, { color:C.error }]}>🗑️ 클럽 삭제</Text>
+            <Text style={[s.memberSub, { marginTop:3 }]}>삭제 시 모든 데이터가 영구 제거됩니다.</Text>
+          </View>
+          <TouchableOpacity onPress={deleteClub} disabled={deleting}
+            style={[s.smBtn, { backgroundColor:C.error }]}>
+            <Text style={[s.smBtnText, { color:'#fff' }]}>{deleting ? '삭제 중...' : '삭제'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={{ height:40 }} />

@@ -647,8 +647,8 @@ export default function ClubDetailPage() {
             )}
           </div>
 
-          {/* 클럽 삭제 (관리자 전용) */}
-          {isAdmin && (
+          {/* 클럽 삭제 */}
+          {canManage && (
             <div style={{ background: C.errorBg, borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.errorBorder}` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
