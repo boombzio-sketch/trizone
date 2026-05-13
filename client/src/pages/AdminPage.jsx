@@ -553,18 +553,6 @@ function MembersTab({ user: currentUser, onBadge }) {
     } catch (e) { alert(e.message) }
   }
 
-  async function handleIssueResetToken(member) {
-    if (!confirm(`${member.nickname}의 비밀번호 재설정 코드를 발급할까요?\n(30분간 유효)`)) return
-    try {
-      const result = await api.issueResetToken(member.id)
-      if (result.sent) {
-        alert(`✅ ${result.email}\n으로 재설정 코드를 전송했습니다.`)
-      } else {
-        alert(`재설정 코드: ${result.code}\n\n${member.nickname}에게 전달하세요.\n유효 시간: 30분`)
-      }
-    } catch (e) { alert(e.message) }
-  }
-
   async function handleDelete(member) {
     if (!confirm(`${member.nickname} 회원을 삭제할까요?\n모든 데이터가 삭제됩니다.`)) return
     try {
@@ -700,7 +688,6 @@ function MembersTab({ user: currentUser, onBadge }) {
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button onClick={() => openEdit(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: C.accentBg, color: C.accent }}>수정</button>
             {m.id !== currentUser?.id && <>
-              <button onClick={() => handleIssueResetToken(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: '#FEF3C7', color: '#F59E0B' }}>코드발급</button>
               <button onClick={() => handleApproveToggle(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: m.can_approve ? 'rgba(0,220,130,0.12)' : C.surfaceAlt, color: m.can_approve ? '#00DC82' : C.text2 }}>
                 {m.can_approve ? '승인권한✓' : '승인권한'}
               </button>
