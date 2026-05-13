@@ -477,14 +477,8 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
               </button>
               {f.user_id === myId && <span style={{ fontSize: 9, background: C.accentBg, color: C.accent, borderRadius: 4, padding: '1px 5px' }}>나</span>}
             </div>
-            <div style={{ fontSize: 10, color: C.text3, marginTop: 1, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 10, color: C.text3, marginTop: 1 }}>
               {f.logged_at}
-              <span style={{ color: vis.color }}>{vis.icon} {vis.label}</span>
-              {f.club_name && (
-                <span style={{ background: 'rgba(168,85,247,0.12)', color: '#C084FC', borderRadius: 4, padding: '1px 6px', fontWeight: 700 }}>
-                  👥 {f.club_name}
-                </span>
-              )}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>

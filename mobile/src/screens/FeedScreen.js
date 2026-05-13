@@ -246,15 +246,7 @@ function FeedCard({ feed: f, myId, user, onLike, onDelete, openComments, setOpen
               <View style={s.meBadge}><Text style={s.meBadgeText}>나</Text></View>
             )}
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
-            <Text style={s.date}>{f.logged_at}</Text>
-            <Text style={[s.date, { color: vis.color }]}>{vis.icon} {vis.label}</Text>
-            {f.club_name && (
-              <View style={{ backgroundColor:'rgba(192,132,252,0.12)', borderRadius:4, paddingHorizontal:5, paddingVertical:1 }}>
-                <Text style={{ fontSize:9, fontWeight:'700', color:'#C084FC' }}>👥 {f.club_name}</Text>
-              </View>
-            )}
-          </View>
+          <Text style={[s.date, { marginTop: 2 }]}>{f.logged_at}</Text>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
           <Text style={[s.sportBadge, { color: sc }]}>

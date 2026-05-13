@@ -61,11 +61,7 @@ const FEED_COLS = `
            u.nickname, u.avatar_color, u.avatar_image,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
       (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
-      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like,
-      (SELECT c.name FROM clubs c
-       JOIN club_memberships cm ON c.id = cm.club_id
-       WHERE cm.user_id = w.user_id AND cm.status = 'approved'
-       ORDER BY c.id LIMIT 1) as club_name
+      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
     FROM workout_logs w
     JOIN users u ON w.user_id = u.id`
 
