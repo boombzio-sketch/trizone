@@ -114,16 +114,17 @@ export default function RankingScreen() {
             {scope === 'club' && myClubs.length > 1 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ flexDirection:'row', gap:6, paddingHorizontal:14, paddingVertical:7 }}>
-                <TouchableOpacity onPress={() => setSelectedClubId(null)}
-                  style={[s.filterChip, selectedClubId === null && s.filterChipActive]}>
-                  <Text style={[s.filterChipText, selectedClubId === null && s.filterChipTextActive]}>전체</Text>
-                </TouchableOpacity>
-                {myClubs.map(c => (
-                  <TouchableOpacity key={c.id} onPress={() => setSelectedClubId(c.id)}
-                    style={[s.filterChip, selectedClubId === c.id && s.filterChipActive]}>
-                    <Text style={[s.filterChipText, selectedClubId === c.id && s.filterChipTextActive]}>{c.name}</Text>
-                  </TouchableOpacity>
-                ))}
+                {[{ id: null, name: '전체' }, ...myClubs].map(c => {
+                  const active = selectedClubId === c.id
+                  return (
+                    <TouchableOpacity key={c.id ?? 'all'} onPress={() => setSelectedClubId(c.id)}
+                      style={{ paddingHorizontal:14, paddingVertical:6, borderRadius:100,
+                        backgroundColor: active ? C.accent : C.surfaceHigh,
+                        borderWidth: active ? 0 : 1, borderColor: C.borderLight }}>
+                      <Text style={{ fontSize:12, fontWeight:'700', color: active ? '#fff' : C.text }}>{c.name}</Text>
+                    </TouchableOpacity>
+                  )
+                })}
               </ScrollView>
             )}
 

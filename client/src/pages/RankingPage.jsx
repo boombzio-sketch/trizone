@@ -116,22 +116,18 @@ export default function RankingPage() {
       {/* 클럽 선택 칩 (클럽 scope + 2개 이상) */}
       {scope === 'club' && myClubs.length > 1 && (
         <div style={{ display: 'flex', gap: 6, padding: '8px 14px', background: C.surface, borderBottom: `1px solid ${C.border}`, overflowX: 'auto' }}>
-          <button onClick={() => setSelectedClubId(null)} style={{
-            padding: '5px 12px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer',
-            background: selectedClubId === null ? C.accentBg : C.surfaceAlt,
-            color: selectedClubId === null ? C.accent : C.text2,
-            fontSize: 11, fontWeight: 700,
-            outline: selectedClubId === null ? `1px solid ${C.accentBorder}` : 'none',
-          }}>전체</button>
-          {myClubs.map(c => (
-            <button key={c.id} onClick={() => setSelectedClubId(c.id)} style={{
-              padding: '5px 12px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer',
-              background: selectedClubId === c.id ? C.accentBg : C.surfaceAlt,
-              color: selectedClubId === c.id ? C.accent : C.text2,
-              fontSize: 11, fontWeight: 700,
-              outline: selectedClubId === c.id ? `1px solid ${C.accentBorder}` : 'none',
-            }}>{c.name}</button>
-          ))}
+          {[{ id: null, name: '전체' }, ...myClubs].map(c => {
+            const active = selectedClubId === c.id
+            return (
+              <button key={c.id ?? 'all'} onClick={() => setSelectedClubId(c.id)} style={{
+                padding: '6px 14px', borderRadius: 100, whiteSpace: 'nowrap', cursor: 'pointer',
+                background: active ? C.accent : C.surfaceHigh,
+                color: active ? '#fff' : C.text,
+                border: active ? 'none' : `1px solid ${C.borderLight}`,
+                fontSize: 12, fontWeight: 700,
+              }}>{c.name}</button>
+            )
+          })}
         </div>
       )}
 
