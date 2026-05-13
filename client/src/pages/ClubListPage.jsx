@@ -35,11 +35,6 @@ export default function ClubListPage() {
       ])
       setLeaderApp(leaderData.application)
       setMyClub(leaderData.club)
-      // 가입 클럽이 1개면 바로 이동
-      if (myClubsData.length === 1) {
-        navigate(`/clubs/${myClubsData[0].id}`, { replace: true })
-        return
-      }
       setMyClubs(myClubsData)
     } finally { setLoading(false) }
   }
@@ -206,9 +201,12 @@ export default function ClubListPage() {
         <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
       ) : filterMode === 'my' && myClubs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>가입된 클럽이 없습니다</div>
-          <div style={{ fontSize: 12, color: C.text3, marginTop: 6 }}>지역을 선택해 클럽을 찾아보세요</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>가입된 클럽이 없습니다</div>
+          <div style={{ fontSize: 13, color: C.text2, marginBottom: 20 }}>전체 클럽 탭에서 클럽을 찾아 가입해보세요</div>
+          <button onClick={() => { setFilterMode('all'); loadClubs() }} style={{ padding: '10px 24px', border: 'none', borderRadius: 100, background: C.accent, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            전체 클럽 보기 →
+          </button>
         </div>
       ) : filterMode === 'all' && clubs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
@@ -217,31 +215,55 @@ export default function ClubListPage() {
         </div>
       ) : (
         <div style={{ padding: '10px 12px' }}>
-          {(filterMode === 'my' ? myClubs : clubs).map(club => (
-            <div key={club.id} onClick={() => navigate(`/clubs/${club.id}`)}
-              style={{ background: C.surface, borderRadius: 16, marginBottom: 10, padding: '14px 16px', cursor: 'pointer', border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.accent}` }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 8px' }}>{club.region}</span>
-                    {club.leader_id === user?.id && <span style={{ fontSize: 10, fontWeight: 700, background: C.goldBg, color: C.gold, borderRadius: 6, padding: '2px 8px' }}>내 클럽</span>}
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{club.name}</div>
-                  {club.description && <div style={{ fontSize: 12, color: C.text2, marginTop: 3 }}>{club.description}</div>}
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: C.accent }}>{club.member_count}</div>
-                  <div style={{ fontSize: 9, color: C.text3 }}>회원</div>
-                </div>
-              </div>
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Avatar nickname={club.leader_name} avatar_color={club.leader_color} avatar_image={club.leader_image} size={22} />
-                <span style={{ fontSize: 11, color: C.text2 }}>클럽장 {club.leader_name}</span>
-                <div style={{ flex: 1 }} />
-                <span style={{ fontSize: 11, color: C.text3 }}>→</span>
-              </div>
+          {filterMode === 'my' && (
+            <div style={{ fontSize: 11, color: C.text2, marginBottom: 8, paddingLeft: 4 }}>
+              가입된 클럽 {myClubs.length}개
             </div>
-          ))}
+          )}
+          {(filterMode === 'my' ? myClubs : clubs).map(club => {
+            const isMyClub = club.leader_id === user?.id
+            const isPending = club.membership_status === 'pending'
+            return (
+              <div key={club.id} onClick={() => navigate(`/clubs/${club.id}`)}
+                style={{
+                  background: C.surface, borderRadius: 16, marginBottom: 10,
+                  padding: '14px 16px', cursor: 'pointer',
+                  border: `1px solid ${C.border}`,
+                  borderLeft: `4px solid ${isMyClub ? '#FBBF24' : C.accent}`,
+                  transition: 'opacity 0.15s',
+                }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
+                      {club.region && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 8px' }}>{club.region}</span>
+                      )}
+                      {isMyClub && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: '#FBBF2422', color: '#FBBF24', borderRadius: 6, padding: '2px 8px' }}>내 클럽</span>
+                      )}
+                      {isPending && (
+                        <span style={{ fontSize: 10, fontWeight: 700, background: '#F59E0B22', color: '#F59E0B', borderRadius: 6, padding: '2px 8px' }}>⏳ 승인 대기</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{club.name}</div>
+                    {club.description && (
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{club.description}</div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: isMyClub ? '#FBBF24' : C.accent }}>{club.member_count}</div>
+                    <div style={{ fontSize: 9, color: C.text3 }}>회원</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Avatar nickname={club.leader_name} avatar_color={club.leader_color} avatar_image={club.leader_image} size={22} />
+                  <span style={{ fontSize: 11, color: C.text2 }}>클럽장 {club.leader_name || '없음'}</span>
+                  <div style={{ flex: 1 }} />
+                  <span style={{ fontSize: 13, color: C.text3 }}>›</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
