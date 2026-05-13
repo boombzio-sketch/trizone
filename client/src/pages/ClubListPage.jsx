@@ -16,7 +16,6 @@ export default function ClubListPage() {
   const [region, setRegion] = useState('전체')
   const [loading, setLoading] = useState(true)
   const [leaderApp, setLeaderApp] = useState(null)
-  const [myClub, setMyClub] = useState(null)
   const [showLeaderForm, setShowLeaderForm] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [leaderMsg, setLeaderMsg] = useState('')
@@ -35,7 +34,6 @@ export default function ClubListPage() {
         api.getMyLeaderApp(),
       ])
       setLeaderApp(leaderData.application)
-      setMyClub(leaderData.club)
       setMyClubs(myClubsData)
     } finally { setLoading(false) }
   }
@@ -70,7 +68,7 @@ export default function ClubListPage() {
   }
 
   const isApprovedLeader = user?.role === 'admin' || leaderApp?.status === 'approved'
-  const canCreateClub = isApprovedLeader && !myClub
+  const canCreateClub = isApprovedLeader
 
   return (
     <div>
@@ -186,12 +184,6 @@ export default function ClubListPage() {
         </form>
       )}
 
-      {/* 클럽장 신청 안내 */}
-      {leaderApp?.status === 'approved' && myClub && (
-        <div style={{ margin: '12px 12px 0', background: C.successBg, border: `1px solid ${C.successBorder}`, borderRadius: 12, padding: '10px 14px', fontSize: 12, color: C.success }}>
-          ✅ 내 클럽: <strong>{myClub.name}</strong> — <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate(`/clubs/${myClub.id}`)}>관리하기 →</span>
-        </div>
-      )}
 
       {success && (
         <div style={{ margin: '12px', background: C.successBg, border: `1px solid ${C.successBorder}`, borderRadius: 12, padding: '10px 14px', fontSize: 13, color: C.success }}>{success}</div>

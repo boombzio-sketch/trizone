@@ -70,8 +70,6 @@ router.post('/', authMiddleware, async (req, res) => {
   if (req.user.role !== 'admin') {
     const app = await prepare("SELECT * FROM club_leader_applications WHERE user_id=? AND status='approved'").get(req.user.id);
     if (!app) return res.status(403).json({ error: '클럽장 승인 후 클럽을 만들 수 있습니다.' });
-    const existing = await prepare('SELECT id FROM clubs WHERE leader_id=?').get(req.user.id);
-    if (existing) return res.status(400).json({ error: '이미 운영 중인 클럽이 있습니다.' });
   }
 
   const result = await prepare('INSERT INTO clubs (name, description, region, leader_id) VALUES (?,?,?,?)').run(name, description||'', region, req.user.id);
