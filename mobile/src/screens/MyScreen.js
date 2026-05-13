@@ -57,6 +57,8 @@ export default function MyScreen() {
     setEditOpen(true)
   }
   async function handleSave() {
+    if (!editForm.nickname.trim()) { setEditError('닉네임을 입력하세요.'); return }
+    if (!editForm.email.trim()) { setEditError('이메일을 입력하세요.'); return }
     setEditSaving(true); setEditError('')
     try {
       await api.updateProfile(editForm)

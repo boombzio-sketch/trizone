@@ -10,24 +10,21 @@ router.put('/me', authMiddleware, async (req, res) => {
   const uid = req.user.id;
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (nickname !== undefined) {
-    if (!nickname.trim() || nickname.trim().length < 2)
-      return res.status(400).json({ error: '닉네임은 2자 이상이어야 합니다.' });
-    const dup = await db.prepare('SELECT id FROM users WHERE nickname=? AND id!=?').get(nickname.trim(), uid);
-    if (dup) return res.status(409).json({ error: '이미 사용 중인 닉네임입니다.' });
-  }
+  if (!nickname?.trim() || nickname.trim().length < 2)
+    return res.status(400).json({ error: '닉네임은 2자 이상이어야 합니다.' });
+  const nickDup = await db.prepare('SELECT id FROM users WHERE nickname=? AND id!=?').get(nickname.trim(), uid);
+  if (nickDup) return res.status(409).json({ error: '이미 사용 중인 닉네임입니다.' });
 
-  const normalizedEmail = email?.trim() ? email.trim().toLowerCase() : null;
-  if (normalizedEmail) {
-    if (!EMAIL_RE.test(normalizedEmail))
-      return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
-    const dup = await db.prepare('SELECT id FROM users WHERE email=? AND id!=?').get(normalizedEmail, uid);
-    if (dup) return res.status(409).json({ error: '이미 사용 중인 이메일입니다.' });
-  }
+  if (!email?.trim())
+    return res.status(400).json({ error: '이메일을 입력하세요.' });
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!EMAIL_RE.test(normalizedEmail))
+    return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
+  const emailDup = await db.prepare('SELECT id FROM users WHERE email=? AND id!=?').get(normalizedEmail, uid);
+  if (emailDup) return res.status(409).json({ error: '이미 사용 중인 이메일입니다.' });
 
-  const current = await db.prepare('SELECT nickname, email FROM users WHERE id=?').get(uid);
-  const newNick  = nickname?.trim() || current.nickname;
-  const newEmail = normalizedEmail ?? current.email;
+  const newNick  = nickname.trim();
+  const newEmail = normalizedEmail;
 
   if (password !== undefined && password !== '') {
     if (password.length < 4) return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
