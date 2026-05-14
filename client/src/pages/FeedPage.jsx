@@ -56,14 +56,24 @@ export default function FeedPage() {
   const [showSearch, setShowSearch] = useState(false)
   const [openComments, setOpenComments] = useState(null)
   const [editingFeed, setEditingFeed] = useState(null)
+  const [myClubs, setMyClubs] = useState([])
+  const [selectedClubId, setSelectedClubId] = useState(null)
   const searchTimer = useRef(null)
 
-  useEffect(() => { loadFeed() }, [tab])
+  useEffect(() => {
+    api.getMyClubs().then(setMyClubs).catch(() => {})
+  }, [])
+
+  useEffect(() => { loadFeed() }, [tab, selectedClubId])
 
   async function loadFeed() {
     setLoading(true)
     try {
-      const path = tab === 'following' ? '/social/feed' : tab === 'club' ? '/social/feed/club' : tab === 'mine' ? '/social/feed/mine' : '/social/feed/all'
+      let path
+      if (tab === 'following') path = '/social/feed'
+      else if (tab === 'club')  path = `/social/feed/club${selectedClubId ? `?club_id=${selectedClubId}` : ''}`
+      else if (tab === 'mine')  path = '/social/feed/mine'
+      else                      path = '/social/feed/all'
       const rows = await req(path)
       setFeeds(rows)
     } finally { setLoading(false) }
@@ -115,7 +125,7 @@ export default function FeedPage() {
   return (
     <div>
       {/* 헤더 */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ background: C.surface, borderBottom: tab === 'club' && myClubs.length > 1 ? 'none' : `1px solid ${C.border}`, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1, display: 'flex', gap: 6 }}>
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
@@ -138,6 +148,34 @@ export default function FeedPage() {
           }}>🔍</button>
         </div>
       </div>
+
+      {/* 클럽 선택 칩 (클럽 탭 + 여러 클럽 가입 시) */}
+      {tab === 'club' && myClubs.length > 1 && (
+        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '6px 14px', display: 'flex', gap: 6, overflowX: 'auto' }}>
+          <button
+            onClick={() => setSelectedClubId(null)}
+            style={{
+              padding: '4px 14px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', flexShrink: 0,
+              background: selectedClubId === null ? C.accent : C.surfaceAlt,
+              color: selectedClubId === null ? '#fff' : C.text2,
+              fontSize: 11, fontWeight: 700, cursor: 'pointer',
+            }}>
+            전체 클럽
+          </button>
+          {myClubs.map(club => (
+            <button key={club.id}
+              onClick={() => setSelectedClubId(club.id === selectedClubId ? null : club.id)}
+              style={{
+                padding: '4px 14px', border: 'none', borderRadius: 100, whiteSpace: 'nowrap', flexShrink: 0,
+                background: selectedClubId === club.id ? C.accent : C.surfaceAlt,
+                color: selectedClubId === club.id ? '#fff' : C.text2,
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              }}>
+              {club.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 검색 패널 */}
       {showSearch && (
@@ -180,7 +218,10 @@ export default function FeedPage() {
           <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 로딩 중...</div>
         ) : feeds.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 48, color: C.text2, fontSize: 14, lineHeight: 1.9 }}>
-            {tab === 'following' ? '아직 팔로우한 사람이 없어요.' : tab === 'club' ? '클럽 회원의 기록이 없습니다.' : tab === 'mine' ? '아직 내 훈련 기록이 없습니다.' : '아직 훈련 기록이 없습니다.'}
+            {tab === 'following' ? '아직 팔로우한 사람이 없어요.'
+              : tab === 'club' ? (selectedClubId ? `선택한 클럽의 훈련 기록이 없습니다.` : '클럽 회원의 기록이 없습니다.')
+              : tab === 'mine' ? '아직 내 훈련 기록이 없습니다.'
+              : '아직 훈련 기록이 없습니다.'}
           </div>
         ) : feeds.map(f => (
           <FeedCard

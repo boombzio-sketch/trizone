@@ -82,27 +82,60 @@ router.get('/feed', authMiddleware, async (req, res) => {
 
 // 클럽 피드 (어드민: 전체 승인 기록, 일반: 공유 클럽 회원 기록)
 router.get('/feed/club', authMiddleware, async (req, res) => {
-  const { offset = 0 } = req.query
+  const { offset = 0, club_id } = req.query
   const isAdmin = req.user.role === 'admin'
-  const rows = isAdmin
-    ? await db.prepare(`${FEED_COLS}
-        WHERE w.status = 'approved'
-        ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-      `).all(req.user.id, Number(offset))
-    : await db.prepare(`${FEED_COLS}
-        WHERE (
-          w.user_id = ?
-          OR (COALESCE(w.visibility,'public') IN ('public','club','club_followers')
-              AND w.status = 'approved'
-              AND EXISTS (
-                SELECT 1 FROM club_memberships cm1
-                JOIN club_memberships cm2 ON cm1.club_id = cm2.club_id
-                WHERE cm1.user_id = w.user_id AND cm1.status='approved'
-                  AND cm2.user_id = ? AND cm2.status='approved'
-              ))
-        )
-        ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-      `).all(req.user.id, req.user.id, req.user.id, Number(offset))
+  const clubId  = club_id ? Number(club_id) : null
+  let rows
+
+  if (isAdmin) {
+    rows = clubId
+      ? await db.prepare(`${FEED_COLS}
+          WHERE w.status = 'approved'
+          AND EXISTS (
+            SELECT 1 FROM club_memberships cm
+            WHERE cm.user_id = w.user_id AND cm.club_id = ? AND cm.status = 'approved'
+          )
+          ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+        `).all(req.user.id, clubId, Number(offset))
+      : await db.prepare(`${FEED_COLS}
+          WHERE w.status = 'approved'
+          ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+        `).all(req.user.id, Number(offset))
+  } else if (clubId) {
+    // 특정 클럽만: 나의 게시물 + 해당 클럽 회원들의 공개 기록
+    rows = await db.prepare(`${FEED_COLS}
+      WHERE (
+        w.user_id = ?
+        OR (COALESCE(w.visibility,'public') IN ('public','club','club_followers')
+            AND w.status = 'approved'
+            AND EXISTS (
+              SELECT 1 FROM club_memberships cm1
+              JOIN club_memberships cm2 ON cm1.club_id = cm2.club_id
+              WHERE cm1.user_id = w.user_id AND cm1.status = 'approved'
+                AND cm2.user_id = ? AND cm2.status = 'approved'
+                AND cm1.club_id = ?
+            ))
+      )
+      ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+    `).all(req.user.id, req.user.id, req.user.id, clubId, Number(offset))
+  } else {
+    // 전체 클럽 합산 (기존 동작)
+    rows = await db.prepare(`${FEED_COLS}
+      WHERE (
+        w.user_id = ?
+        OR (COALESCE(w.visibility,'public') IN ('public','club','club_followers')
+            AND w.status = 'approved'
+            AND EXISTS (
+              SELECT 1 FROM club_memberships cm1
+              JOIN club_memberships cm2 ON cm1.club_id = cm2.club_id
+              WHERE cm1.user_id = w.user_id AND cm1.status = 'approved'
+                AND cm2.user_id = ? AND cm2.status = 'approved'
+            ))
+      )
+      ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
+    `).all(req.user.id, req.user.id, req.user.id, Number(offset))
+  }
+
   res.json(rows)
 })
 
