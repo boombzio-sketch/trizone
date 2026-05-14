@@ -215,12 +215,13 @@ export default function ClubListPage() {
           {(filterMode === 'my' ? myClubs : clubs).map(club => {
             const isMyClub = club.leader_id === user?.id
             const isPending = club.membership_status === 'pending'
+            const pendingCount = (filterMode === 'my' && isMyClub) ? (club.pending_count || 0) : 0
             return (
               <div key={club.id} onClick={() => navigate(`/clubs/${club.id}`)}
                 style={{
                   background: C.surface, borderRadius: 16, marginBottom: 10,
                   padding: '14px 16px', cursor: 'pointer',
-                  border: `1px solid ${C.border}`,
+                  border: `1px solid ${pendingCount > 0 ? '#F59E0B55' : C.border}`,
                   borderLeft: `4px solid ${isMyClub ? '#FBBF24' : C.accent}`,
                   transition: 'opacity 0.15s',
                 }}>
@@ -245,6 +246,11 @@ export default function ClubListPage() {
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: 20, fontWeight: 900, color: isMyClub ? '#FBBF24' : C.accent }}>{club.member_count}</div>
                     <div style={{ fontSize: 9, color: C.text3 }}>회원</div>
+                    {pendingCount > 0 && (
+                      <div style={{ marginTop: 4, background: '#F59E0B', color: '#fff', borderRadius: 999, fontSize: 10, fontWeight: 800, padding: '2px 8px', textAlign: 'center' }}>
+                        신청 {pendingCount}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>

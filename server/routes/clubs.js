@@ -38,7 +38,8 @@ router.post('/my-leader-app', authMiddleware, async (req, res) => {
 router.get('/mine', authMiddleware, async (req, res) => {
   const rows = await prepare(`
     SELECT c.*, u.nickname as leader_name, u.avatar_color as leader_color, u.avatar_image as leader_image,
-           (SELECT COUNT(*)::int FROM club_memberships cm2 WHERE cm2.club_id=c.id AND cm2.status='approved') as member_count
+           (SELECT COUNT(*)::int FROM club_memberships cm2 WHERE cm2.club_id=c.id AND cm2.status='approved') as member_count,
+           (SELECT COUNT(*)::int FROM club_memberships cm3 WHERE cm3.club_id=c.id AND cm3.status='pending') as pending_count
     FROM clubs c
     LEFT JOIN users u ON c.leader_id=u.id
     JOIN club_memberships cm ON cm.club_id=c.id AND cm.user_id=? AND cm.status='approved'
