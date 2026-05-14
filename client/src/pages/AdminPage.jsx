@@ -9,7 +9,7 @@ import Avatar from '../components/Avatar.jsx'
 export default function AdminPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('pending')
-  const [badges, setBadges] = useState({ pending: null, messages: null, memberships: null, leaderApps: null, members: null })
+  const [badges, setBadges] = useState({ pending: null, messages: null, leaderApps: null, members: null })
 
   const isAdmin     = user?.role === 'admin'
   const canApprove  = isAdmin || user?.can_approve
@@ -22,7 +22,6 @@ export default function AdminPage() {
     { key: 'pending',  label: '훈련 승인', badge: badges.pending },
     { key: 'messages', label: '쪽지',      badge: badges.messages },
     ...(isAdmin ? [
-      { key: 'memberships', label: '클럽 가입',  badge: badges.memberships },
       { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
       { key: 'members',     label: '회원 관리',  badge: badges.members },
     ] : []),
@@ -56,7 +55,6 @@ export default function AdminPage() {
       </div>
       <div style={{ display: tab === 'pending'  ? 'block' : 'none' }}><PendingTab  onBadge={c => setBadge('pending', c)} /></div>
       <div style={{ display: tab === 'messages' ? 'block' : 'none' }}><MessagesTab onBadge={c => setBadge('messages', c)} /></div>
-      {isAdmin && <div style={{ display: tab === 'memberships' ? 'block' : 'none' }}><MembershipsTab onBadge={c => setBadge('memberships', c)} /></div>}
       {isAdmin && <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>}
       {isAdmin && <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>}
     </div>
