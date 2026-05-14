@@ -148,23 +148,31 @@ export default function ClubDetailPage() {
 
   async function loadAll() {
     setLoading(true)
+    setError('')
     try {
-      const [clubData, memData, annData] = await Promise.all([
-        api.getClub(id),
-        api.getClubMembership(id),
-        api.getClubAnnouncements(id),
-      ])
+      // 클럽 기본 정보 (비회원도 접근 가능)
+      const clubData = await api.getClub(id)
       setClub(clubData)
-      setMembership(memData)
-      setAnnouncements(annData)
       setEditForm({ name: clubData.name, description: clubData.description, region: clubData.region })
 
-      if (memData.status === 'approved' || clubData.leader_id === user?.id || user?.role === 'admin') {
-        const [membersData] = await Promise.all([api.getClubMembers(id)])
+      // 멤버십 조회 실패해도 페이지는 정상 표시
+      const memData = await api.getClubMembership(id).catch(() => ({ status: null }))
+      setMembership(memData)
+
+      const isMember = memData.status === 'approved' || clubData.leader_id === user?.id || user?.role === 'admin'
+
+      // 회원/리더/관리자만 공지·회원·훈련 로드
+      if (isMember) {
+        const [annData, membersData] = await Promise.all([
+          api.getClubAnnouncements(id).catch(() => []),
+          api.getClubMembers(id).catch(() => []),
+        ])
+        setAnnouncements(annData)
         setMembers(membersData)
-        await loadTrainings()
+        await loadTrainings().catch(() => {})
       }
-      if (canManage || clubData.leader_id === user?.id || user?.role === 'admin') {
+
+      if (clubData.leader_id === user?.id || user?.role === 'admin') {
         const pending = await api.getClubPendingMembers(id).catch(() => [])
         setPendingMembers(pending)
       }
@@ -262,7 +270,7 @@ export default function ClubDetailPage() {
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
-  if (!club) return <div style={{ textAlign: 'center', padding: 48, color: C.error }}>클럽을 찾을 수 없습니다.</div>
+  if (!club) return <div style={{ textAlign: 'center', padding: 48, color: C.error }}>{error || '클럽을 찾을 수 없습니다.'}</div>
 
   return (
     <div>
