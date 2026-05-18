@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRIZONE 사용자 매뉴얼</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --accent: #f97316;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --swim: #06b6d4;
+      --cycle: #f97316;
+      --run: #22c55e;
+      --brick: #a855f7;
+      --sidebar-w: 280px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* ── Top bar ── */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--primary-dark);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 12px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    header .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+    header .tagline {
+      font-size: .85rem;
+      opacity: .75;
+    }
+    header .version {
+      margin-left: auto;
+      font-size: .75rem;
+      opacity: .6;
+    }
+
+    /* ── Sidebar ── */
+    nav {
+      position: fixed;
+      top: 60px; left: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 16px 0;
+      z-index: 90;
+    }
+    nav .nav-section {
+      padding: 8px 20px 4px;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: .9rem;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    nav a:hover { background: #f1f5f9; border-left-color: var(--primary); color: var(--primary); }
+    nav a .icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* ── Main content ── */
+    main {
+      margin-left: var(--sidebar-w);
+      margin-top: 60px;
+      padding: 48px 64px;
+      max-width: 960px;
+    }
+
+    /* ── Sections ── */
+    section {
+      margin-bottom: 64px;
+      scroll-margin-top: 80px;
+    }
+    section > h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 10px;
+      margin-bottom: 28px;
+    }
+    h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 28px 0 12px;
+      color: var(--text);
+    }
+    h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 20px 0 8px;
+      color: var(--text-muted);
+    }
+    p { margin-bottom: 12px; }
+
+    /* ── Cover ── */
+    .cover {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, #0f172a 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 56px 48px;
+      margin-bottom: 64px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.05);
+    }
+    .cover .logo-big {
+      font-size: 3rem;
+      font-weight: 900;
+      letter-spacing: 4px;
+      margin-bottom: 8px;
+    }
+    .cover .sub {
+      font-size: 1.1rem;
+      opacity: .8;
+      margin-bottom: 32px;
+    }
+    .cover .sport-badges {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+    }
+    .badge-swim  { background: rgba(6,182,212,.2);  color: #67e8f9; border: 1px solid rgba(6,182,212,.4); }
+    .badge-cycle { background: rgba(249,115,22,.2); color: #fdba74; border: 1px solid rgba(249,115,22,.4); }
+    .badge-run   { background: rgba(34,197,94,.2);  color: #86efac; border: 1px solid rgba(34,197,94,.4); }
+    .badge-brick { background: rgba(168,85,247,.2); color: #d8b4fe; border: 1px solid rgba(168,85,247,.4); }
+
+    /* ── Info box ── */
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .info-box.tip  { background: #f0fdf4; border-color: #22c55e; }
+    .info-box.warn { background: #fffbeb; border-color: var(--accent); }
+    .info-box strong { display: block; margin-bottom: 4px; font-size: .85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── Tables ── */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 16px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .9rem;
+      min-width: 360px;
+    }
+    th {
+      background: #f1f5f9;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+      border: 1px solid var(--border);
+    }
+    td {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    /* ── Step list ── */
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      margin: 16px 0;
+    }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 14px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step);
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: .8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ── Feature list ── */
+    ul.feat { list-style: none; margin: 12px 0; }
+    ul.feat li {
+      padding: 6px 0 6px 22px;
+      position: relative;
+    }
+    ul.feat li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* ── Role badge ── */
+    .role {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 600;
+    }
+    .role-admin   { background: #fef3c7; color: #92400e; }
+    .role-leader  { background: #dbeafe; color: #1e40af; }
+    .role-sub     { background: #ede9fe; color: #5b21b6; }
+    .role-approver{ background: #dcfce7; color: #14532d; }
+    .role-member  { background: #f1f5f9; color: #475569; }
+
+    /* ── Sport colors ── */
+    .sport-swim  { color: var(--swim); font-weight: 600; }
+    .sport-cycle { color: var(--cycle); font-weight: 600; }
+    .sport-run   { color: var(--run); font-weight: 600; }
+    .sport-brick { color: var(--brick); font-weight: 600; }
+
+    /* ── Tag ── */
+    .tag {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: .78rem;
+      font-weight: 600;
+    }
+    .tag-new {
+      display: inline-block;
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    /* ── Screen card ── */
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .screen-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+    }
+    .screen-card .icon { font-size: 2rem; margin-bottom: 8px; }
+    .screen-card .name { font-weight: 700; font-size: .95rem; }
+    .screen-card .desc { font-size: .8rem; color: var(--text-muted); margin-top: 4px; }
+
+    code {
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: .85em;
+      font-family: 'Consolas', monospace;
+    }
+
+    @media (max-width: 900px) {
+      nav { display: none; }
+      header .tagline { display: none; }
+      main { margin-left: 0; padding: 20px 16px; max-width: 100%; }
+      section { margin-bottom: 48px; }
+      section > h2 { font-size: 1.3rem; }
+      h3 { font-size: 1rem; }
+      .screen-grid { grid-template-columns: repeat(2, 1fr); }
+      .cover { padding: 32px 24px; }
+      .cover .logo-big { font-size: 2.2rem; }
+    }
+
+    @media print {
+      nav { display: none; }
+      header { display: none; }
+      main { margin: 0; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <span class="logo">TRIZONE</span>
+  <span class="tagline">트라이애슬론 훈련 & 커뮤니티 플랫폼</span>
+  <span class="version">사용자 매뉴얼 v2.1</span>
+</header>
+
+<!-- ── Sidebar Nav ── -->
+<nav>
+  <div class="nav-section">시작하기</div>
+  <a href="#intro"><span class="icon">📖</span> TRIZONE 소개</a>
+  <a href="#start"><span class="icon">🚀</span> 시작하기</a>
+
+  <div class="nav-section">주요 기능</div>
+  <a href="#feed"><span class="icon">📰</span> 피드</a>
+  <a href="#workout"><span class="icon">📋</span> 훈련 기록</a>
+  <a href="#ranking"><span class="icon">🏆</span> 랭킹</a>
+  <a href="#club"><span class="icon">👥</span> 클럽</a>
+  <a href="#race"><span class="icon">🏁</span> 대회 캘린더</a>
+  <a href="#mypage"><span class="icon">👤</span> 마이페이지</a>
+  <a href="#notices"><span class="icon">📋</span> 공지사항</a>
+
+  <div class="nav-section">역할별 가이드</div>
+  <a href="#guide-leader"><span class="icon">🛡️</span> 클럽장 가이드</a>
+  <a href="#guide-admin"><span class="icon">⚙️</span> 관리자 가이드</a>
+
+  <div class="nav-section">참고</div>
+  <a href="#visibility"><span class="icon">🔒</span> 공개 범위 설명</a>
+  <a href="#roles"><span class="icon">📌</span> 역할 & 권한</a>
+  <a href="#faq"><span class="icon">❓</span> 자주 묻는 질문</a>
+</nav>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="logo-big">TRIZONE</div>
+    <div class="sub">트라이애슬론 훈련 기록 & 소셜 커뮤니티 플랫폼</div>
+    <div class="sport-badges">
+      <span class="badge badge-swim">🏊 수영</span>
+      <span class="badge badge-cycle">🚴 사이클</span>
+      <span class="badge badge-run">🏃 런</span>
+      <span class="badge badge-brick">⚡ 브릭</span>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="intro">
+    <h2>📖 TRIZONE 소개</h2>
+    <p>
+      TRIZONE은 수영·사이클·런 세 종목을 아우르는 트라이애슬론 선수와 동호인을 위한
+      훈련 기록 및 소셜 커뮤니티 플랫폼입니다. 개인 훈련 기록 관리부터 클럽 활동,
+      대회 일정 확인, 관리자 문의까지 트라이애슬론 라이프사이클 전체를 하나의 앱에서 경험할 수 있습니다.
+    </p>
+
+    <h3>주요 화면 한눈에 보기</h3>
+    <div class="screen-grid">
+      <div class="screen-card">
+        <div class="icon">📰</div>
+        <div class="name">피드</div>
+        <div class="desc">팔로잉·클럽·전체·내피드 스트림</div>
+      </div>
+      <div class="screen-card">
+        <div class="icon">📋</div>
+        <div class="name">훈련 기록</div>
+        <div class="desc">4종목 기록 입력 · 목록 · 달력</div>
+      </div>
+      <div class="screen-card">
+        <div class="icon">🏆</div>
+        <div class="name">랭킹</div>
+        <div class="desc">주간·월간·연간 리더보드</div>
+      </div>
+      <div class="screen-card">
+        <div class="icon">👥</div>
+        <div class="name">클럽</div>
+        <div class="desc">클럽 가입·훈련 달력·공지</div>
+      </div>
+      <div class="screen-card">
+        <div class="icon">🏁</div>
+        <div class="name">대회</div>
+        <div class="desc">대회 일정 캘린더</div>
+      </div>
+      <div class="screen-card">
+        <div class="icon">👤</div>
+        <div class="name">마이페이지</div>
+        <div class="desc">프로필·통계·문의·팔로워</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="start">
+    <h2>🚀 시작하기</h2>
+
+    <h3>회원가입</h3>
+    <ol class="steps">
+      <li>앱 하단의 <strong>로그인</strong> 화면에서 <strong>회원가입</strong> 탭을 선택합니다.</li>
+      <li><strong>닉네임</strong>, <strong>이메일</strong>, <strong>비밀번호</strong>를 입력합니다.</li>
+      <li><strong>가입하기</strong> 버튼을 누르면 즉시 계정이 생성되고 로그인됩니다.</li>
+    </ol>
+    <div class="info-box tip">
+      <strong>Tip</strong>
+      닉네임은 피드와 랭킹에서 다른 회원에게 공개됩니다. 실명 또는 운동 닉네임을 사용하세요.
+    </div>
+
+    <h3>로그인</h3>
+    <ol class="steps">
+      <li>이메일과 비밀번호를 입력합니다.</li>
+      <li><strong>로그인</strong> 버튼을 누르면 30일간 로그인 상태가 유지됩니다.</li>
+    </ol>
+
+    <h3>비밀번호 찾기</h3>
+    <p>이메일이 등록된 계정은 관리자 없이 직접 재설정할 수 있습니다.</p>
+    <ol class="steps">
+      <li>로그인 화면 하단의 <strong>비밀번호를 잊으셨나요?</strong> 링크를 탭합니다.</li>
+      <li>가입 시 사용한 <strong>이메일</strong>(또는 닉네임)을 입력하고 <strong>코드 전송</strong>을 누릅니다.</li>
+      <li>이메일로 받은 <strong>6자리 코드</strong>와 <strong>새 비밀번호</strong>를 입력합니다.</li>
+      <li><strong>비밀번호 재설정</strong>을 누릅니다.</li>
+    </ol>
+    <div class="info-box warn">
+      <strong>주의</strong>
+      재설정 코드는 발송 후 <strong>30분간만 유효</strong>하며 한 번 사용하면 즉시 만료됩니다.
+    </div>
+    <div class="info-box">
+      <strong>이메일 미등록 계정</strong>
+      이메일이 등록되지 않은 경우 관리자에게 직접 코드 발급을 요청해야 합니다. <strong>마이페이지 → 관리자 문의</strong>를 이용하거나 관리자에게 연락하세요.
+    </div>
+
+    <h3>아바타 설정</h3>
+    <p>가입 후 <strong>마이페이지 → 수정</strong>에서 아바타 색상(12가지)을 선택하거나 직접 업로드한 사진으로 프로필 이미지를 꾸밀 수 있습니다.</p>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="feed">
+    <h2>📰 피드</h2>
+    <p>다른 회원들의 훈련 기록을 확인하고 소통하는 공간입니다.</p>
+
+    <h3>탭 구성</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>탭</th><th>표시 내용</th></tr>
+        <tr><td>❤️ 팔로잉</td><td>내가 팔로우한 사람들의 공개 기록</td></tr>
+        <tr><td>🏠 클럽 <span class="tag">기본</span></td><td>내가 속한 클럽 회원들의 승인된 훈련 기록</td></tr>
+        <tr><td>🌐 전체</td><td>플랫폼 전체의 공개 기록</td></tr>
+        <tr><td>📌 내피드 <span class="tag-new">NEW</span></td><td>내가 올린 훈련 기록만 모아 보기</td></tr>
+      </table>
+    </div>
+
+    <h3>피드에서 할 수 있는 것</h3>
+    <ul class="feat">
+      <li>훈련 기록 카드 확인 (종목, 거리, 시간, 메모, 사진)</li>
+      <li>⭐ 좋아요 누르기 / 취소</li>
+      <li>💬 댓글 달기 / 댓글 삭제 (본인 댓글)</li>
+      <li>자신의 기록 <strong>수정</strong> — 내용뿐 아니라 <strong>사진 추가·삭제·대표 사진 변경</strong>도 가능 <span class="tag-new">NEW</span></li>
+      <li>자신의 기록 삭제 (카드 내 <strong>삭제</strong> 버튼, 관리자도 삭제 가능)</li>
+      <li>사용자 검색 (<strong>돋보기 아이콘</strong>)</li>
+    </ul>
+
+    <h3>사용자 검색 & 팔로우</h3>
+    <ol class="steps">
+      <li>피드 상단 검색 아이콘을 탭합니다.</li>
+      <li>닉네임을 입력하면 실시간으로 결과가 표시됩니다.</li>
+      <li>프로필 카드에서 <strong>팔로우</strong> 버튼을 누릅니다.</li>
+    </ol>
+    <div class="info-box">
+      <strong>참고</strong>
+      팔로우는 상대방의 승인 없이 즉시 적용됩니다. 언제든지 취소할 수 있습니다.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="workout">
+    <h2>📋 훈련 기록</h2>
+
+    <h3>탭 구성</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>탭</th><th>내용</th></tr>
+        <tr><td>📋 목록</td><td>내가 올린 훈련 기록을 목록으로 봅니다</td></tr>
+        <tr><td>📅 달력 <span class="tag-new">NEW</span></td><td>월별 달력으로 훈련 기록을 시각적으로 확인합니다</td></tr>
+        <tr><td>➕ 추가</td><td>새로운 훈련을 입력합니다</td></tr>
+      </table>
+    </div>
+
+    <h3>훈련 기록 입력 (➕ 추가 탭)</h3>
+    <ol class="steps">
+      <li>종목 버튼(<span class="sport-swim">수영</span> / <span class="sport-cycle">사이클</span> / <span class="sport-run">런</span> / <span class="sport-brick">브릭</span>)을 선택합니다.</li>
+      <li><strong>날짜</strong>를 입력합니다 (기본값: 오늘, 형식: YYYY-MM-DD).</li>
+      <li>각 종목의 세부 정보를 입력합니다.</li>
+      <li>메모와 공개 범위를 설정합니다.</li>
+      <li><strong>기록하기</strong>를 누릅니다.</li>
+    </ol>
+
+    <h3>종목별 입력 항목</h3>
+
+    <h4>🏊 수영</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>항목</th><th>설명</th></tr>
+        <tr><td>거리 (km)</td><td>수영한 총 거리</td></tr>
+        <tr><td>시간</td><td>시:분:초</td></tr>
+        <tr><td>수영장 종류</td><td>야외 (오픈워터) / 실내</td></tr>
+        <tr><td>메모</td><td>자유 텍스트</td></tr>
+      </table>
+    </div>
+
+    <h4>🚴 사이클</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>항목</th><th>설명</th></tr>
+        <tr><td>거리 (km)</td><td>총 주행 거리</td></tr>
+        <tr><td>시간</td><td>시:분:초</td></tr>
+        <tr><td>코스 종류</td><td>실외 / 실내 (트레이너)</td></tr>
+        <tr><td>획득 고도 (m)</td><td>오르막 누적 고도</td></tr>
+        <tr><td>평균 파워 (W)</td><td>와트 단위 (선택사항)</td></tr>
+      </table>
+    </div>
+
+    <h4>🏃 런</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>항목</th><th>설명</th></tr>
+        <tr><td>거리 (km)</td><td>총 달린 거리</td></tr>
+        <tr><td>시간</td><td>시:분:초</td></tr>
+        <tr><td>페이스 (분/km)</td><td>km당 소요 분:초</td></tr>
+        <tr><td>획득 고도 (m)</td><td>오르막 누적 고도 (선택사항)</td></tr>
+      </table>
+    </div>
+
+    <h4>⚡ 브릭 (복합 훈련)</h4>
+    <p>두 가지 이상의 종목을 연속으로 수행하는 복합 훈련입니다.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>항목</th><th>설명</th></tr>
+        <tr><td>세그먼트별 거리·시간</td><td>수영, 사이클, 런 각각 개별 입력</td></tr>
+        <tr><td>전환 시간 T1 / T2</td><td>수영→사이클, 사이클→런 전환 시간</td></tr>
+      </table>
+    </div>
+
+    <h3>사진 첨부</h3>
+    <ul class="feat">
+      <li>여러 장의 사진을 첨부할 수 있습니다.</li>
+      <li>업로드 시 자동으로 최대 1024px로 압축됩니다.</li>
+      <li>대표 사진(커버)을 지정할 수 있습니다.</li>
+    </ul>
+
+    <h3>공개 범위</h3>
+    <p>자세한 공개 범위 설명은 <a href="#visibility">공개 범위 안내</a>를 참고하세요.</p>
+
+    <h3>목록 탭 (📋 목록)</h3>
+    <p>내가 등록한 훈련 기록을 날짜순으로 확인합니다. 각 카드에서 종목, 거리, 시간, 메모와 승인 상태를 확인할 수 있습니다.</p>
+    <ul class="feat">
+      <li>기록 카드 우측 🗑️ 버튼으로 기록 삭제 가능</li>
+      <li>승인 상태 표시: 승인대기 / 승인 / 반려</li>
+      <li>브릭 기록은 세그먼트별 거리가 요약 표시됨</li>
+    </ul>
+
+    <h3>달력 탭 (📅 달력) <span class="tag-new">NEW</span></h3>
+    <p>월별 달력 형태로 내 훈련 기록을 시각적으로 확인합니다.</p>
+    <ul class="feat">
+      <li>훈련을 기록한 날짜에 종목 아이콘(🏊🚴🏃⚡)이 표시됩니다</li>
+      <li>오늘 날짜는 배경색으로 강조됩니다</li>
+      <li>날짜를 탭하면 해당 날의 훈련 목록이 하단에 표시됩니다</li>
+      <li>좌우 화살표(‹ ›)로 월 이동이 가능합니다</li>
+    </ul>
+    <div class="info-box tip">
+      <strong>Tip</strong>
+      달력 탭에서 날짜를 다시 탭하면 선택이 해제됩니다.
+    </div>
+
+    <h3>훈련 승인 상태</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>상태</th><th>의미</th></tr>
+        <tr><td>대기 중</td><td>승인관리자 검토 중</td></tr>
+        <tr><td>승인됨</td><td>피드와 랭킹에 반영됨</td></tr>
+        <tr><td>반려됨</td><td>반려 사유 확인 후 재등록 가능</td></tr>
+      </table>
+    </div>
+    <div class="info-box warn">
+      <strong>주의</strong>
+      랭킹에는 <strong>승인된 기록만</strong> 반영됩니다. 기록 후 승인될 때까지 랭킹에 나타나지 않을 수 있습니다.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="ranking">
+    <h2>🏆 랭킹</h2>
+    <p>승인된 훈련 기록을 바탕으로 거리 기준 순위를 제공합니다.</p>
+
+    <h3>필터 옵션</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>구분</th><th>선택지</th></tr>
+        <tr><td>범위</td><td>팔로잉 / 클럽 (기본) / 전체</td></tr>
+        <tr><td>종목</td><td>🏊 수영 / 🚴 사이클 / 🏃 런</td></tr>
+        <tr><td>기간</td><td>주간 / 월간 / 연간 / 기간 직접 선택</td></tr>
+      </table>
+    </div>
+
+    <h3>랭킹 화면 구성</h3>
+    <ul class="feat">
+      <li>상단 배너: 현재 범위에서 나의 순위 표시</li>
+      <li>TOP 3: 1·2·3위 회원을 강조 표시 (🥇🥈🥉)</li>
+      <li>전체 순위 목록: 이름, 거리(km), 순위</li>
+    </ul>
+
+    <div class="info-box tip">
+      <strong>Tip</strong>
+      <strong>기간 직접 선택</strong>을 이용하면 대회 준비 기간이나 합숙 기간 등 특정 구간의 훈련량을 비교할 수 있습니다.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="club">
+    <h2>👥 클럽</h2>
+
+    <h3>클럽 목록 보기</h3>
+    <p>하단 탭에서 <strong>클럽</strong>을 선택하면 두 가지 모드로 클럽을 탐색할 수 있습니다.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>모드</th><th>내용</th></tr>
+        <tr><td>내 클럽</td><td>내가 가입하거나 운영 중인 클럽 목록</td></tr>
+        <tr><td>전체 클럽</td><td>플랫폼에 등록된 모든 클럽. 지역 버튼으로 필터링 가능</td></tr>
+      </table>
+    </div>
+    <div class="info-box tip">
+      <strong>Tip</strong>
+      전체 클럽 모드에서 상단의 지역 버튼(서울·부산·경기 등)을 탭하면 해당 지역 클럽만 볼 수 있습니다.
+    </div>
+
+    <h3>클럽 직접 만들기 <span class="tag-new">NEW</span></h3>
+    <p>클럽장 신청이 승인되었거나 관리자인 경우, 클럽 화면 우측 상단의 <strong>+ 클럽 만들기</strong> 버튼이 나타납니다. (이미 운영 중인 클럽이 있으면 비활성화됩니다.)</p>
+    <ol class="steps">
+      <li><strong>+ 클럽 만들기</strong> 버튼을 누릅니다.</li>
+      <li><strong>클럽명</strong>을 입력하고, <strong>지역</strong>을 선택합니다.</li>
+      <li><strong>클럽 소개</strong>를 입력합니다 (선택사항).</li>
+      <li><strong>🏊 클럽 만들기</strong>를 눌러 생성합니다.</li>
+    </ol>
+
+    <h3>클럽 가입 신청</h3>
+    <ol class="steps">
+      <li>전체 클럽에서 가입하고 싶은 클럽을 선택합니다.</li>
+      <li><strong>🙋 클럽 가입 신청</strong> 버튼을 누릅니다.</li>
+      <li>클럽장이 승인하면 정식 회원이 됩니다.</li>
+    </ol>
+    <div class="info-box">
+      <strong>참고</strong>
+      승인 전에는 클럽 상세 정보 카드에 <em>⏳ 클럽장 승인 대기 중</em> 상태가 표시됩니다.
+    </div>
+
+    <h3>클럽 상세 페이지</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>탭</th><th>내용</th></tr>
+        <tr><td>공지사항</td><td>클럽 운영자가 올린 공지와 소식</td></tr>
+        <tr><td>훈련</td><td>월별 달력으로 클럽 훈련 일정 확인</td></tr>
+        <tr><td>회원</td><td>클럽 회원 목록 및 역할 표시</td></tr>
+        <tr><td>관리 <span class="tag">클럽장·부클럽장</span></td><td>가입 신청 승인/거절, 클럽장 양도</td></tr>
+      </table>
+    </div>
+
+    <h3>훈련 탭 — 달력 뷰 <span class="tag-new">NEW</span></h3>
+    <p>훈련 탭은 월별 달력 형태로 표시됩니다. 훈련이 등록된 날짜에는 작은 점이 표시됩니다.</p>
+    <ol class="steps">
+      <li>달력에서 날짜를 탭하면 해당 날의 훈련 목록이 하단에 표시됩니다.</li>
+      <li>훈련 카드에서 상세 정보(시간, 장소, 설명, 참가 인원)를 확인합니다.</li>
+      <li>참가 신청이 가능한 훈련은 <strong>참가 신청</strong> 버튼이 활성화됩니다.</li>
+      <li><strong>👥 N명</strong> 버튼을 탭하면 참가자 명단(참석/불참/신청 상태 포함)을 볼 수 있습니다.</li>
+      <li>훈련에 외부 링크가 있으면 <strong>🔗 상세보기</strong> 버튼이 표시됩니다.</li>
+    </ol>
+    <div class="info-box warn">
+      <strong>주의</strong>
+      정원이 마감된 훈련(<strong>마감</strong> 표시)은 추가 신청이 불가능합니다.
+    </div>
+
+    <h3>클럽 탈퇴</h3>
+    <p>클럽 상세 페이지 정보 카드의 <strong>탈퇴</strong> 버튼을 누릅니다. 탈퇴 후에는 클럽 전용 피드와 훈련에 접근할 수 없습니다.</p>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="race">
+    <h2>🏁 대회 캘린더</h2>
+    <p>국내 트라이애슬론 대회 일정을 한눈에 확인합니다.</p>
+
+    <h3>대회 거리 분류</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>종류</th><th style="text-align:right">수영</th><th style="text-align:right">사이클</th><th style="text-align:right">런</th></tr>
+        <tr><td>Sprint</td><td style="text-align:right">750m</td><td style="text-align:right">20km</td><td style="text-align:right">5km</td></tr>
+        <tr><td>Olympic</td><td style="text-align:right">1.5km</td><td style="text-align:right">40km</td><td style="text-align:right">10km</td></tr>
+        <tr><td>Half (70.3)</td><td style="text-align:right">1.9km</td><td style="text-align:right">90.1km</td><td style="text-align:right">21.1km</td></tr>
+        <tr><td>King (Full)</td><td style="text-align:right">3.8km</td><td style="text-align:right">180.2km</td><td style="text-align:right">42.2km</td></tr>
+      </table>
+    </div>
+
+    <h3>대회 정보 확인</h3>
+    <ul class="feat">
+      <li>대회명, 날짜, 장소</li>
+      <li>거리 종류 (Sprint / Olympic / Half / King)</li>
+      <li>D-day 배지 <span class="tag-new">NEW</span>: 대회 카드에 <strong>D-n</strong> 형태로 남은 날 표시</li>
+      <li>참가비 및 접수 기간</li>
+      <li>접수 링크 (외부 사이트 이동)</li>
+    </ul>
+
+    <h3>보기 모드</h3>
+    <p>우측 상단의 토글 버튼으로 <strong>☰ 목록 보기</strong>와 <strong>📅 달력 보기</strong> 중 원하는 방식으로 대회 일정을 확인할 수 있습니다.</p>
+    <div class="info-box">
+      <strong>참고</strong>
+      예정된 대회와 종료된 대회가 구분되어 표시됩니다.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="mypage">
+    <h2>👤 마이페이지</h2>
+
+    <h3>프로필 정보</h3>
+    <ul class="feat">
+      <li>닉네임, 아바타 이미지</li>
+      <li>역할 배지 <span class="tag-new">NEW</span>: 👑 관리자 / ✅ 승인관리자 / 🏆 클럽관리자</li>
+      <li>팔로워 수 / 팔로잉 수 / 총 훈련 횟수</li>
+      <li>최근 훈련 목록 <span class="tag-new">NEW</span>: 종목별 거리·시간 요약</li>
+    </ul>
+
+    <h3>팔로워 / 팔로잉 관리</h3>
+    <p>팔로워/팔로잉 숫자를 탭하면 해당 목록을 확인할 수 있습니다. 목록에서 팔로우·언팔로우가 가능합니다.</p>
+
+    <h3>프로필 편집</h3>
+    <ol class="steps">
+      <li>마이페이지 우측 상단 <strong>수정</strong> 버튼을 누릅니다.</li>
+      <li><strong>닉네임</strong>과 <strong>이메일</strong>을 확인·수정합니다 (필수 항목).</li>
+      <li>아바타 색상(12가지 중 선택)을 변경하거나 아바타 이미지를 업로드합니다.</li>
+      <li>비밀번호를 변경하려면 새 비밀번호를 입력합니다 (변경하지 않으려면 비워 두세요).</li>
+      <li><strong>💾 저장</strong>을 누릅니다.</li>
+    </ol>
+    <div class="info-box">
+      <strong>참고</strong>
+      이메일은 비밀번호 재설정에 사용되므로 정확하게 입력하세요. 이메일이 없으면 비밀번호 분실 시 관리자를 통해서만 재설정이 가능합니다.
+    </div>
+
+    <h3>빠른 메뉴 버튼 (2×2 그리드) <span class="tag-new">NEW</span></h3>
+    <p>프로필 카드 우측에 4개 버튼이 2×2 형태로 표시됩니다.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>버튼</th><th>설명</th></tr>
+        <tr><td>✏️ 수정</td><td>프로필 편집 모달 열기</td></tr>
+        <tr><td>🚪 로그아웃</td><td>로그아웃</td></tr>
+        <tr><td>문의</td><td>카카오톡 오픈채팅으로 관리자 문의</td></tr>
+        <tr><td>📋 공지사항</td><td>공지사항 게시판으로 이동</td></tr>
+      </table>
+    </div>
+
+    <h3>카카오톡 문의</h3>
+    <p>프로필 카드의 <strong>문의</strong> 버튼을 누르면 카카오톡 오픈채팅으로 연결됩니다. 앱 이용 중 문의사항이 있을 때 사용하세요.</p>
+
+    <h3>로그아웃</h3>
+    <p>프로필 카드의 <strong>🚪 로그아웃</strong> 버튼을 누릅니다.</p>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="notices">
+    <h2>📋 공지사항</h2>
+    <p>관리자가 등록한 공지·매뉴얼·안내문을 확인하는 게시판입니다. <strong>마이페이지 → 📋 공지사항</strong> 버튼으로 진입합니다.</p>
+
+    <h3>목록 보기</h3>
+    <ul class="feat">
+      <li>📌 고정된 공지는 항상 최상단에 표시됩니다.</li>
+      <li>제목, 작성자, 날짜가 표시되며 탭하면 상세 내용을 볼 수 있습니다.</li>
+    </ul>
+
+    <h3>상세 보기</h3>
+    <ul class="feat">
+      <li>본문 텍스트와 첨부 사진을 확인합니다.</li>
+      <li>사진을 탭하면 전체화면 뷰어가 열립니다.</li>
+    </ul>
+
+    <h3>사진 뷰어 조작</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>동작</th><th>효과</th></tr>
+        <tr><td>핀치 (두 손가락)</td><td>확대 / 축소</td></tr>
+        <tr><td>더블탭</td><td>2.5배 확대 ↔ 원래 크기 토글</td></tr>
+        <tr><td>드래그</td><td>확대된 이미지 이동</td></tr>
+        <tr><td>마우스 휠 (PC)</td><td>확대 / 축소</td></tr>
+        <tr><td>이전 / 다음 버튼</td><td>여러 장일 때 사진 전환</td></tr>
+      </table>
+    </div>
+
+    <h3>관리자 — 공지 작성</h3>
+    <ol class="steps">
+      <li>공지사항 화면 우측 상단 <strong>+ 작성</strong>을 누릅니다.</li>
+      <li>제목과 내용을 입력합니다.</li>
+      <li><strong>📷 사진 추가</strong>로 이미지를 첨부합니다 (최대 10장, 자동 압축).</li>
+      <li><strong>📌 상단 고정</strong>을 켜면 목록 최상단에 고정됩니다.</li>
+      <li><strong>💾 저장</strong>을 누릅니다.</li>
+    </ol>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="guide-leader">
+    <h2>🛡️ 클럽장 가이드</h2>
+    <p>
+      <span class="role role-leader">클럽장</span>
+      또는
+      <span class="role role-sub">부클럽장</span>
+      역할을 가진 회원을 위한 안내입니다.
+    </p>
+
+    <div class="info-box warn">
+      <strong>클럽장 신청 안내</strong>
+      클럽장이 되려면 <strong>관리자에게 클럽장 신청</strong>을 해야 합니다. 관리자 승인 후 클럽 만들기 버튼이 활성화됩니다.
+    </div>
+
+    <h3>클럽 만들기</h3>
+    <ol class="steps">
+      <li>클럽 화면 우측 상단의 <strong>+ 클럽 만들기</strong>를 탭합니다.</li>
+      <li>클럽명, 지역, 클럽 소개를 입력합니다.</li>
+      <li><strong>🏊 클럽 만들기</strong>를 눌러 생성합니다.</li>
+    </ol>
+
+    <h3>회원 가입 승인</h3>
+    <ol class="steps">
+      <li>클럽 상세 → <strong>관리</strong> 탭을 엽니다.</li>
+      <li>가입 대기 중인 회원 목록과 신청 메시지가 표시됩니다.</li>
+      <li>각 신청에 대해 <strong>✓ 승인</strong> 또는 <strong>✕ 거절</strong>을 선택합니다.</li>
+    </ol>
+
+    <h3>클럽 훈련 등록</h3>
+    <ol class="steps">
+      <li>클럽 상세 → <strong>훈련</strong> 탭 하단의 <strong>+ 훈련 등록</strong>을 누릅니다.</li>
+      <li>제목, 날짜(YYYY-MM-DD), 시간(선택), 장소, 설명, 모집 인원을 입력합니다.</li>
+      <li><strong>등록</strong>을 누릅니다. 달력에 해당 날짜에 점이 표시됩니다.</li>
+    </ol>
+
+    <h3>참가자 출석 확인</h3>
+    <p>훈련 카드의 <strong>👥 N명</strong> 버튼을 탭하면 참가자 명단을 볼 수 있습니다. 각 회원의 상태(신청/참석/불참)가 표시됩니다.</p>
+
+    <h3>공지사항 작성</h3>
+    <ol class="steps">
+      <li>클럽 상세 → <strong>공지사항</strong> 탭 → <strong>+ 공지 작성</strong>을 누릅니다.</li>
+      <li>제목과 내용을 입력하고 <strong>게시</strong>를 누릅니다.</li>
+    </ol>
+
+    <h3>부클럽장 임명 / 해제 <span class="tag-new">NEW</span></h3>
+    <ol class="steps">
+      <li>클럽 상세 → <strong>회원</strong> 탭에서 대상 회원을 찾습니다.</li>
+      <li>회원 행 우측의 <strong>부클럽장</strong> 버튼을 누릅니다. 이미 부클럽장이면 <strong>해제</strong> 버튼이 표시됩니다.</li>
+    </ol>
+    <p>부클럽장은 훈련 등록·관리, 가입 신청 승인·거절 권한을 가집니다.</p>
+
+    <h3>회원 강제 탈퇴 <span class="tag-new">NEW</span></h3>
+    <ol class="steps">
+      <li>클럽 상세 → <strong>회원</strong> 탭에서 대상 회원을 찾습니다.</li>
+      <li>회원 행 우측의 <strong>탈퇴</strong> 버튼(빨간색)을 누르고 확인합니다.</li>
+    </ol>
+
+    <h3>클럽장 양도</h3>
+    <ol class="steps">
+      <li>클럽 상세 → <strong>관리</strong> 탭 하단의 <strong>👑 클럽장 양도 → 양도하기</strong>를 누릅니다.</li>
+      <li>양도받을 회원을 목록에서 선택합니다.</li>
+      <li><strong>👑 클럽장 양도 확정</strong>을 누릅니다. 양도 후 본인은 일반 회원으로 전환됩니다.</li>
+    </ol>
+
+    <h3>클럽 정보 수정 / 삭제</h3>
+    <p>클럽 상세 상단 카드의 <strong>✏️ 수정</strong> 버튼을 누르면 클럽명, 지역, 소개를 수정하거나 클럽 전체를 삭제할 수 있습니다.</p>
+    <div class="info-box warn">
+      <strong>주의</strong>
+      클럽 삭제 시 클럽 관련 모든 데이터(공지, 훈련, 회원 정보)가 영구 삭제됩니다.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="guide-admin">
+    <h2>⚙️ 관리자 가이드</h2>
+    <p>
+      <span class="role role-admin">관리자</span>
+      역할 또는
+      <span class="role role-approver">승인관리자</span>
+      권한을 가진 회원을 위한 안내입니다. 관리 화면은 하단 탭의 <strong>⚙️ 관리</strong>에서 접근합니다.
+    </p>
+
+    <h3>탭 구성</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>탭</th><th>접근 권한</th><th>내용</th></tr>
+        <tr><td>훈련 승인</td><td>관리자 + 승인관리자</td><td>대기 중인 훈련 기록 승인/반려</td></tr>
+        <tr><td>클럽장 신청</td><td>관리자 전용</td><td>클럽장 신청 승인/거절</td></tr>
+        <tr><td>회원 관리</td><td>관리자 전용</td><td>전체 회원 조회 및 역할 변경</td></tr>
+      </table>
+    </div>
+
+    <h3>훈련 승인 (승인관리자 포함)</h3>
+    <ol class="steps">
+      <li><strong>관리 → 훈련 승인</strong> 탭을 엽니다.</li>
+      <li>대기 중인 훈련 목록을 확인합니다.</li>
+      <li>각 기록의 종목, 거리, 시간, 메모를 검토합니다.</li>
+      <li><strong>✓ 승인</strong> 또는 <strong>✕ 반려</strong>를 선택합니다.</li>
+    </ol>
+
+    <h3>가입 신청 관리</h3>
+    <ol class="steps">
+      <li><strong>관리 → 가입 신청</strong> 탭을 엽니다.</li>
+      <li>가입 신청 목록에서 신청자 정보와 메시지를 확인합니다.</li>
+      <li><strong>✓ 승인</strong> 또는 <strong>✕ 거절</strong>을 처리합니다.</li>
+    </ol>
+    <div class="info-box">
+      <strong>참고</strong>
+      클럽장이 있는 클럽은 클럽장이 1차로 처리합니다. 클럽장이 없는 경우 관리자가 처리합니다.
+    </div>
+
+    <h3>회원 관리</h3>
+    <ol class="steps">
+      <li><strong>관리 → 회원 관리</strong> 탭을 엽니다.</li>
+      <li>전체 회원 목록과 각 회원의 이메일, 훈련 횟수를 확인합니다.</li>
+    </ol>
+    <p>회원 관리에서 할 수 있는 작업:</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>기능</th><th>설명</th></tr>
+        <tr><td>관리자 권한 부여</td><td>일반 회원 → 관리자로 역할 변경</td></tr>
+        <tr><td>관리자 권한 해제</td><td>관리자 → 일반 회원으로 역할 변경</td></tr>
+        <tr><td>회원 삭제</td><td>해당 회원의 모든 데이터 영구 삭제 (복구 불가)</td></tr>
+      </table>
+    </div>
+    <div class="info-box warn">
+      <strong>주의</strong>
+      회원 삭제는 훈련 기록, 댓글, 팔로우 관계 등 <strong>모든 관련 데이터가 영구 삭제</strong>됩니다. 신중하게 진행하세요.
+    </div>
+
+    <h3>비밀번호 재설정 코드 발급 (이메일 미등록 회원)</h3>
+    <p>이메일이 등록된 회원은 로그인 화면에서 직접 재설정할 수 있습니다. 이메일이 없는 회원은 관리자가 코드를 발급해 전달해야 합니다.</p>
+    <ol class="steps">
+      <li><strong>관리 → 회원 관리</strong> 탭을 엽니다.</li>
+      <li>해당 회원 행의 <strong>코드발급</strong> 버튼(노란색)을 탭합니다.</li>
+      <li>이메일이 등록된 회원은 자동으로 이메일 발송되며, 미등록 회원은 코드가 화면에 표시됩니다.</li>
+      <li>코드를 사용자에게 직접 전달합니다. 코드는 <strong>30분간 유효</strong>합니다.</li>
+    </ol>
+    <div class="info-box tip">
+      <strong>Tip</strong>
+      코드는 한 번만 사용할 수 있습니다. 사용자가 재설정을 완료하면 자동으로 만료됩니다.
+    </div>
+
+    <h3>대회 등록 및 수정</h3>
+    <p>관리자는 대회 캘린더 화면에서 직접 대회를 등록·수정·삭제할 수 있습니다.</p>
+    <ol class="steps">
+      <li>대회 화면 우측 상단의 <strong>+ 등록</strong> 버튼을 누릅니다.</li>
+      <li>대회명, 날짜, 장소, 종목(Sprint/Olympic/Half/King)을 입력합니다.</li>
+      <li>접수 시작일·마감일, 참가비, 모집 인원, 접수 URL을 입력합니다.</li>
+      <li><strong>저장</strong>을 눌러 등록합니다.</li>
+    </ol>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="visibility">
+    <h2>🔒 공개 범위 안내</h2>
+    <p>훈련 기록을 등록할 때 공개 범위를 설정할 수 있습니다.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>공개 범위</th><th>아이콘</th><th>누가 볼 수 있나요?</th></tr>
+        <tr><td>전체</td><td>🌍</td><td>TRIZONE 모든 회원</td></tr>
+        <tr><td>클럽원</td><td>👥</td><td>같은 클럽 회원만</td></tr>
+        <tr><td>팔로워</td><td>👤</td><td>나를 팔로우한 사람만</td></tr>
+        <tr><td>비공개</td><td>🔒</td><td>나만 볼 수 있음 (내피드에서는 보임)</td></tr>
+      </table>
+    </div>
+    <div class="info-box tip">
+      <strong>Tip</strong>
+      기록 등록 후에도 훈련 기록 목록에서 해당 기록을 삭제하고 다시 원하는 공개 범위로 재등록할 수 있습니다.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="roles">
+    <h2>📌 역할 & 권한 요약</h2>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>역할</th>
+          <th>훈련 기록</th>
+          <th>피드·랭킹</th>
+          <th>클럽 관리</th>
+          <th>훈련 승인·쪽지</th>
+          <th>회원 관리</th>
+        </tr>
+        <tr>
+          <td><span class="role role-member">일반 회원</span></td>
+          <td>✓</td><td>✓</td><td>-</td><td>-</td><td>-</td>
+        </tr>
+        <tr>
+          <td><span class="role role-approver">승인관리자</span></td>
+          <td>✓</td><td>✓</td><td>-</td><td>✓</td><td>-</td>
+        </tr>
+        <tr>
+          <td><span class="role role-sub">부클럽장</span></td>
+          <td>✓</td><td>✓</td><td>훈련·승인</td><td>-</td><td>-</td>
+        </tr>
+        <tr>
+          <td><span class="role role-leader">클럽장</span></td>
+          <td>✓</td><td>✓</td><td>전체</td><td>-</td><td>-</td>
+        </tr>
+        <tr>
+          <td><span class="role role-admin">관리자</span></td>
+          <td>✓</td><td>✓</td><td>전체</td><td>✓</td><td>✓</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="faq">
+    <h2>❓ 자주 묻는 질문 (FAQ)</h2>
+
+    <h3>훈련 기록을 올렸는데 랭킹에 반영이 안 돼요.</h3>
+    <p>훈련 기록은 승인관리자의 검토·승인 후 랭킹에 반영됩니다. <strong>훈련 기록 → 📋 목록</strong> 탭에서 현재 승인 상태를 확인해 주세요.</p>
+
+    <h3>클럽 가입 신청 후 아무 소식이 없어요.</h3>
+    <p>클럽장이 아직 검토 중입니다. 클럽 상세 페이지에서 <em>⏳ 클럽장 승인 대기 중</em> 상태가 표시되면 정상입니다. 오랜 시간이 지나도 처리가 없으면 <strong>마이페이지 → 관리자 문의</strong>를 이용해 문의하세요.</p>
+
+    <h3>비밀번호를 잊어버렸어요.</h3>
+    <p>로그인 화면 하단의 <strong>비밀번호를 잊으셨나요?</strong> 링크를 탭하세요. 이메일을 입력하면 재설정 코드가 자동으로 발송됩니다. 이메일이 계정에 등록되어 있지 않다면 <strong>마이페이지 → 관리자 문의</strong> 또는 관리자에게 직접 연락해 코드 발급을 요청하세요.</p>
+
+    <h3>훈련 기록을 삭제하고 싶어요.</h3>
+    <p>두 가지 방법으로 삭제할 수 있습니다. <strong>피드</strong>에서 내 기록 카드 하단의 <strong>삭제</strong> 버튼을 누르거나, <strong>훈련 기록 → 📋 목록</strong> 탭에서 기록 카드 우측 🗑️ 버튼을 누르세요.</p>
+
+    <h3>기록에 올린 사진을 삭제하고 싶어요.</h3>
+    <p>현재 사진 개별 삭제는 지원하지 않습니다. 기록 전체를 삭제한 뒤 사진 없이 다시 등록하는 방법을 이용하세요.</p>
+
+    <h3>팔로우를 하면 상대방에게 알림이 가나요?</h3>
+    <p>현재 푸시 알림 기능은 제공되지 않습니다.</p>
+
+    <h3>클럽을 직접 만들 수 있나요?</h3>
+    <p>관리자에게 클럽장 신청을 하여 승인을 받으면 클럽 화면에서 직접 만들 수 있습니다. 신청은 <strong>마이페이지 → 관리자 문의</strong>를 이용해 주세요.</p>
+
+    <h3>여러 클럽에 동시에 가입할 수 있나요?</h3>
+    <p>현재 한 개의 클럽에만 소속될 수 있습니다.</p>
+
+    <h3>관리자에게 문의를 보냈는데 답장 확인은 어떻게 하나요?</h3>
+    <p><strong>마이페이지 → 관리자 문의</strong> 섹션에서 이전에 보낸 문의를 탭하면 관리자의 답장을 스레드 형태로 확인할 수 있습니다. 새 답장이 있으면 문의 항목에 <strong>답장</strong> 배지가 표시됩니다.</p>
+  </section>
+
+  <footer style="margin-top:80px; padding:32px 0; border-top:1px solid var(--border); color:var(--text-muted); font-size:.85rem; text-align:center;">
+    TRIZONE 사용자 매뉴얼 &nbsp;·&nbsp; 최종 수정: 2026년 5월
+  </footer>
+
+</main>
+
+<script>
+  document.querySelectorAll('nav a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a[href^="#"]');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.style.fontWeight = '');
+        const active = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+        if (active) active.style.fontWeight = '700';
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
