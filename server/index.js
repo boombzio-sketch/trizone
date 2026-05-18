@@ -26,7 +26,6 @@ initDb().then(() => {
   app.use('/api/admin',   require('./routes/admin'));
   app.use('/api/races',   require('./routes/races'));
   app.use('/api/clubs',    require('./routes/clubs'));
-  app.use('/api/messages', require('./routes/messages'));
   app.get('/api/health',  (req, res) => res.json({ ok: true }));
 
   app.use((err, req, res, _next) => {

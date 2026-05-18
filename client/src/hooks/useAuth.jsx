@@ -12,26 +12,48 @@ function isTokenExpired(token) {
   }
 }
 
+function getCachedUser() {
+  try {
+    const raw = localStorage.getItem('tz_user')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function setCachedUser(user) {
+  if (user) localStorage.setItem('tz_user', JSON.stringify(user))
+  else localStorage.removeItem('tz_user')
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const token = localStorage.getItem('tz_token')
+  const cached = (!token || isTokenExpired(token)) ? null : getCachedUser()
+
+  const [user, setUser] = useState(cached)
+  // loading=false immediately if we have cached user; true if we need to fetch
+  const [loading, setLoading] = useState(!cached)
 
   useEffect(() => {
     const token = localStorage.getItem('tz_token')
     if (!token || isTokenExpired(token)) {
       if (token) removeToken()
+      setCachedUser(null)
+      setUser(null)
       setLoading(false)
       return
     }
+    // 캐시된 유저가 있으면 백그라운드에서 조용히 갱신
     api.me()
-      .then(u => setUser(u))
-      .catch(() => removeToken())
+      .then(u => { setUser(u); setCachedUser(u) })
+      .catch(() => { removeToken(); setCachedUser(null); setUser(null) })
       .finally(() => setLoading(false))
   }, [])
 
   async function login(email, password) {
     const data = await api.login({ email, password })
     setToken(data.token)
+    setCachedUser(data.user)
     setUser(data.user)
     return data.user
   }
@@ -39,17 +61,20 @@ export function AuthProvider({ children }) {
   async function register(email, nickname, password) {
     const data = await api.register({ email, nickname, password })
     setToken(data.token)
+    setCachedUser(data.user)
     setUser(data.user)
     return data.user
   }
 
   function logout() {
     removeToken()
+    setCachedUser(null)
     setUser(null)
   }
 
   async function refreshUser() {
     const u = await api.me()
+    setCachedUser(u)
     setUser(u)
     return u
   }

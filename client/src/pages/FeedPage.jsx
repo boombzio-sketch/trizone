@@ -257,11 +257,33 @@ function DurInput({ value, onChange, style }) {
   )
 }
 
+async function compressImage(file, maxW = 1024, quality = 0.78) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.src = url
+  })
+}
+
 function EditModal({ feed, onSave, onClose }) {
   const isBrick = feed.sport_type === 'brick'
   const initSegs = isBrick
     ? (() => { try { return JSON.parse(feed.brick_segments || '[]') } catch { return [] } })()
     : null
+
+  const initPhotos = (() => {
+    try { const p = JSON.parse(feed.photos || '[]'); return p.length > 0 ? p : (feed.photo ? [feed.photo] : []) }
+    catch { return feed.photo ? [feed.photo] : [] }
+  })()
 
   const [date, setDate]           = useState(feed.logged_at?.slice(0, 10) || '')
   const [distKm, setDistKm]       = useState(feed.distance_km || 0)
@@ -275,8 +297,28 @@ function EditModal({ feed, onSave, onClose }) {
   const [segs, setSegs]           = useState(
     initSegs ? initSegs.map(s => ({ ...s, dur: secsToDur(s.duration_sec) })) : null
   )
+  const [photos, setPhotos]       = useState(initPhotos)
+  const [coverIdx, setCoverIdx]   = useState(feed.cover_photo_index || 0)
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState('')
+
+  async function handlePhotoAdd(e) {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    const remaining = 5 - photos.length
+    const compressed = await Promise.all(files.slice(0, remaining).map(f => compressImage(f)))
+    setPhotos(prev => [...prev, ...compressed])
+    e.target.value = ''
+  }
+
+  function removePhoto(i) {
+    setPhotos(prev => prev.filter((_, j) => j !== i))
+    setCoverIdx(prev => {
+      if (prev === i) return 0
+      if (prev > i) return prev - 1
+      return prev
+    })
+  }
 
   const iSt = { width: '100%', padding: '9px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit' }
   const lSt = { display: 'block', fontSize: 10, fontWeight: 700, color: C.text2, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }
@@ -300,7 +342,7 @@ function EditModal({ feed, onSave, onClose }) {
   async function handleSave() {
     setSaving(true); setErr('')
     try {
-      const body = { memo, visibility, logged_at: date }
+      const body = { memo, visibility, logged_at: date, photos, cover_photo_index: coverIdx }
       if (isBrick && segs) {
         body.brick_segments = segs.map(s => ({ sport: s.sport, distance_km: Number(s.distance_km), duration_sec: durToSecs(s.dur) }))
       } else {
@@ -402,6 +444,40 @@ function EditModal({ feed, onSave, onClose }) {
             </div>
           </>
         )}
+
+        {/* 사진 */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={lSt}>사진 ({photos.length}/5) {photos.length > 0 && '— 대표 사진을 탭하세요'}</label>
+          {photos.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              {photos.map((p, i) => (
+                <div key={i} style={{ position: 'relative' }}>
+                  <img
+                    src={p} alt={`사진 ${i+1}`}
+                    onClick={() => setCoverIdx(i)}
+                    style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, display: 'block', cursor: 'pointer',
+                      outline: i === coverIdx ? `3px solid ${C.accent}` : '3px solid transparent' }}
+                  />
+                  {i === coverIdx && (
+                    <div style={{ position: 'absolute', top: 3, left: 3, background: C.accent, borderRadius: 4, fontSize: 8, fontWeight: 800, color: '#fff', padding: '1px 5px' }}>대표</div>
+                  )}
+                  <button onClick={() => removePhoto(i)} style={{
+                    position: 'absolute', top: 3, right: 3, width: 20, height: 20,
+                    background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%',
+                    color: '#fff', fontSize: 11, cursor: 'pointer', lineHeight: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {photos.length < 5 && (
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: C.surfaceAlt, border: `1px dashed ${C.border}`, borderRadius: 10, cursor: 'pointer', fontSize: 12, color: C.text2, fontWeight: 700 }}>
+              📷 사진 추가
+              <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: 'none' }} />
+            </label>
+          )}
+        </div>
 
         {/* 메모 */}
         <div style={{ marginBottom: 12 }}>

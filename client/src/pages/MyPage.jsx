@@ -72,32 +72,6 @@ export default function MyPage() {
 
   const stats = profile?.stats || []
 
-  const [showCompose, setShowCompose] = useState(false)
-  const [msgBody, setMsgBody] = useState('')
-  const [msgSending, setMsgSending] = useState(false)
-  const [myMessages, setMyMessages] = useState([])
-  const [selectedThread, setSelectedThread] = useState(null)
-
-  useEffect(() => {
-    if (user?.id) api.getMyMessages().then(setMyMessages).catch(() => {})
-  }, [user])
-
-  async function sendMsg() {
-    if (!msgBody.trim()) return
-    setMsgSending(true)
-    try {
-      await api.sendMessage(msgBody)
-      setMsgBody(''); setShowCompose(false)
-      setMyMessages(await api.getMyMessages())
-    } finally { setMsgSending(false) }
-  }
-
-  async function openThread(msg) {
-    const thread = await api.getThread(msg.id)
-    setSelectedThread(thread)
-    setMyMessages(await api.getMyMessages())
-  }
-
   return (
     <div style={{ padding: 14 }}>
 
@@ -238,52 +212,6 @@ export default function MyPage() {
           )
         })}
       </>)}
-
-      {/* 관리자 문의 */}
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>관리자 문의</div>
-          <button onClick={() => { setShowCompose(true); setMsgBody('') }} style={{ fontSize: 12, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontWeight: 700 }}>
-            + 문의하기
-          </button>
-        </div>
-        {myMessages.length === 0
-          ? <div style={{ fontSize: 12, color: C.text2, textAlign: 'center', padding: '20px 0' }}>문의 내역이 없습니다.</div>
-          : myMessages.map(m => (
-            <button key={m.id} onClick={() => openThread(m)} style={{ width: '100%', textAlign: 'left', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ fontSize: 13, color: C.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.body}</div>
-                {m.unread_replies > 0 && <span style={{ fontSize: 10, background: C.accent, color: '#fff', borderRadius: 99, padding: '2px 7px', fontWeight: 800, flexShrink: 0 }}>답장</span>}
-                {m.reply_count > 0 && !m.unread_replies && <span style={{ fontSize: 10, color: C.text3, flexShrink: 0 }}>답장 {m.reply_count}</span>}
-              </div>
-              <div style={{ fontSize: 10, color: C.text3, marginTop: 4 }}>{m.created_at?.slice(0, 16).replace('T', ' ')}</div>
-            </button>
-          ))
-        }
-      </div>
-
-      {/* 쪽지 작성 모달 */}
-      {showCompose && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ background: C.surface, borderRadius: '22px 22px 0 0', width: '100%', padding: 20, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>📨 관리자에게 문의</div>
-            <textarea value={msgBody} onChange={e => setMsgBody(e.target.value)} rows={5}
-              placeholder="문의 내용을 입력하세요..."
-              style={{ width: '100%', padding: '12px 14px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 12, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'none' }} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button onClick={() => setShowCompose(false)} style={{ flex: 1, padding: '12px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
-              <button onClick={sendMsg} disabled={msgSending || !msgBody.trim()} style={{ flex: 2, padding: '12px', background: msgSending ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 12, color: msgSending ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                {msgSending ? '전송 중...' : '📨 전송'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 스레드 모달 */}
-      {selectedThread && (
-        <ThreadModal thread={selectedThread} user={user} onClose={() => setSelectedThread(null)} />
-      )}
 
       {cropUrl && (
         <AvatarCropModal
@@ -465,36 +393,6 @@ function AvatarModal({ nickname, avatar_color, avatar_image, onClose }) {
       }
       <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{nickname}</div>
       <button onClick={onClose} style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
-    </div>
-  )
-}
-
-function ThreadModal({ thread, user, onClose }) {
-  const { original, replies } = thread
-  const isAdmin = user?.role === 'admin' || user?.can_approve
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{ background: C.surface, borderRadius: '22px 22px 0 0', width: '100%', maxHeight: '75vh', display: 'flex', flexDirection: 'column', border: `1px solid ${C.border}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>📨 문의 내역</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.text2, fontSize: 18, cursor: 'pointer' }}>✕</button>
-        </div>
-        <div style={{ overflowY: 'auto', padding: '14px 16px', flex: 1 }}>
-          {/* 원본 */}
-          <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '12px 14px', marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: C.text3, marginBottom: 6 }}>{original.from_nickname} · {original.created_at?.slice(0, 16).replace('T', ' ')}</div>
-            <div style={{ fontSize: 13, color: C.text, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{original.body}</div>
-          </div>
-          {/* 답장들 */}
-          {replies.map(r => (
-            <div key={r.id} style={{ background: isAdmin ? C.surfaceAlt : C.accentBg, border: `1px solid ${isAdmin ? C.border : C.accentBorder}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, marginLeft: 12 }}>
-              <div style={{ fontSize: 11, color: C.accent, marginBottom: 6, fontWeight: 700 }}>관리자 · {r.created_at?.slice(0, 16).replace('T', ' ')}</div>
-              <div style={{ fontSize: 13, color: C.text, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{r.body}</div>
-            </div>
-          ))}
-          {replies.length === 0 && <div style={{ fontSize: 12, color: C.text2, textAlign: 'center', padding: '12px 0' }}>아직 답장이 없습니다.</div>}
-        </div>
-      </div>
     </div>
   )
 }

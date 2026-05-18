@@ -61,7 +61,8 @@ router.get('/all', ...adminOnly, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   const id = Number(req.params.id);
   const { memo, visibility, logged_at, distance_km, duration_sec,
-          pool_type, elevation_m, course_type, avg_power_w, brick_segments } = req.body;
+          pool_type, elevation_m, course_type, avg_power_w, brick_segments,
+          photos, cover_photo_index } = req.body;
 
   const row = await db.prepare('SELECT * FROM workout_logs WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
@@ -74,6 +75,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
   const newDur   = duration_sec !== undefined ? Number(duration_sec) : row.duration_sec;
   const newBrick = brick_segments ? JSON.stringify(brick_segments)   : row.brick_segments;
 
+  let newPhotos = row.photos;
+  let newCoverIdx = row.cover_photo_index;
+  let newPhoto = row.photo;
+  if (photos !== undefined) {
+    newPhotos = JSON.stringify(photos);
+    newCoverIdx = cover_photo_index !== undefined ? Number(cover_photo_index) : 0;
+    newPhoto = photos[newCoverIdx] || '';
+  }
+
   const pace  = calcPace(row.sport_type, newDist, newDur);
   const score = calcScore(row.sport_type, newDist, newBrick);
 
@@ -81,7 +91,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     UPDATE workout_logs
     SET memo=?, visibility=?, logged_at=?, distance_km=?, duration_sec=?,
         pool_type=?, elevation_m=?, course_type=?, avg_power_w=?,
-        brick_segments=?, pace=?, score=?
+        brick_segments=?, pace=?, score=?, photos=?, cover_photo_index=?, photo=?
     WHERE id=?
   `).run(
     memo      ?? row.memo,
@@ -92,7 +102,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     elevation_m  !== undefined ? elevation_m  : row.elevation_m,
     course_type  !== undefined ? course_type  : row.course_type,
     avg_power_w  !== undefined ? avg_power_w  : row.avg_power_w,
-    newBrick, pace, score, id
+    newBrick, pace, score, newPhotos, newCoverIdx, newPhoto, id
   );
   res.json(await db.prepare('SELECT * FROM workout_logs WHERE id=?').get(id));
 });

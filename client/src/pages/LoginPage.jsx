@@ -207,6 +207,24 @@ export default function LoginPage() {
             </form>
           </>
         )}
+
+        {/* 카카오톡 문의 */}
+        <a
+          href="https://open.kakao.com/o/s1Hv4rvi"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            marginTop: 32, padding: '12px 20px',
+            background: '#FEE500', borderRadius: 12, border: 'none',
+            textDecoration: 'none', cursor: 'pointer',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path fillRule="evenodd" clipRule="evenodd" d="M10 2C5.582 2 2 4.91 2 8.5c0 2.28 1.376 4.285 3.46 5.493l-.88 3.25a.25.25 0 0 0 .373.277L9.1 15.18A9.7 9.7 0 0 0 10 15.25c4.418 0 8-2.91 8-6.5S14.418 2 10 2z" fill="#3A1D1D"/>
+          </svg>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#3A1D1D' }}>카카오톡으로 문의하기</span>
+        </a>
       </div>
     </div>
   )

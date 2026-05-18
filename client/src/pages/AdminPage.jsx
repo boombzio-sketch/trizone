@@ -9,7 +9,7 @@ import Avatar from '../components/Avatar.jsx'
 export default function AdminPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('pending')
-  const [badges, setBadges] = useState({ pending: null, messages: null, leaderApps: null, members: null })
+  const [badges, setBadges] = useState({ pending: null, leaderApps: null, members: null })
 
   const isAdmin     = user?.role === 'admin'
   const canApprove  = isAdmin || user?.can_approve
@@ -20,7 +20,6 @@ export default function AdminPage() {
 
   const tabDefs = [
     { key: 'pending',  label: '훈련 승인', badge: badges.pending },
-    { key: 'messages', label: '쪽지',      badge: badges.messages },
     ...(isAdmin ? [
       { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
       { key: 'members',     label: '회원 관리',  badge: badges.members },
@@ -54,7 +53,6 @@ export default function AdminPage() {
         </div>
       </div>
       <div style={{ display: tab === 'pending'  ? 'block' : 'none' }}><PendingTab  onBadge={c => setBadge('pending', c)} /></div>
-      <div style={{ display: tab === 'messages' ? 'block' : 'none' }}><MessagesTab onBadge={c => setBadge('messages', c)} /></div>
       {isAdmin && <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>}
       {isAdmin && <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>}
     </div>
@@ -697,111 +695,6 @@ function MembersTab({ user: currentUser, onBadge }) {
           </div>
         </div>
       ))}
-    </div>
-  )
-}
-
-function MessagesTab({ onBadge }) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(null)
-  const [replyText, setReplyText] = useState('')
-  const [replying, setReplying] = useState(false)
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    try {
-      const data = await api.getInbox()
-      setItems(data)
-      onBadge(data.filter(m => !m.is_read).length)
-    } finally { setLoading(false) }
-  }
-
-  async function openThread(msg) {
-    const thread = await api.getThread(msg.id)
-    setSelected(thread)
-    setReplyText('')
-    setItems(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m))
-    onBadge(items.filter(m => !m.is_read && m.id !== msg.id).length)
-  }
-
-  async function sendReply() {
-    if (!replyText.trim() || !selected) return
-    setReplying(true)
-    try {
-      const reply = await api.replyMessage(selected.original.id, replyText)
-      setSelected(prev => ({ ...prev, replies: [...prev.replies, reply] }))
-      setReplyText('')
-    } finally { setReplying(false) }
-  }
-
-  async function handleDelete(id) {
-    if (!confirm('쪽지를 삭제할까요?')) return
-    await api.deleteMessage(id)
-    setItems(prev => prev.filter(m => m.id !== id))
-    setSelected(null)
-    onBadge(items.filter(m => !m.is_read && m.id !== id).length)
-  }
-
-  if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
-
-  if (selected) {
-    const { original, replies } = selected
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)' }}>
-        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: C.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0 }}>← 목록</button>
-          <span style={{ fontSize: 13, color: C.text2, flex: 1 }}>{original.from_nickname}</span>
-          <button onClick={() => handleDelete(original.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 7, color: C.error, fontSize: 11, fontWeight: 700, padding: '4px 10px', cursor: 'pointer' }}>삭제</button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
-          <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: '12px 14px', marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: C.text3, marginBottom: 6 }}>{original.from_nickname} · {original.created_at?.slice(0, 16).replace('T', ' ')}</div>
-            <div style={{ fontSize: 13, color: C.text, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{original.body}</div>
-          </div>
-          {replies.map(r => (
-            <div key={r.id} style={{ background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, marginLeft: 12 }}>
-              <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, marginBottom: 6 }}>관리자 · {r.created_at?.slice(0, 16).replace('T', ' ')}</div>
-              <div style={{ fontSize: 13, color: C.text, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{r.body}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
-          <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={2} placeholder="답장을 입력하세요..."
-            style={{ flex: 1, padding: '10px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'none' }} />
-          <button onClick={sendReply} disabled={replying || !replyText.trim()} style={{ padding: '10px 16px', background: replying ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 10, color: replying ? C.text2 : '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-end' }}>전송</button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>
-        전체 {items.length}건 · 미확인 {items.filter(m => !m.is_read).length}건
-      </div>
-      {items.length === 0
-        ? <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>받은 문의가 없습니다</div>
-          </div>
-        : items.map(m => (
-          <button key={m.id} onClick={() => openThread(m)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, background: m.is_read ? 'transparent' : C.accentBg + '55', cursor: 'pointer', border: 'none' }}>
-            <Avatar nickname={m.from_nickname} avatar_color={m.from_avatar_color} avatar_image={m.from_avatar_image} size={38} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                <span style={{ fontSize: 13, fontWeight: m.is_read ? 600 : 800, color: C.text }}>{m.from_nickname}</span>
-                <span style={{ fontSize: 10, color: C.text3 }}>{m.created_at?.slice(0, 10)}</span>
-              </div>
-              <div style={{ fontSize: 12, color: C.text2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.body}</div>
-              {m.reply_count > 0 && <div style={{ fontSize: 10, color: C.accent, marginTop: 3 }}>답장 {m.reply_count}개</div>}
-            </div>
-            {!m.is_read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.accent, flexShrink: 0, marginTop: 4 }} />}
-          </button>
-        ))
-      }
     </div>
   )
 }
