@@ -64,7 +64,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div style={{ minHeight: '100dvh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, overflowY: 'auto' }}>
       <div style={{ width: '100%', maxWidth: 360 }}>
         {/* 로고 */}
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
