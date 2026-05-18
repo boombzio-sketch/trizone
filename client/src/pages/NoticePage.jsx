@@ -157,19 +157,188 @@ function DetailView({ notice, photos, isAdmin, onBack, onEdit, onDelete }) {
         )}
       </div>
 
-      {/* 사진 전체화면 */}
       {photoIdx !== null && (
-        <div onClick={() => setPhotoIdx(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={photos[photoIdx]} alt="" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8 }} />
-          {photos.length > 1 && (
-            <>
-              <button onClick={e => { e.stopPropagation(); setPhotoIdx(i => (i - 1 + photos.length) % photos.length) }}
-                style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer' }}>‹</button>
-              <button onClick={e => { e.stopPropagation(); setPhotoIdx(i => (i + 1) % photos.length) }}
-                style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer' }}>›</button>
-            </>
+        <PhotoViewer photos={photos} index={photoIdx} onClose={() => setPhotoIdx(null)} onChange={setPhotoIdx} />
+      )}
+    </div>
+  )
+}
+
+function PhotoViewer({ photos, index, onClose, onChange }) {
+  const [scale, setScale] = useState(1)
+  const [ox, setOx] = useState(0)
+  const [oy, setOy] = useState(0)
+  const state = useRef({ scale: 1, ox: 0, oy: 0 })
+  const drag = useRef(null)
+  const pinch = useRef(null)
+  const lastTap = useRef(0)
+  const containerRef = useRef(null)
+
+  // 사진 바뀌면 리셋
+  useEffect(() => {
+    setScale(1); setOx(0); setOy(0)
+    state.current = { scale: 1, ox: 0, oy: 0 }
+  }, [index])
+
+  useEffect(() => { state.current = { scale, ox, oy } })
+
+  function clamp(x, y, sc) {
+    const el = containerRef.current
+    if (!el) return { x, y }
+    const maxX = Math.max(0, (el.clientWidth  * (sc - 1)) / 2)
+    const maxY = Math.max(0, (el.clientHeight * (sc - 1)) / 2)
+    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) }
+  }
+
+  function applyScale(next, cx = 0, cy = 0) {
+    const s = state.current
+    const clamped = Math.max(1, Math.min(5, next))
+    const ratio = clamped / s.scale
+    const nx = s.ox * ratio + cx * (1 - ratio)
+    const ny = s.oy * ratio + cy * (1 - ratio)
+    const c = clamp(nx, ny, clamped)
+    setScale(clamped); setOx(c.x); setOy(c.y)
+  }
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    function onTouchStart(e) {
+      const s = state.current
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        pinch.current = { dist: Math.hypot(dx, dy), scale: s.scale, ox: s.ox, oy: s.oy }
+        drag.current = null
+      } else if (e.touches.length === 1) {
+        // 더블탭 확대/축소
+        const now = Date.now()
+        if (now - lastTap.current < 300) {
+          lastTap.current = 0
+          const rect = el.getBoundingClientRect()
+          const cx = e.touches[0].clientX - rect.left - rect.width  / 2
+          const cy = e.touches[0].clientY - rect.top  - rect.height / 2
+          s.scale > 1 ? (setScale(1), setOx(0), setOy(0)) : applyScale(2.5, cx, cy)
+          return
+        }
+        lastTap.current = now
+        drag.current = { sx: e.touches[0].clientX - s.ox, sy: e.touches[0].clientY - s.oy }
+        pinch.current = null
+      }
+    }
+
+    function onTouchMove(e) {
+      const s = state.current
+      if (e.touches.length === 2 && pinch.current) {
+        e.preventDefault()
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        const newScale = Math.max(1, Math.min(5, pinch.current.scale * Math.hypot(dx, dy) / pinch.current.dist))
+        const c = clamp(pinch.current.ox, pinch.current.oy, newScale)
+        setScale(newScale); setOx(c.x); setOy(c.y)
+      } else if (e.touches.length === 1 && drag.current && s.scale > 1) {
+        e.preventDefault()
+        const nx = e.touches[0].clientX - drag.current.sx
+        const ny = e.touches[0].clientY - drag.current.sy
+        const c = clamp(nx, ny, s.scale)
+        setOx(c.x); setOy(c.y)
+      }
+    }
+
+    function onTouchEnd(e) {
+      if (e.touches.length < 2) pinch.current = null
+      if (e.touches.length === 0) drag.current = null
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    el.addEventListener('touchend',   onTouchEnd)
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove',  onTouchMove)
+      el.removeEventListener('touchend',   onTouchEnd)
+    }
+  }, [index])
+
+  function onWheel(e) {
+    e.preventDefault()
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = e.clientX - rect.left - rect.width  / 2
+    const cy = e.clientY - rect.top  - rect.height / 2
+    applyScale(state.current.scale * (e.deltaY < 0 ? 1.15 : 0.87), cx, cy)
+  }
+
+  function onMouseDown(e) {
+    drag.current = { sx: e.clientX - state.current.ox, sy: e.clientY - state.current.oy }
+  }
+  function onMouseMove(e) {
+    if (!drag.current || state.current.scale <= 1) return
+    const c = clamp(e.clientX - drag.current.sx, e.clientY - drag.current.sy, state.current.scale)
+    setOx(c.x); setOy(c.y)
+  }
+  function onMouseUp() { drag.current = null }
+
+  function goTo(dir) {
+    setScale(1); setOx(0); setOy(0)
+    state.current = { scale: 1, ox: 0, oy: 0 }
+    onChange(i => (i + dir + photos.length) % photos.length)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 500, display: 'flex', flexDirection: 'column' }}>
+      {/* 상단 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', flexShrink: 0 }}>
+        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+          {photos.length > 1 ? `${index + 1} / ${photos.length}` : ''}
+          {scale > 1 && <span style={{ marginLeft: 8 }}>{Math.round(scale * 100)}%</span>}
+        </span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {scale > 1 && (
+            <button onClick={() => { setScale(1); setOx(0); setOy(0) }}
+              style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700, padding: '5px 10px', cursor: 'pointer' }}>
+              원래 크기
+            </button>
           )}
-          <button onClick={() => setPhotoIdx(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose}
+            style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 34, height: 34, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        </div>
+      </div>
+
+      {/* 이미지 영역 */}
+      <div
+        ref={containerRef}
+        onWheel={onWheel}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: scale > 1 ? 'grab' : 'default', touchAction: 'none', userSelect: 'none' }}
+      >
+        <img
+          src={photos[index]} alt=""
+          draggable={false}
+          style={{
+            maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
+            transform: `scale(${scale}) translate(${ox / scale}px, ${oy / scale}px)`,
+            transformOrigin: 'center',
+            transition: drag.current || pinch.current ? 'none' : 'transform 0.15s ease',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+
+      {/* 좌우 이동 */}
+      {photos.length > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', flexShrink: 0 }}>
+          <button onClick={() => goTo(-1)}
+            style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 18, fontWeight: 700, padding: '8px 20px', cursor: 'pointer' }}>‹ 이전</button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {photos.map((_, i) => (
+              <div key={i} onClick={() => goTo(i - index)}
+                style={{ width: 6, height: 6, borderRadius: '50%', background: i === index ? '#fff' : 'rgba(255,255,255,0.3)', cursor: 'pointer' }} />
+            ))}
+          </div>
+          <button onClick={() => goTo(1)}
+            style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 18, fontWeight: 700, padding: '8px 20px', cursor: 'pointer' }}>다음 ›</button>
         </div>
       )}
     </div>
