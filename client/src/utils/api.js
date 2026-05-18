@@ -108,6 +108,13 @@ export const api = {
   editAdminWorkout: (id, body) => request(`/admin/workouts/${id}/edit`, { method: 'PUT', body }),
   getPendingMemberships: () => request('/admin/memberships'),
   setMembershipStatus: (clubId, userId, status) => request(`/admin/memberships/${clubId}/${userId}/status`, { method: 'PUT', body: { status } }),
+
+  // 공지사항
+  getNotices: () => request('/notices'),
+  getNotice: (id) => request(`/notices/${id}`),
+  createNotice: (body) => request('/notices', { method: 'POST', body }),
+  updateNotice: (id, body) => request(`/notices/${id}`, { method: 'PUT', body }),
+  deleteNotice: (id) => request(`/notices/${id}`, { method: 'DELETE' }),
 }
 
 export function setToken(token) {

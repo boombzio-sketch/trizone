@@ -173,6 +173,15 @@ async function initDb() {
       applied_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(training_id, user_id)
     );
+    CREATE TABLE IF NOT EXISTS notices (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      body TEXT DEFAULT '',
+      pinned BOOLEAN DEFAULT false,
+      created_by INTEGER NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Seed default club_info row

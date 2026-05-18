@@ -13,6 +13,7 @@ const RacePage = lazy(() => import('./pages/RacePage.jsx'))
 const ClubListPage = lazy(() => import('./pages/ClubListPage.jsx'))
 const ClubDetailPage = lazy(() => import('./pages/ClubDetailPage.jsx'))
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage.jsx'))
+const NoticePage = lazy(() => import('./pages/NoticePage.jsx'))
 const Layout = lazy(() => import('./components/Layout.jsx'))
 
 const PageLoader = () => (
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="clubs/:id" element={<ClubDetailPage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="users/:id" element={<UserProfilePage />} />
+              <Route path="notices" element={<NoticePage />} />
             </Route>
           </Routes>
         </Suspense>
