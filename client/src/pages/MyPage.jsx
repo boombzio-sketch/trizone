@@ -173,6 +173,13 @@ export default function MyPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <button onClick={openEdit} style={{ fontSize: 12, color: C.accent, background: C.accentBg, border: `1px solid ${C.accentBorder}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 700 }}>수정</button>
             <button onClick={logout} style={{ fontSize: 12, color: C.text2, background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>로그아웃</button>
+            <a href="https://open.kakao.com/o/s1Hv4rvi" target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#3A1D1D', background: '#FEE500', border: 'none', borderRadius: 10, padding: '7px 10px', cursor: 'pointer', textDecoration: 'none' }}>
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                <path fillRule="evenodd" clipRule="evenodd" d="M10 2C5.582 2 2 4.91 2 8.5c0 2.28 1.376 4.285 3.46 5.493l-.88 3.25a.25.25 0 0 0 .373.277L9.1 15.18A9.7 9.7 0 0 0 10 15.25c4.418 0 8-2.91 8-6.5S14.418 2 10 2z" fill="#3A1D1D"/>
+              </svg>
+              문의
+            </a>
           </div>
         </div>
 
