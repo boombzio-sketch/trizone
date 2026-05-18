@@ -148,10 +148,10 @@ function DetailView({ notice, photos, isAdmin, onBack, onEdit, onDelete }) {
 
         {/* 사진 */}
         {photos.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {photos.map((p, i) => (
               <img key={i} src={p} alt={`사진 ${i+1}`} onClick={() => setPhotoIdx(i)}
-                style={{ width: '100%', borderRadius: 12, display: 'block', objectFit: 'cover', cursor: 'zoom-in', maxHeight: 400 }} />
+                style={{ width: '100%', borderRadius: 12, display: 'block', cursor: 'zoom-in' }} />
             ))}
           </div>
         )}
