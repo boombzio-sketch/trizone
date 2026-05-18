@@ -12,7 +12,6 @@ const TABS = [
   { to: '/ranking', icon: '🏆', label: '랭킹' },
   { to: '/clubs',   icon: '👥', label: '클럽' },
   { to: '/races',   icon: '🏁', label: '대회' },
-  { to: '/notices', icon: '📋', label: '공지' },
 ]
 
 export default function Layout() {

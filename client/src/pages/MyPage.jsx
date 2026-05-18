@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
@@ -21,6 +22,7 @@ const AVATAR_COLORS = ['#4DB8FF','#00DC82','#FFA000','#CC64FF','#FF5080','#00BFF
 
 export default function MyPage() {
   const { user, logout, refreshUser } = useAuth()
+  const navigate = useNavigate()
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState({ nickname: '', email: '', password: '', avatar_color: '', avatar_image: '' })
   const [editSaving, setEditSaving] = useState(false)
@@ -219,6 +221,18 @@ export default function MyPage() {
           )
         })}
       </>)}
+
+      {/* 공지사항 */}
+      <button onClick={() => navigate('/notices')} style={{
+        width: '100%', textAlign: 'left', background: C.surface,
+        border: `1px solid ${C.border}`, borderRadius: 12,
+        padding: '13px 16px', marginTop: 8, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span style={{ fontSize: 18 }}>📋</span>
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.text }}>공지사항</span>
+        <span style={{ fontSize: 16, color: C.text3 }}>›</span>
+      </button>
 
       {cropUrl && (
         <AvatarCropModal
