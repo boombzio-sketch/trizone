@@ -1,7 +1,24 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
 import { C } from '../utils/theme'
+
+async function compressImage(file, maxW = 1200, quality = 0.82) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const scale = Math.min(1, maxW / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.src = url
+  })
+}
 
 export default function NoticePage() {
   const { user } = useAuth()
@@ -28,32 +45,16 @@ export default function NoticePage() {
 
   // 상세 보기
   if (selected) {
+    const photos = (() => { try { return JSON.parse(selected.photos || '[]') } catch { return [] } })()
     return (
-      <div>
-        <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: C.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0 }}>← 목록</button>
-          <div style={{ flex: 1 }} />
-          {isAdmin && (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => { setEditing(selected); setSelected(null) }} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, color: C.text2, fontSize: 12, fontWeight: 700, padding: '5px 12px', cursor: 'pointer' }}>수정</button>
-              <button onClick={() => handleDelete(selected.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 8, color: C.error, fontSize: 12, fontWeight: 700, padding: '5px 12px', cursor: 'pointer' }}>삭제</button>
-            </div>
-          )}
-        </div>
-        <div style={{ padding: '20px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            {selected.pinned && <span style={{ fontSize: 10, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 8px', fontWeight: 800 }}>📌 고정</span>}
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: C.text, lineHeight: 1.4, marginBottom: 10 }}>{selected.title}</div>
-          <div style={{ fontSize: 11, color: C.text3, marginBottom: 20 }}>
-            {selected.author_nickname} · {selected.created_at?.slice(0, 10)}
-            {selected.updated_at !== selected.created_at && ' (수정됨)'}
-          </div>
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, fontSize: 14, color: C.text, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-            {selected.body}
-          </div>
-        </div>
-      </div>
+      <DetailView
+        notice={selected}
+        photos={photos}
+        isAdmin={isAdmin}
+        onBack={() => setSelected(null)}
+        onEdit={() => { setEditing(selected); setSelected(null) }}
+        onDelete={() => handleDelete(selected.id)}
+      />
     )
   }
 
@@ -119,19 +120,91 @@ export default function NoticePage() {
   )
 }
 
+function DetailView({ notice, photos, isAdmin, onBack, onEdit, onDelete }) {
+  const [photoIdx, setPhotoIdx] = useState(null)
+
+  return (
+    <div>
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', color: C.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0 }}>← 목록</button>
+        <div style={{ flex: 1 }} />
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, color: C.text2, fontSize: 12, fontWeight: 700, padding: '5px 12px', cursor: 'pointer' }}>수정</button>
+            <button onClick={onDelete} style={{ background: C.errorBg, border: 'none', borderRadius: 8, color: C.error, fontSize: 12, fontWeight: 700, padding: '5px 12px', cursor: 'pointer' }}>삭제</button>
+          </div>
+        )}
+      </div>
+      <div style={{ padding: '20px 16px' }}>
+        {notice.pinned && <span style={{ fontSize: 10, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 8px', fontWeight: 800, display: 'inline-block', marginBottom: 8 }}>📌 고정</span>}
+        <div style={{ fontSize: 18, fontWeight: 900, color: C.text, lineHeight: 1.4, marginBottom: 10 }}>{notice.title}</div>
+        <div style={{ fontSize: 11, color: C.text3, marginBottom: 20 }}>
+          {notice.author_nickname} · {notice.created_at?.slice(0, 10)}
+          {notice.updated_at !== notice.created_at && ' (수정됨)'}
+        </div>
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, fontSize: 14, color: C.text, lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: photos.length > 0 ? 20 : 0 }}>
+          {notice.body}
+        </div>
+
+        {/* 사진 */}
+        {photos.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {photos.map((p, i) => (
+              <img key={i} src={p} alt={`사진 ${i+1}`} onClick={() => setPhotoIdx(i)}
+                style={{ width: '100%', borderRadius: 12, display: 'block', objectFit: 'cover', cursor: 'zoom-in', maxHeight: 400 }} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 사진 전체화면 */}
+      {photoIdx !== null && (
+        <div onClick={() => setPhotoIdx(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src={photos[photoIdx]} alt="" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8 }} />
+          {photos.length > 1 && (
+            <>
+              <button onClick={e => { e.stopPropagation(); setPhotoIdx(i => (i - 1 + photos.length) % photos.length) }}
+                style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer' }}>‹</button>
+              <button onClick={e => { e.stopPropagation(); setPhotoIdx(i => (i + 1) % photos.length) }}
+                style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: '#fff', fontSize: 20, cursor: 'pointer' }}>›</button>
+            </>
+          )}
+          <button onClick={() => setPhotoIdx(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function EditForm({ notice, onSave, onClose }) {
   const [title, setTitle] = useState(notice?.title || '')
   const [body, setBody] = useState(notice?.body || '')
   const [pinned, setPinned] = useState(notice?.pinned || false)
+  const [photos, setPhotos] = useState(() => {
+    try { return JSON.parse(notice?.photos || '[]') } catch { return [] }
+  })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
   const iSt = { width: '100%', padding: '11px 13px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }
 
+  async function handlePhotoAdd(e) {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    const remaining = 10 - photos.length
+    const compressed = await Promise.all(files.slice(0, remaining).map(f => compressImage(f)))
+    setPhotos(prev => [...prev, ...compressed])
+    e.target.value = ''
+  }
+
+  function removePhoto(i) {
+    setPhotos(prev => prev.filter((_, j) => j !== i))
+  }
+
   async function handleSave() {
     if (!title.trim()) { setErr('제목을 입력하세요.'); return }
     setSaving(true); setErr('')
-    try { await onSave({ title: title.trim(), body, pinned }) }
+    try { await onSave({ title: title.trim(), body, pinned, photos }) }
     catch (e) { setErr(e.message) }
     finally { setSaving(false) }
   }
@@ -150,8 +223,34 @@ function EditForm({ notice, onSave, onClose }) {
 
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>내용</div>
-          <textarea value={body} onChange={e => setBody(e.target.value)} rows={10} placeholder="공지 내용을 입력하세요..."
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={8} placeholder="공지 내용을 입력하세요..."
             style={{ ...iSt, resize: 'vertical', lineHeight: 1.7 }} />
+        </div>
+
+        {/* 사진 */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 8, textTransform: 'uppercase' }}>사진 ({photos.length}/10)</div>
+          {photos.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {photos.map((p, i) => (
+                <div key={i} style={{ position: 'relative' }}>
+                  <img src={p} alt={`사진 ${i+1}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, display: 'block' }} />
+                  <button onClick={() => removePhoto(i)} style={{
+                    position: 'absolute', top: 3, right: 3, width: 20, height: 20,
+                    background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%',
+                    color: '#fff', fontSize: 11, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {photos.length < 10 && (
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: C.surfaceAlt, border: `1px dashed ${C.border}`, borderRadius: 10, cursor: 'pointer', fontSize: 12, color: C.text2, fontWeight: 700 }}>
+              📷 사진 추가
+              <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: 'none' }} />
+            </label>
+          )}
         </div>
 
         <button type="button" onClick={() => setPinned(p => !p)}

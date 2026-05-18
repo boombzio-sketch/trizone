@@ -28,12 +28,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
 // 작성 (관리자 전용)
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
-  const { title, body, pinned } = req.body;
+  const { title, body, pinned, photos } = req.body;
   if (!title?.trim()) return res.status(400).json({ error: '제목을 입력하세요.' });
   const result = await db.prepare(`
-    INSERT INTO notices (title, body, pinned, created_by)
-    VALUES (?, ?, ?, ?)
-  `).run(title.trim(), body || '', pinned ? true : false, req.user.id);
+    INSERT INTO notices (title, body, photos, pinned, created_by)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(title.trim(), body || '', JSON.stringify(photos || []), pinned ? true : false, req.user.id);
   const row = await db.prepare('SELECT n.*, u.nickname AS author_nickname FROM notices n JOIN users u ON n.created_by = u.id WHERE n.id = ?').get(result.lastInsertRowid);
   res.json(row);
 });
@@ -41,14 +41,15 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 // 수정 (관리자 전용)
 router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   const id = Number(req.params.id);
-  const { title, body, pinned } = req.body;
+  const { title, body, pinned, photos } = req.body;
   const row = await db.prepare('SELECT * FROM notices WHERE id = ?').get(id);
   if (!row) return res.status(404).json({ error: '공지를 찾을 수 없습니다.' });
   await db.prepare(`
-    UPDATE notices SET title=?, body=?, pinned=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+    UPDATE notices SET title=?, body=?, photos=?, pinned=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
   `).run(
     title?.trim() ?? row.title,
     body !== undefined ? body : row.body,
+    photos !== undefined ? JSON.stringify(photos) : (row.photos ?? '[]'),
     pinned !== undefined ? pinned : row.pinned,
     id
   );

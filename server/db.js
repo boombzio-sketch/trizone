@@ -177,6 +177,7 @@ async function initDb() {
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
       body TEXT DEFAULT '',
+      photos TEXT DEFAULT '[]',
       pinned BOOLEAN DEFAULT false,
       created_by INTEGER NOT NULL,
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -205,6 +206,9 @@ async function initDb() {
 
   // Add club_role column to club_memberships (member | sub_leader)
   await pool.query(`ALTER TABLE club_memberships ADD COLUMN IF NOT EXISTS club_role TEXT DEFAULT 'member'`);
+
+  // Add photos column to notices
+  await pool.query(`ALTER TABLE notices ADD COLUMN IF NOT EXISTS photos TEXT DEFAULT '[]'`);
 
   // Admins → auto-approved leader application
   await pool.query(`
