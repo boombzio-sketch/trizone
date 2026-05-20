@@ -91,7 +91,7 @@ export default function ClubListPage() {
             )}
             {!isApprovedLeader && (!leaderApp || leaderApp?.status === 'rejected') && user?.role !== 'admin' && (
               <button onClick={() => { setShowLeaderForm(s => !s); setError('') }} style={{
-                padding: '7px 14px', border: 'none', borderRadius: 100,
+                padding: '7px 14px', borderRadius: 100,
                 background: showLeaderForm ? C.surfaceAlt : C.surfaceHigh,
                 color: showLeaderForm ? C.text2 : C.text,
                 fontSize: 12, fontWeight: 700, cursor: 'pointer',
