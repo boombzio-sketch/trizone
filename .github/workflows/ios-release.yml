@@ -106,5 +106,6 @@ jobs:
           path: |
             client/build/*.ipa
             client/build/*.dSYM.zip
+            client/build/logs/
           if-no-files-found: ignore
           retention-days: 14
