@@ -54,12 +54,17 @@ jobs:
       - name: Sync Capacitor and install pods
         run: |
           npx cap sync ios
-          ls ios/App/
-          if [ ! -f ios/App/Podfile ]; then
-            echo "Podfile not found, checking node_modules..."
-            find node_modules/@capacitor -name "Podfile" 2>/dev/null | head -5
-            find node_modules/@capacitor -name "*.podspec" 2>/dev/null | head -5
-          fi
+          cat > ios/App/Podfile << 'PODFILE'
+          platform :ios, '14.0'
+          use_frameworks!
+
+          install! 'cocoapods', :disable_input_output_paths => true
+
+          target 'App' do
+            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          end
+          PODFILE
           cd ios/App
           pod install --repo-update
       - name: Write App Store Connect API key
