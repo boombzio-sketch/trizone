@@ -30,7 +30,9 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building marketing version $VERSION"
       - name: Show Xcode version
-        run: xcodebuild -version
+        run: |
+          ls /Applications/ | grep Xcode
+          xcodebuild -version
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
