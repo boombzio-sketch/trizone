@@ -17,8 +17,16 @@ platform :ios do
 
     setup_ci if ENV["CI"]
 
+    # setup_ci creates ~/Library/Keychains/fastlane_tmp_keychain-db with empty
+    # password. cert defaults to login.keychain-db, so pass the temp keychain
+    # explicitly — otherwise the just-imported cert can't be found.
+    keychain_path = File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db")
+    keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
+
     cert(
       api_key: api_key,
+      keychain_path: keychain_path,
+      keychain_password: keychain_password,
       output_path: "./fastlane/certs"
     )
 
