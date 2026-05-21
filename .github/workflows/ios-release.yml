@@ -51,7 +51,7 @@ jobs:
         run: npm run build
       - name: Add iOS platform
         run: npx cap add ios
-        - name: Sync Capacitor
+      - name: Sync Capacitor and install pods
         run: |
           npx cap sync ios
           cd ios/App
