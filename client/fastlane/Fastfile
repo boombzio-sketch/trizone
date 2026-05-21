@@ -20,11 +20,12 @@ platform :ios do
     keychain_path = File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db")
     keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
 
-    cert(
+ cert(
       api_key: api_key,
       keychain_path: keychain_path,
       keychain_password: keychain_password,
-      output_path: "./fastlane/certs"
+      output_path: "./fastlane/certs",
+      force: true
     )
 
     sigh(
