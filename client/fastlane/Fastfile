@@ -65,9 +65,9 @@ platform :ios do
       build_number: latest_build + 1
     )
 
-    cocoapods(
+ cocoapods(
       clean_install: true,
-      podfile: "./ios/App/Podfile"
+      podfile: "./ios/App/"
     )
 
     build_app(
