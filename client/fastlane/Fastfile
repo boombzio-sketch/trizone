@@ -64,11 +64,6 @@ platform :ios do
       build_number: latest_build + 1
     )
 
- cocoapods(
-      clean_install: true,
-      podfile: "./ios/App/"
-    )
-
     build_app(
       workspace: XCODE_WORKSPACE,
       scheme: SCHEME,
