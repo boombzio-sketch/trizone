@@ -53,7 +53,9 @@ jobs:
           working-directory: client
 
       - name: Install npm dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm install --no-save typescript
 
       - name: Build web assets
         run: npm run build
