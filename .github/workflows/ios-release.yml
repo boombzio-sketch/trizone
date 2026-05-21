@@ -30,7 +30,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building marketing version $VERSION"
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+        run: sudo xcode-select -s /Applications/Xcode_16.app
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -125,15 +125,4 @@ jobs:
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MARKETING_VERSION: ${{ steps.version.outputs.version }}
-        run: bundle exec fastlane beta
-      - name: Upload IPA artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-build
-          path: |
-            client/build/*.ipa
-            client/build/*.dSYM.zip
-            client/build/logs/
-          if-no-files-found: ignore
-          retention-days: 14
+        run: bundle exec fastl
