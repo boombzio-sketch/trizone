@@ -66,26 +66,32 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Decode App Store Connect API key
+      - name: Write App Store Connect API key
         env:
-          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
         run: |
+          if [ -z "$APP_STORE_CONNECT_API_KEY_CONTENT" ]; then
+            echo "::error::APP_STORE_CONNECT_API_KEY_CONTENT secret is empty or missing."
+            exit 1
+          fi
           KEY_DIR="$HOME/private_keys"
           mkdir -p "$KEY_DIR"
           KEY_PATH="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
-          # Strip whitespace then decode (handles wrapped or unwrapped base64)
-          printf '%s' "$APP_STORE_CONNECT_API_KEY_BASE64" | tr -d '[:space:]' | base64 --decode > "$KEY_PATH"
-          # Sanity check: decoded file must start with the PEM header
+          # Write raw PEM content, stripping CRLF -> LF (Windows clipboard safety)
+          printf '%s' "$APP_STORE_CONNECT_API_KEY_CONTENT" | tr -d '\r' > "$KEY_PATH"
+          # Sanity check: file must start with the PEM header
           if ! head -1 "$KEY_PATH" | grep -q "BEGIN PRIVATE KEY"; then
-            echo "::error::Decoded API key is not a valid PEM. Re-check APP_STORE_CONNECT_API_KEY_BASE64 secret."
-            echo "Decoded file size: $(wc -c < "$KEY_PATH") bytes"
-            echo "First 200 bytes (od -c):"
-            head -c 200 "$KEY_PATH" | od -c | head -10
+            echo "::error::APP_STORE_CONNECT_API_KEY_CONTENT does not look like a .p8 PEM key."
+            echo "File size: $(wc -c < "$KEY_PATH") bytes"
+            echo "First line:"
+            head -1 "$KEY_PATH"
             rm -f "$KEY_PATH"
             exit 1
           fi
+          chmod 600 "$KEY_PATH"
           echo "API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          echo "Wrote $(wc -c < "$KEY_PATH") bytes to $KEY_PATH"
 
       - name: Build and upload to TestFlight
         env:
