@@ -1,0 +1,84 @@
+default_platform(:ios)
+
+XCODE_PROJECT  = "./ios/App/App.xcodeproj"
+XCODE_WORKSPACE = "./ios/App/App.xcworkspace"
+SCHEME         = "App"
+BUNDLE_ID      = "com.trizone.app"
+
+platform :ios do
+  desc "Build the app and upload to TestFlight"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_BASE64"),
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    setup_ci if ENV["CI"]
+
+    cert(
+      api_key: api_key,
+      output_path: "./fastlane/certs"
+    )
+
+    sigh(
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      output_path: "./fastlane/profiles"
+    )
+
+    profile_name = lane_context[SharedValues::SIGH_NAME]
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: XCODE_PROJECT,
+      bundle_identifier: BUNDLE_ID,
+      team_id: ENV.fetch("APPLE_TEAM_ID"),
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name,
+      targets: [SCHEME]
+    )
+
+    marketing_version = ENV.fetch("MARKETING_VERSION")
+    increment_version_number(
+      xcodeproj: XCODE_PROJECT,
+      version_number: marketing_version
+    )
+
+    latest_build = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      initial_build_number: 0,
+      version: marketing_version
+    )
+    increment_build_number(
+      xcodeproj: XCODE_PROJECT,
+      build_number: latest_build + 1
+    )
+
+    build_app(
+      workspace: XCODE_WORKSPACE,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "Trizone.ipa",
+      clean: true,
+      export_options: {
+        provisioningProfiles: {
+          BUNDLE_ID => profile_name
+        },
+        signingStyle: "manual",
+        teamID: ENV.fetch("APPLE_TEAM_ID")
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      skip_submission: true
+    )
+  end
+end
