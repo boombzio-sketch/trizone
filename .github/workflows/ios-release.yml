@@ -38,4 +38,63 @@ jobs:
           cache: 'npm'
           cache-dependency-path: client/package-lock.json
       - name: Setup Ruby
-        uses
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: client
+      - name: Install npm dependencies
+        run: |
+          npm ci
+          npm install --no-save typescript
+      - name: Build web assets
+        run: npm run build
+      - name: Add iOS platform
+        run: npx cap add ios
+      - name: Sync Capacitor
+        run: npx cap sync ios
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install --repo-update
+      - name: Write App Store Connect API key
+        env:
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+        run: |
+          if [ -z "$APP_STORE_CONNECT_API_KEY_CONTENT" ]; then
+            echo "::error::APP_STORE_CONNECT_API_KEY_CONTENT secret is empty or missing."
+            exit 1
+          fi
+          KEY_DIR="$HOME/private_keys"
+          mkdir -p "$KEY_DIR"
+          KEY_PATH="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          printf '%s' "$APP_STORE_CONNECT_API_KEY_CONTENT" | tr -d '\r' > "$KEY_PATH"
+          if ! head -1 "$KEY_PATH" | grep -q "BEGIN PRIVATE KEY"; then
+            echo "::error::APP_STORE_CONNECT_API_KEY_CONTENT does not look like a .p8 PEM key."
+            echo "File size: $(wc -c < "$KEY_PATH") bytes"
+            echo "First line:"
+            head -1 "$KEY_PATH"
+            rm -f "$KEY_PATH"
+            exit 1
+          fi
+          chmod 600 "$KEY_PATH"
+          echo "API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          echo "Wrote $(wc -c < "$KEY_PATH") bytes to $KEY_PATH"
+      - name: Build and upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MARKETING_VERSION: ${{ steps.version.outputs.version }}
+        run: bundle exec fastlane beta
+      - name: Upload IPA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: |
+            client/build/*.ipa
+            client/build/*.dSYM.zip
+          if-no-files-found: ignore
+          retention-days: 14
