@@ -20,7 +20,7 @@ platform :ios do
     keychain_path = File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db")
     keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
 
- cert(
+    cert(
       api_key: api_key,
       keychain_path: keychain_path,
       keychain_password: keychain_password,
@@ -72,6 +72,7 @@ platform :ios do
       output_directory: "./build",
       output_name: "Trizone.ipa",
       clean: true,
+      buildlog_path: "./build/logs",
       export_options: {
         provisioningProfiles: {
           BUNDLE_ID => profile_name
