@@ -79,8 +79,10 @@ jobs:
           # Sanity check: decoded file must start with the PEM header
           if ! head -1 "$KEY_PATH" | grep -q "BEGIN PRIVATE KEY"; then
             echo "::error::Decoded API key is not a valid PEM. Re-check APP_STORE_CONNECT_API_KEY_BASE64 secret."
-            echo "First line of decoded file:"
-            head -1 "$KEY_PATH" | cat -A
+            echo "Decoded file size: $(wc -c < "$KEY_PATH") bytes"
+            echo "First 200 bytes (od -c):"
+            head -c 200 "$KEY_PATH" | od -c | head -10
+            rm -f "$KEY_PATH"
             exit 1
           fi
           echo "API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
