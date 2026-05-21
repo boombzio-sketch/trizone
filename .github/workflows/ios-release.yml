@@ -53,10 +53,6 @@ jobs:
         run: npx cap add ios
       - name: Sync Capacitor
         run: npx cap sync ios
-      - name: Install CocoaPods
-        run: |
-          cd ios/App
-          pod install --repo-update
       - name: Write App Store Connect API key
         env:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
