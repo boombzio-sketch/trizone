@@ -66,11 +66,29 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
+      - name: Decode App Store Connect API key
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+        run: |
+          KEY_DIR="$HOME/private_keys"
+          mkdir -p "$KEY_DIR"
+          KEY_PATH="$KEY_DIR/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          # Strip whitespace then decode (handles wrapped or unwrapped base64)
+          printf '%s' "$APP_STORE_CONNECT_API_KEY_BASE64" | tr -d '[:space:]' | base64 --decode > "$KEY_PATH"
+          # Sanity check: decoded file must start with the PEM header
+          if ! head -1 "$KEY_PATH" | grep -q "BEGIN PRIVATE KEY"; then
+            echo "::error::Decoded API key is not a valid PEM. Re-check APP_STORE_CONNECT_API_KEY_BASE64 secret."
+            echo "First line of decoded file:"
+            head -1 "$KEY_PATH" | cat -A
+            exit 1
+          fi
+          echo "API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
       - name: Build and upload to TestFlight
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MARKETING_VERSION: ${{ steps.version.outputs.version }}
         run: bundle exec fastlane beta

@@ -11,8 +11,7 @@ platform :ios do
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
       issuer_id: ENV.fetch("APP_STORE_CONNECT_API_ISSUER_ID"),
-      key_content: ENV.fetch("APP_STORE_CONNECT_API_KEY_BASE64"),
-      is_key_content_base64: true,
+      key_filepath: ENV.fetch("API_KEY_PATH"),
       in_house: false
     )
 
