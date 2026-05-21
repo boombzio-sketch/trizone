@@ -24,7 +24,7 @@ platform :ios do
       api_key: api_key,
       keychain_path: keychain_path,
       keychain_password: keychain_password,
-      output_path: "./fastlane/certs"
+      output_path: "./fastlane/certs",
       force: true
     )
 
