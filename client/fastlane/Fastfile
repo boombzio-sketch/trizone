@@ -20,18 +20,19 @@ platform :ios do
     keychain_path = File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db")
     keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
 
-cert(
+    cert(
       api_key: api_key,
       keychain_path: keychain_path,
       keychain_password: keychain_password,
-      output_path: "./fastlane/certs"
-      # reuse existing cert
+      output_path: "./fastlane/certs",
+      force: false
     )
 
     sigh(
       api_key: api_key,
       app_identifier: BUNDLE_ID,
-      output_path: "./fastlane/profiles"
+      output_path: "./fastlane/profiles",
+      force: true
     )
 
     profile_name = lane_context[SharedValues::SIGH_NAME]
