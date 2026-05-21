@@ -1,8 +1,10 @@
 default_platform(:ios)
-XCODE_PROJECT  = "./ios/App/App.xcodeproj"
+
+XCODE_PROJECT   = "./ios/App/App.xcodeproj"
 XCODE_WORKSPACE = "./ios/App/App.xcworkspace"
-SCHEME         = "App"
-BUNDLE_ID      = "com.trizone.app"
+SCHEME          = "App"
+BUNDLE_ID       = "com.trizone.app"
+
 platform :ios do
   desc "Build the app and upload to TestFlight"
   lane :beta do
@@ -12,21 +14,27 @@ platform :ios do
       key_filepath: ENV.fetch("API_KEY_PATH"),
       in_house: false
     )
+
     setup_ci if ENV["CI"]
+
     keychain_path = File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db")
     keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
+
     cert(
       api_key: api_key,
       keychain_path: keychain_path,
       keychain_password: keychain_password,
       output_path: "./fastlane/certs"
     )
+
     sigh(
       api_key: api_key,
       app_identifier: BUNDLE_ID,
       output_path: "./fastlane/profiles"
     )
+
     profile_name = lane_context[SharedValues::SIGH_NAME]
+
     update_code_signing_settings(
       use_automatic_signing: false,
       path: XCODE_PROJECT,
@@ -36,24 +44,52 @@ platform :ios do
       profile_name: profile_name,
       targets: [SCHEME]
     )
+
     marketing_version = ENV.fetch("MARKETING_VERSION")
+
     increment_version_number(
       xcodeproj: XCODE_PROJECT,
       version_number: marketing_version
     )
+
     latest_build = latest_testflight_build_number(
       api_key: api_key,
       app_identifier: BUNDLE_ID,
       initial_build_number: 0,
       version: marketing_version
     )
+
     increment_build_number(
       xcodeproj: XCODE_PROJECT,
       build_number: latest_build + 1
     )
+
     cocoapods(
       clean_install: true,
       podfile: "./ios/App/Podfile"
     )
+
     build_app(
-      w
+      workspace: XCODE_WORKSPACE,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "Trizone.ipa",
+      clean: true,
+      export_options: {
+        provisioningProfiles: {
+          BUNDLE_ID => profile_name
+        },
+        signingStyle: "manual",
+        teamID: ENV.fetch("APPLE_TEAM_ID")
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      skip_submission: true
+    )
+  end
+end
