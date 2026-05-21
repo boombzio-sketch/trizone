@@ -51,6 +51,22 @@ jobs:
         run: npm run build
       - name: Add iOS platform
         run: npx cap add ios
+      - name: Sync Capacitor and install pods
+        run: |
+          npx cap sync ios
+          cat > ios/App/Podfile << 'PODFILE'
+          platform :ios, '16.0'
+          use_frameworks!
+
+          install! 'cocoapods', :disable_input_output_paths => true
+
+          target 'App' do
+            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          end
+          PODFILE
+          cd ios/App
+          pod install --repo-update
       - name: Fix AppDelegate.swift
         run: |
           cat > ios/App/App/AppDelegate.swift << 'SWIFT'
@@ -81,22 +97,6 @@ jobs:
               }
           }
           SWIFT
-      - name: Sync Capacitor and install pods
-        run: |
-          npx cap sync ios
-          cat > ios/App/Podfile << 'PODFILE'
-          platform :ios, '16.0'
-          use_frameworks!
-
-          install! 'cocoapods', :disable_input_output_paths => true
-
-          target 'App' do
-            pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
-            pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-          end
-          PODFILE
-          cd ios/App
-          pod install --repo-update
       - name: Write App Store Connect API key
         env:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
