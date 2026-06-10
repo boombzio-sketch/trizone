@@ -35,7 +35,8 @@ async function compressToBlob(file, maxW = 1600, quality = 0.85) {
 }
 
 // 환경변수 미설정 시 폴백: 기존처럼 base64 반환 (앱이 안 깨지게).
-async function fallbackBase64(file, maxW = 1024, quality = 0.78) {
+// 화질보다 용량 우선 — 기록 확인용이라 작게 저장(평균 ~40KB/장 목표).
+async function fallbackBase64(file, maxW = 860, quality = 0.5) {
   return new Promise(resolve => {
     const img = new Image()
     const url = URL.createObjectURL(file)
