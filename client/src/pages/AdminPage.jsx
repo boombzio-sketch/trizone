@@ -3,27 +3,22 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
 import { Navigate } from 'react-router-dom'
 import { C } from '../utils/theme'
-import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import Avatar from '../components/Avatar.jsx'
 
 export default function AdminPage() {
   const { user } = useAuth()
-  const [tab, setTab] = useState('pending')
-  const [badges, setBadges] = useState({ pending: null, leaderApps: null, members: null })
+  const [tab, setTab] = useState('leaderApps')
+  const [badges, setBadges] = useState({ leaderApps: null, members: null })
 
-  const isAdmin     = user?.role === 'admin'
-  const canApprove  = isAdmin || user?.can_approve
+  const isAdmin = user?.role === 'admin'
 
-  if (!canApprove) return <Navigate to="/" replace />
+  if (!isAdmin) return <Navigate to="/" replace />
 
   const setBadge = (key, count) => setBadges(prev => ({ ...prev, [key]: count }))
 
   const tabDefs = [
-    { key: 'pending',  label: '훈련 관리', badge: badges.pending },
-    ...(isAdmin ? [
-      { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
-      { key: 'members',     label: '회원 관리',  badge: badges.members },
-    ] : []),
+    { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
+    { key: 'members',     label: '회원 관리',  badge: badges.members },
   ]
 
   return (
@@ -52,310 +47,12 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
-      <div style={{ display: tab === 'pending'  ? 'block' : 'none' }}><PendingTab  onBadge={c => setBadge('pending', c)} /></div>
-      {isAdmin && <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>}
-      {isAdmin && <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>}
+      <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>
+      <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>
     </div>
   )
 }
 
-function secsToDur(sec) {
-  const s = sec || 0
-  return { h: Math.floor(s / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }
-}
-function durToSecs(d) { return (Number(d.h) || 0) * 3600 + (Number(d.m) || 0) * 60 + (Number(d.s) || 0) }
-
-function DurInput({ value, onChange }) {
-  const iSt = { width: 44, padding: '8px 6px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 14, textAlign: 'center', outline: 'none', fontFamily: 'inherit' }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <input type="number" min={0} value={value.h} onChange={e => onChange({ ...value, h: e.target.value })} style={iSt} placeholder="h" />
-      <span style={{ color: C.text2 }}>:</span>
-      <input type="number" min={0} max={59} value={value.m} onChange={e => onChange({ ...value, m: e.target.value })} style={iSt} placeholder="m" />
-      <span style={{ color: C.text2 }}>:</span>
-      <input type="number" min={0} max={59} value={value.s} onChange={e => onChange({ ...value, s: e.target.value })} style={iSt} placeholder="s" />
-    </div>
-  )
-}
-
-function WorkoutEditModal({ workout: w, onSave, onClose }) {
-  const isBrick = w.sport_type === 'brick'
-  const initSegs = isBrick ? (() => { try { return JSON.parse(w.brick_segments || '[]') } catch { return [] } })() : null
-
-  const [date, setDate]             = useState(w.logged_at?.slice(0, 10) || '')
-  const [distKm, setDistKm]         = useState(w.distance_km || 0)
-  const [dur, setDur]               = useState(secsToDur(w.duration_sec))
-  const [poolType, setPoolType]     = useState(w.pool_type || 'open')
-  const [courseType, setCourseType] = useState(w.course_type || '실외')
-  const [elevM, setElevM]           = useState(w.elevation_m || 0)
-  const [avgPow, setAvgPow]         = useState(w.avg_power_w || 0)
-  const [memo, setMemo]             = useState(w.memo || '')
-  const [segs, setSegs]             = useState(initSegs ? initSegs.map(s => ({ ...s, dur: secsToDur(s.duration_sec) })) : null)
-  const [saving, setSaving]         = useState(false)
-  const [err, setErr]               = useState('')
-
-  const iSt = { width: '100%', padding: '9px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit' }
-  const lSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }
-
-  function Toggle({ options, value, onChange }) {
-    return (
-      <div style={{ display: 'flex', gap: 6 }}>
-        {options.map(o => (
-          <button key={o.v} type="button" onClick={() => onChange(o.v)} style={{
-            flex: 1, padding: '8px', border: 'none', borderRadius: 10, cursor: 'pointer',
-            fontWeight: 700, fontSize: 12,
-            background: value === o.v ? C.accentBg : C.surfaceAlt,
-            color: value === o.v ? C.accent : C.text2,
-            outline: value === o.v ? `2px solid ${C.accentBorder}` : '2px solid transparent',
-          }}>{o.l}</button>
-        ))}
-      </div>
-    )
-  }
-
-  async function handleSave() {
-    setSaving(true); setErr('')
-    try {
-      const body = { memo, logged_at: date }
-      if (isBrick && segs) {
-        body.brick_segments = segs.map(s => ({ sport: s.sport, distance_km: Number(s.distance_km), duration_sec: durToSecs(s.dur) }))
-      } else {
-        body.distance_km  = Number(distKm)
-        body.duration_sec = durToSecs(dur)
-        if (w.sport_type === 'swim') body.pool_type = poolType
-        if (w.sport_type === 'bike') { body.course_type = courseType; body.elevation_m = Number(elevM); body.avg_power_w = Number(avgPow) }
-        if (w.sport_type === 'run')  { body.elevation_m = Number(elevM); body.course_type = courseType }
-      }
-      await onSave(w.id, body)
-    } catch(e) { setErr(e.message) }
-    finally { setSaving(false) }
-  }
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 400, display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{ background: C.surface, borderRadius: '22px 22px 0 0', width: '100%', padding: 20, border: `1px solid ${C.border}`, maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 16 }}>
-          {SPORT_ICON[w.sport_type]} {SPORT_LABEL[w.sport_type]} 기록 수정
-        </div>
-
-        <div style={{ marginBottom: 14 }}>
-          <label style={lSt}>날짜</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={iSt} />
-        </div>
-
-        {isBrick && segs ? segs.map((s, i) => (
-          <div key={i} style={{ background: C.surfaceAlt, borderRadius: 12, padding: '12px 14px', marginBottom: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: SPORT_COLOR[s.sport] || C.accent, marginBottom: 8 }}>
-              {SPORT_ICON[s.sport]} {SPORT_LABEL[s.sport]}
-            </div>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <label style={lSt}>거리 (km)</label>
-                <input type="number" min={0} step={0.01} value={s.distance_km}
-                  onChange={e => setSegs(prev => prev.map((x, j) => j === i ? { ...x, distance_km: e.target.value } : x))}
-                  style={iSt} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={lSt}>시간 (h:m:s)</label>
-                <DurInput value={s.dur} onChange={v => setSegs(prev => prev.map((x, j) => j === i ? { ...x, dur: v } : x))} />
-              </div>
-            </div>
-          </div>
-        )) : (
-          <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-            <div style={{ flex: 1 }}>
-              <label style={lSt}>거리 (km)</label>
-              <input type="number" min={0} step={0.01} value={distKm} onChange={e => setDistKm(e.target.value)} style={iSt} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={lSt}>시간 (h:m:s)</label>
-              <DurInput value={dur} onChange={setDur} />
-            </div>
-          </div>
-        )}
-
-        {w.sport_type === 'swim' && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={lSt}>수영장 종류</label>
-            <Toggle options={[{v:'open',l:'오픈워터'},{v:'indoor',l:'실내'}]} value={poolType} onChange={setPoolType} />
-          </div>
-        )}
-
-        {w.sport_type === 'bike' && (
-          <>
-            <div style={{ marginBottom: 14 }}>
-              <label style={lSt}>코스 종류</label>
-              <Toggle options={[{v:'실외',l:'실외'},{v:'실내',l:'실내'}]} value={courseType} onChange={setCourseType} />
-            </div>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-              <div style={{ flex: 1 }}>
-                <label style={lSt}>획득 고도 (m)</label>
-                <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={lSt}>평균 파워 (W)</label>
-                <input type="number" min={0} value={avgPow} onChange={e => setAvgPow(e.target.value)} style={iSt} />
-              </div>
-            </div>
-          </>
-        )}
-
-        {w.sport_type === 'run' && (
-          <>
-            <div style={{ marginBottom: 14 }}>
-              <label style={lSt}>코스 종류</label>
-              <Toggle options={[{v:'실외',l:'실외'},{v:'실내',l:'실내'}]} value={courseType} onChange={setCourseType} />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={lSt}>획득 고도 (m)</label>
-              <input type="number" min={0} value={elevM} onChange={e => setElevM(e.target.value)} style={iSt} />
-            </div>
-          </>
-        )}
-
-        <div style={{ marginBottom: 18 }}>
-          <label style={lSt}>메모</label>
-          <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2}
-            style={{ ...iSt, resize: 'none' }} />
-        </div>
-
-        {err && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 13, color: C.error }}>{err}</div>}
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
-          <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '12px', background: saving ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 12, color: saving ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-            {saving ? '저장 중...' : '💾 저장'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function PendingTab({ onBadge }) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [photoModal, setPhotoModal] = useState(null)
-  const [editingWorkout, setEditingWorkout] = useState(null)
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    try {
-      const data = await api.getAdminWorkouts('limit=100')
-      setItems(data)
-      onBadge(null)
-    } finally { setLoading(false) }
-  }
-
-  async function handleEdit(id, body) {
-    const updated = await api.editAdminWorkout(id, body)
-    setItems(prev => prev.map(w => w.id === id ? { ...w, ...updated } : w))
-    setEditingWorkout(null)
-  }
-
-  if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
-
-  if (items.length === 0) return (
-    <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-      <div style={{ fontSize: 14, fontWeight: 600 }}>등록된 훈련 기록이 없습니다</div>
-    </div>
-  )
-
-  return (
-    <div>
-      {/* 기록 수정 모달 */}
-      {editingWorkout && (
-        <WorkoutEditModal workout={editingWorkout} onSave={handleEdit} onClose={() => setEditingWorkout(null)} />
-      )}
-
-      {/* 사진 전체보기 모달 */}
-      {photoModal && (
-        <div onClick={() => setPhotoModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <img src={photoModal} alt="원본 사진" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: 12, objectFit: 'contain' }} />
-          <button onClick={() => setPhotoModal(null)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer' }}>✕</button>
-        </div>
-      )}
-
-      <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>
-        최근 기록 {items.length}건
-      </div>
-      {items.map(w => {
-        const sc = SPORT_COLOR[w.sport_type] || C.accent
-        const segs = w.sport_type === 'brick' ? (() => { try { return JSON.parse(w.brick_segments||'[]') } catch { return [] } })() : null
-        const photos = (() => { try { return JSON.parse(w.photos||'[]') } catch { return [] } })()
-        const displayPhoto = photos.length > 0 ? photos[w.cover_photo_index||0] : w.photo || null
-        const totalKm = segs ? segs.reduce((s,seg) => s+(seg.distance_km||0), 0) : (w.distance_km||0)
-
-        return (
-          <div key={w.id} style={{ margin: '8px 12px', background: C.surface, borderRadius: 16, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
-            <div style={{ padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: w.avatar_color+'22', border: `2px solid ${w.avatar_color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: w.avatar_color, flexShrink: 0 }}>
-                  {w.nickname?.charAt(0)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{w.nickname}</div>
-                  <div style={{ fontSize: 10, color: C.text2 }}>{w.logged_at} · {SPORT_ICON[w.sport_type]} {SPORT_LABEL[w.sport_type]}</div>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.accent }}>{totalKm.toFixed(2)}km</div>
-              </div>
-
-              <div style={{ background: C.surfaceAlt, borderRadius: 10, padding: '10px 12px', marginBottom: 10 }}>
-                {segs ? (
-                  segs.map((s,i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.text2, marginBottom: 3 }}>
-                      <span>{SPORT_ICON[s.sport]} {SPORT_LABEL[s.sport]}</span>
-                      <span style={{ fontWeight: 700, color: C.text }}>{(s.distance_km||0).toFixed(2)}km · {formatDuration(s.duration_sec)}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ fontSize: 13, color: C.text, fontWeight: 700 }}>
-                    {(w.distance_km||0).toFixed(2)}km · {formatDuration(w.duration_sec)}
-                  </div>
-                )}
-                {w.memo && <div style={{ fontSize: 11, color: C.text2, marginTop: 6, fontStyle: 'italic' }}>{w.memo}</div>}
-              </div>
-
-              {(photos.length > 0 || displayPhoto) && (
-                <div style={{ marginBottom: 10 }}>
-                  {/* 대표 사진 */}
-                  {displayPhoto && (
-                    <div style={{ position: 'relative', marginBottom: 6 }}>
-                      <img src={displayPhoto} alt="대표 사진" onClick={() => setPhotoModal(displayPhoto)}
-                        style={{ width: '100%', borderRadius: 10, maxHeight: 220, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
-                      <div style={{ position: 'absolute', top: 6, left: 6, background: C.accent, borderRadius: 5, fontSize: 9, fontWeight: 800, color: '#fff', padding: '2px 7px' }}>대표</div>
-                    </div>
-                  )}
-                  {/* 나머지 사진 */}
-                  {photos.length > 1 && (
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {photos.map((p, i) => (
-                        <div key={i} style={{ position: 'relative' }}>
-                          <img src={p} alt={`사진 ${i+1}`} onClick={() => setPhotoModal(p)}
-                            style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, display: 'block', cursor: 'zoom-in', outline: i === (w.cover_photo_index||0) ? `2px solid ${C.accent}` : 'none' }} />
-                          <div style={{ position: 'absolute', bottom: 3, right: 3, background: 'rgba(0,0,0,0.55)', borderRadius: 4, fontSize: 8, color: '#fff', padding: '1px 4px' }}>{i+1}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setEditingWorkout(w)} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.accentBg, color: C.accent, fontSize: 13, fontWeight: 700 }}>
-                  ✏️ 수정
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
 
 function LeaderAppsTab({ onBadge }) {
   const [items, setItems] = useState([])
