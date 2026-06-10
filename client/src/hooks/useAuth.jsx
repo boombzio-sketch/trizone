@@ -50,6 +50,22 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
+  // 권한이 바뀌면 재로그인 없이도 반영되도록: 탭 포커스 시 + 2분 주기로 /me 조용히 호출
+  useEffect(() => {
+    if (!user) return
+    function refresh() {
+      api.me()
+        .then(u => { setUser(u); setCachedUser(u) })
+        .catch(() => {})
+    }
+    window.addEventListener('focus', refresh)
+    const interval = setInterval(refresh, 2 * 60 * 1000)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      clearInterval(interval)
+    }
+  }, [user?.id])
+
   async function login(email, password) {
     const data = await api.login({ email, password })
     setToken(data.token)
