@@ -581,10 +581,12 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
               <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
                 {STATUS_LABEL[status]}
               </span>
-              {(f.user_id === myId || user?.role === 'admin') && (
+              {(f.user_id === myId || user?.role === 'admin' || user?.can_approve) && (
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
-                  <button onClick={() => onDelete(f.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 6, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>삭제</button>
+                  {(f.user_id === myId || user?.role === 'admin') && (
+                    <button onClick={() => onDelete(f.id)} style={{ background: C.errorBg, border: 'none', borderRadius: 6, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>삭제</button>
+                  )}
                 </div>
               )}
             </div>
