@@ -51,11 +51,16 @@ router.get('/following/:userId', authMiddleware, async (req, res) => {
 })
 
 // ── 피드 ──────────────────────────────────────────
+// ⚠ 사진은 base64로 DB에 저장돼 있어 photos를 그대로 내려보내면 응답이 수십 MB가 됨.
+//   피드 목록에는 표지(photo)만 보내고, 사진 갯수(photo_count)만 함께 제공.
+//   전체 사진은 GET /social/workout/:id/photos 로 lazy load.
 const FEED_COLS = `
     SELECT w.id, w.user_id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
            w.memo, w.pace, w.score, w.brick_segments, w.status, w.photo,
-           COALESCE(w.photos, '[]') as photos,
-           COALESCE(w.cover_photo_index, 0) as cover_photo_index,
+           CASE
+             WHEN w.photos IS NULL OR w.photos = '' OR w.photos = '[]' THEN 0
+             ELSE COALESCE(json_array_length(w.photos::json), 0)
+           END as photo_count,
            COALESCE(w.visibility, 'public') as visibility,
            w.pool_type, w.elevation_m, w.course_type, w.avg_power_w,
            u.nickname, u.avatar_color, u.avatar_image,
@@ -163,6 +168,16 @@ router.get('/feed/all', authMiddleware, async (req, res) => {
         ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
       `).all(req.user.id, Number(offset))
   res.json(rows)
+})
+
+// 단일 기록의 사진 전체 (피드에서는 표지만 보내고 필요할 때 별도 호출)
+router.get('/workout/:id/photos', authMiddleware, async (req, res) => {
+  const wid = Number(req.params.id)
+  if (!await canAccessWorkout(wid, req.user.id)) return res.status(403).json({ error: '접근할 수 없는 기록입니다.' })
+  const row = await db.prepare('SELECT photos, cover_photo_index FROM workout_logs WHERE id=?').get(wid)
+  let photos = []
+  try { photos = JSON.parse(row?.photos || '[]') } catch {}
+  res.json({ photos, cover_photo_index: row?.cover_photo_index || 0 })
 })
 
 // 기록 접근 가능 여부 확인 헬퍼

@@ -1,24 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
+import { uploadImage } from '../utils/upload'
 import { C } from '../utils/theme'
-
-async function compressImage(file, maxW = 1200, quality = 0.82) {
-  return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const scale = Math.min(1, maxW / img.width)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      resolve(canvas.toDataURL('image/jpeg', quality))
-    }
-    img.src = url
-  })
-}
 
 export default function NoticePage() {
   const { user } = useAuth()
@@ -361,9 +345,14 @@ function EditForm({ notice, onSave, onClose }) {
     const files = Array.from(e.target.files)
     if (!files.length) return
     const remaining = 10 - photos.length
-    const compressed = await Promise.all(files.slice(0, remaining).map(f => compressImage(f)))
-    setPhotos(prev => [...prev, ...compressed])
+    const toProcess = files.slice(0, remaining)
     e.target.value = ''
+    try {
+      const urls = await Promise.all(toProcess.map(f => uploadImage(f)))
+      setPhotos(prev => [...prev, ...urls])
+    } catch (e2) {
+      setErr('사진 업로드 실패: ' + e2.message)
+    }
   }
 
   function removePhoto(i) {

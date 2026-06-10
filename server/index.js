@@ -2,7 +2,7 @@ require('dotenv').config();
 require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
-const { initDb } = require('./db');
+const { initDb, pool } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,7 +29,16 @@ initDb().then(() => {
   app.use('/api/races',   require('./routes/races'));
   app.use('/api/clubs',    require('./routes/clubs'));
   app.use('/api/notices',  require('./routes/notices'));
-  app.get('/api/health',  (req, res) => res.json({ ok: true }));
+  // 핑 엔드포인트 — Render 서버 + Neon DB 양쪽 모두 워밍.
+  // cron-job.org가 10분 간격으로 호출.
+  app.get('/api/health', async (req, res) => {
+    try {
+      await pool.query('SELECT 1');
+      res.json({ ok: true, ts: Date.now() });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
 
   app.use((err, req, res, _next) => {
     console.error('[server error]', err);
