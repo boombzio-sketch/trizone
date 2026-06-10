@@ -7,7 +7,7 @@ import Avatar from '../components/Avatar.jsx'
 
 export default function AdminPage() {
   const { user } = useAuth()
-  const [tab, setTab] = useState('leaderApps')
+  const [tab, setTab] = useState('members')
   const [badges, setBadges] = useState({ leaderApps: null, members: null })
 
   const isAdmin = user?.role === 'admin'
@@ -17,8 +17,8 @@ export default function AdminPage() {
   const setBadge = (key, count) => setBadges(prev => ({ ...prev, [key]: count }))
 
   const tabDefs = [
-    { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
     { key: 'members',     label: '회원 관리',  badge: badges.members },
+    { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
   ]
 
   return (
