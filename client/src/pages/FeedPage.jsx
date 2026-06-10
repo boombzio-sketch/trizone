@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import { C, cardSport } from '../utils/theme'
 import { api } from '../utils/api'
-import { uploadImage } from '../utils/upload'
+import { uploadImage, cldUrl } from '../utils/upload'
 import Avatar from '../components/Avatar.jsx'
 
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
@@ -633,7 +633,7 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
               setPhotoModalIdx(i => dx < 0 ? (i + 1) % allPhotos.length : (i - 1 + allPhotos.length) % allPhotos.length)
             }}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={allPhotos[photoModalIdx]} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }} />
+            <img src={cldUrl(allPhotos[photoModalIdx], { w: 1400 })} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }} />
             {allPhotos.length > 1 && (
               <>
                 <button onClick={e => { e.stopPropagation(); setPhotoModalIdx(i => (i - 1 + allPhotos.length) % allPhotos.length) }}
@@ -656,13 +656,13 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
         {allPhotos.length > 0 && (
           <div style={{ margin: '0 14px 10px' }}>
             {allPhotos.length === 1 ? (
-              <img src={allPhotos[0]} alt="훈련 사진" onClick={() => setPhotoModalIdx(0)}
+              <img src={cldUrl(allPhotos[0], { w: 900 })} alt="훈련 사진" loading="lazy" onClick={() => setPhotoModalIdx(0)}
                 style={{ width: '100%', borderRadius: 12, display: 'block', maxHeight: 300, objectFit: 'cover', cursor: 'zoom-in' }} />
             ) : (
               <div style={{ display: 'flex', gap: 4, overflowX: 'auto', borderRadius: 12, paddingBottom: 2 }}>
                 {allPhotos.map((p, i) => (
                   <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-                    <img src={p} alt={`사진 ${i+1}`} onClick={() => setPhotoModalIdx(i)}
+                    <img src={cldUrl(p, { w: 400 })} alt={`사진 ${i+1}`} loading="lazy" onClick={() => setPhotoModalIdx(i)}
                       style={{ width: allPhotos.length === 2 ? 'calc(50vw - 30px)' : 140, height: 160, objectFit: 'cover', borderRadius: 10, display: 'block', cursor: 'zoom-in' }} />
                     {i === coverIdx && (
                       <div style={{ position: 'absolute', top: 5, left: 5, background: C.accent, borderRadius: 4, fontSize: 8, fontWeight: 800, color: '#fff', padding: '1px 5px' }}>대표</div>
