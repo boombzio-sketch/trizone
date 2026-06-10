@@ -101,6 +101,7 @@ export const api = {
   setApprovePermission: (id, can_approve) => request(`/admin/members/${id}/can-approve`, { method: 'PUT', body: { can_approve } }),
   deleteAdminMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
   getPendingWorkouts: () => request('/admin/pending'),
+  getAdminWorkouts: (params = '') => request('/admin/all-workouts' + (params ? '?' + params : '')),
   getLikes: (workoutId) => request(`/social/likes/${workoutId}`),
   getUnreadCount: (since) => request(`/social/notifications/unread?since=${encodeURIComponent(since)}`),
 

@@ -125,7 +125,7 @@ router.post('/', authMiddleware, async (req, res) => {
     (user_id, sport_type, logged_at, distance_km, duration_sec, memo,
      pool_type, elevation_m, course_type, avg_power_w, brick_segments, pace, score,
      status, photo, photos, cover_photo_index, visibility)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?)
   `).run(
     req.user.id, sport_type, logged_at,
     distance_km || 0, duration_sec || 0, memo || '',

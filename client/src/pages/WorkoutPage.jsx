@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../utils/api'
+import { uploadImage } from '../utils/upload'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration, parseDuration } from '../utils/helpers'
 import { C } from '../utils/theme'
 
@@ -30,22 +31,7 @@ function toggleVis(current, key) {
   return hasClu && next ? 'club_followers' : next ? 'followers' : hasClu ? 'club' : 'public'
 }
 
-async function compressImage(file, maxW = 1024, quality = 0.78) {
-  return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const scale = Math.min(1, maxW / img.width)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      resolve(canvas.toDataURL('image/jpeg', quality))
-    }
-    img.src = url
-  })
-}
+const LIMIT = 20
 
 export default function WorkoutPage() {
   const [tab, setTab] = useState('log')
@@ -62,15 +48,31 @@ export default function WorkoutPage() {
   const [coverIndex, setCoverIndex] = useState(0)
   const [visibility, setVisibility] = useState('public')
   const [logs, setLogs] = useState([])
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  useEffect(() => { if (tab === 'log' || tab === 'cal') loadLogs() }, [tab])
+  useEffect(() => { if (tab === 'log' || tab === 'cal') loadLogs(true) }, [tab])
 
-  async function loadLogs() {
-    const rows = await api.getWorkouts('limit=200')
-    setLogs(rows)
+  async function loadLogs(reset = false) {
+    const currentOffset = reset ? 0 : offset
+    if (reset) { setOffset(0); setHasMore(true) }
+    setLoadingMore(true)
+    try {
+      const rows = await api.getWorkouts(`limit=${LIMIT}&offset=${currentOffset}`)
+      if (reset) {
+        setLogs(rows)
+      } else {
+        setLogs(prev => [...prev, ...rows])
+      }
+      if (rows.length < LIMIT) setHasMore(false)
+      setOffset(currentOffset + rows.length)
+    } finally {
+      setLoadingMore(false)
+    }
   }
 
   function downloadCSV() {
@@ -95,9 +97,13 @@ export default function WorkoutPage() {
     if (!files.length) return
     const remaining = 5 - photos.length
     const toProcess = files.slice(0, remaining)
-    const base64s = await Promise.all(toProcess.map(f => compressImage(f)))
-    setPhotos(prev => [...prev, ...base64s])
     e.target.value = ''
+    try {
+      const urls = await Promise.all(toProcess.map(f => uploadImage(f)))
+      setPhotos(prev => [...prev, ...urls])
+    } catch (err) {
+      setError('사진 업로드 실패: ' + err.message)
+    }
   }
 
   function removePhoto(index) {
@@ -126,7 +132,7 @@ export default function WorkoutPage() {
         body.duration_sec = segments.reduce((s,b) => s+b.duration_sec, 0) + parseDuration(t1Time) + parseDuration(t2Time)
       }
       await api.addWorkout(body)
-      setSuccess('✅ 기록이 저장되었습니다! 클럽장 승인 후 클럽 기록에 반영됩니다.')
+      setSuccess('✅ 기록이 저장되었습니다!')
       setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
       setBrick([{ sport: 'swim', distance: '', time: '' }, { sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
       setT1Time(''); setT2Time(''); setPhotos([]); setCoverIndex(0); setVisibility('public')
@@ -138,7 +144,7 @@ export default function WorkoutPage() {
 
   async function handleDelete(id) {
     if (!confirm('이 기록을 삭제할까요?')) return
-    await api.deleteWorkout(id); loadLogs()
+    await api.deleteWorkout(id); loadLogs(true)
   }
 
   const [editingLog, setEditingLog] = useState(null)
@@ -146,7 +152,7 @@ export default function WorkoutPage() {
   async function handleEditSave(id, body) {
     await api.editWorkout(id, body)
     setEditingLog(null)
-    loadLogs()
+    loadLogs(true)
   }
 
   const sc = SPORT_COLOR[sport]
@@ -180,6 +186,18 @@ export default function WorkoutPage() {
               아직 훈련 기록이 없습니다.<br />"추가" 탭에서 첫 훈련을 입력해보세요!
             </div>
           ) : logs.map(log => <LogItem key={log.id} log={log} onDelete={handleDelete} onEdit={setEditingLog} />)}
+
+          {hasMore && (
+            <div style={{ textAlign: 'center', padding: '12px 0 24px' }}>
+              <button onClick={() => loadLogs(false)} disabled={loadingMore} style={{
+                fontSize: 13, color: C.accent, background: C.accentBg,
+                border: `1px solid ${C.accentBorder}`, borderRadius: 10,
+                padding: '8px 24px', cursor: loadingMore ? 'default' : 'pointer', fontWeight: 700,
+              }}>
+                {loadingMore ? '불러오는 중...' : '더 보기'}
+              </button>
+            </div>
+          )}
         </div>
       ) : tab === 'cal' ? (
         <CalendarTab logs={logs} />
@@ -424,7 +442,6 @@ function CalendarTab({ logs }) {
 
   return (
     <div style={{ padding: '14px 14px 24px' }}>
-      {/* 월 네비게이션 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <button onClick={() => { setCur(p => { const d = new Date(p.y, p.m-1); return { y: d.getFullYear(), m: d.getMonth() } }); setSelected(null) }}
           style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', color: C.text2, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>‹</button>
@@ -433,14 +450,12 @@ function CalendarTab({ logs }) {
           style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', color: C.text2, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>›</button>
       </div>
 
-      {/* 요일 헤더 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 6 }}>
         {DAY_NAMES.map((d, i) => (
           <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: i === 0 ? '#ef4444' : i === 6 ? C.accent : C.text2, padding: '4px 0' }}>{d}</div>
         ))}
       </div>
 
-      {/* 날짜 그리드 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
         {cells.map((day, i) => {
           if (!day) return <div key={i} />
@@ -467,7 +482,6 @@ function CalendarTab({ logs }) {
         })}
       </div>
 
-      {/* 선택된 날짜 기록 */}
       {selDate && (
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 10 }}>{selDate} 기록</div>

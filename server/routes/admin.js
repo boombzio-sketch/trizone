@@ -182,7 +182,7 @@ router.put('/memberships/:clubId/:userId/status', ...adminOnly, async (req, res)
   res.json({ ok: true });
 });
 
-// 훈련 기록 승인 대기 목록 (승인 권한자 접근 가능)
+// 훈련 기록 승인 대기 목록 (구버전 모바일 호환용 — 신규 기록은 자동 승인되므로 보통 비어 있다)
 router.get('/pending', ...approveOnly, async (req, res) => {
   const rows = await prepare(`
     SELECT w.id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
@@ -197,6 +197,26 @@ router.get('/pending', ...approveOnly, async (req, res) => {
     WHERE w.status = 'pending'
     ORDER BY w.created_at DESC
   `).all();
+  res.json(rows);
+});
+
+// 전체 훈련 기록 목록 (승인 폐지 이후 관리자/승인권한자 열람·수정용)
+router.get('/all-workouts', ...approveOnly, async (req, res) => {
+  const limit = Math.min(Number(req.query.limit) || 100, 200);
+  const offset = Number(req.query.offset) || 0;
+  const rows = await prepare(`
+    SELECT w.id, w.user_id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
+           w.memo, w.score, w.brick_segments, w.photo,
+           COALESCE(w.photos, '[]') as photos,
+           COALESCE(w.cover_photo_index, 0) as cover_photo_index,
+           w.pool_type, w.elevation_m, w.course_type, w.avg_power_w,
+           w.status, w.created_at,
+           u.nickname, u.avatar_color
+    FROM workout_logs w
+    JOIN users u ON w.user_id = u.id
+    ORDER BY w.created_at DESC
+    LIMIT ? OFFSET ?
+  `).all(limit, offset);
   res.json(rows);
 });
 
@@ -219,9 +239,6 @@ router.put('/workouts/:id/edit', ...approveOnly, async (req, res) => {
 
   const row = await prepare('SELECT * FROM workout_logs WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
-  // 관리자가 아닌 승인권한자는 pending 상태 기록만 수정 가능
-  if (req.user.role !== 'admin' && row.status !== 'pending')
-    return res.status(403).json({ error: '승인 대기 기록만 수정할 수 있습니다.' });
 
   const newDist  = distance_km  !== undefined ? Number(distance_km)  : row.distance_km;
   const newDur   = duration_sec !== undefined ? Number(duration_sec) : row.duration_sec;

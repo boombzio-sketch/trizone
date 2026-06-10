@@ -19,7 +19,7 @@ export default function AdminPage() {
   const setBadge = (key, count) => setBadges(prev => ({ ...prev, [key]: count }))
 
   const tabDefs = [
-    { key: 'pending',  label: '훈련 승인', badge: badges.pending },
+    { key: 'pending',  label: '훈련 관리', badge: badges.pending },
     ...(isAdmin ? [
       { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
       { key: 'members',     label: '회원 관리',  badge: badges.members },
@@ -243,19 +243,10 @@ function PendingTab({ onBadge }) {
   async function load() {
     setLoading(true)
     try {
-      const data = await api.getPendingWorkouts()
+      const data = await api.getAdminWorkouts('limit=100')
       setItems(data)
-      onBadge(data.length)
+      onBadge(null)
     } finally { setLoading(false) }
-  }
-
-  async function handle(id, status) {
-    await api.setWorkoutStatus(id, status)
-    setItems(prev => {
-      const next = prev.filter(w => w.id !== id)
-      onBadge(next.length)
-      return next
-    })
   }
 
   async function handleEdit(id, body) {
@@ -268,8 +259,8 @@ function PendingTab({ onBadge }) {
 
   if (items.length === 0) return (
     <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>✅</div>
-      <div style={{ fontSize: 14, fontWeight: 600 }}>승인 대기 기록이 없습니다</div>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+      <div style={{ fontSize: 14, fontWeight: 600 }}>등록된 훈련 기록이 없습니다</div>
     </div>
   )
 
@@ -289,7 +280,7 @@ function PendingTab({ onBadge }) {
       )}
 
       <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>
-        승인 대기 {items.length}건
+        최근 기록 {items.length}건
       </div>
       {items.map(w => {
         const sc = SPORT_COLOR[w.sport_type] || C.accent
@@ -354,14 +345,8 @@ function PendingTab({ onBadge }) {
               )}
 
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => handle(w.id, 'rejected')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700 }}>
-                  ✕ 반려
-                </button>
                 <button onClick={() => setEditingWorkout(w)} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.accentBg, color: C.accent, fontSize: 13, fontWeight: 700 }}>
                   ✏️ 수정
-                </button>
-                <button onClick={() => handle(w.id, 'approved')} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700 }}>
-                  ✓ 승인
                 </button>
               </div>
             </div>

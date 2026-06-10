@@ -210,6 +210,10 @@ async function initDb() {
   // Add photos column to notices
   await pool.query(`ALTER TABLE notices ADD COLUMN IF NOT EXISTS photos TEXT DEFAULT '[]'`);
 
+  // 승인 시스템 폐지: 과거에 'pending'으로 남아있던 기록들을 일괄 승인 처리.
+  // 신규 INSERT는 'approved'로 들어오므로 이건 한 번만 의미가 있다.
+  await pool.query(`UPDATE workout_logs SET status='approved' WHERE status='pending'`);
+
   // Admins → auto-approved leader application
   await pool.query(`
     INSERT INTO club_leader_applications (user_id, status)
@@ -222,6 +226,23 @@ async function initDb() {
     INSERT INTO club_memberships (club_id, user_id, status)
     SELECT id, leader_id, 'approved' FROM clubs WHERE leader_id IS NOT NULL
     ON CONFLICT (club_id, user_id) DO NOTHING
+  `);
+
+  // ── 핵심 조회 경로 인덱스 ──
+  // 피드/랭킹/좋아요/댓글 쿼리에서 풀스캔을 막는다. IF NOT EXISTS라 재시작 안전.
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_workout_logs_user_logged   ON workout_logs(user_id, logged_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_workout_logs_status_logged ON workout_logs(status, logged_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_workout_logs_visibility    ON workout_logs(visibility);
+    CREATE INDEX IF NOT EXISTS idx_follows_follower           ON follows(follower_id);
+    CREATE INDEX IF NOT EXISTS idx_follows_following          ON follows(following_id);
+    CREATE INDEX IF NOT EXISTS idx_likes_workout              ON likes(workout_id);
+    CREATE INDEX IF NOT EXISTS idx_likes_workout_user         ON likes(workout_id, user_id);
+    CREATE INDEX IF NOT EXISTS idx_comments_workout           ON comments(workout_id);
+    CREATE INDEX IF NOT EXISTS idx_club_memberships_user      ON club_memberships(user_id, status);
+    CREATE INDEX IF NOT EXISTS idx_club_memberships_club      ON club_memberships(club_id, status);
+    CREATE INDEX IF NOT EXISTS idx_club_trainings_club_date   ON club_trainings(club_id, train_date DESC);
+    CREATE INDEX IF NOT EXISTS idx_users_nickname_lower       ON users(LOWER(nickname));
   `);
 
   const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM users');

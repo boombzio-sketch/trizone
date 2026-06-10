@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 import { C, cardSport } from '../utils/theme'
 import { api } from '../utils/api'
+import { uploadImage } from '../utils/upload'
 import Avatar from '../components/Avatar.jsx'
 
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
@@ -230,7 +231,6 @@ export default function FeedPage() {
             openComments={openComments} setOpenComments={setOpenComments}
             onEdit={() => setEditingFeed(f)}
             onDelete={handleDelete}
-            onStatusChange={(id, status) => setFeeds(prev => prev.map(x => x.id === id ? { ...x, status } : x))}
           />
         ))}
       </div>
@@ -255,23 +255,6 @@ function DurInput({ value, onChange, style }) {
       <input type="number" min={0} max={59} value={value.s} onChange={e => onChange({ ...value, s: e.target.value })} style={iSt} placeholder="s" />
     </div>
   )
-}
-
-async function compressImage(file, maxW = 1024, quality = 0.78) {
-  return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const scale = Math.min(1, maxW / img.width)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      resolve(canvas.toDataURL('image/jpeg', quality))
-    }
-    img.src = url
-  })
 }
 
 function EditModal({ feed, onSave, onClose }) {
@@ -306,9 +289,14 @@ function EditModal({ feed, onSave, onClose }) {
     const files = Array.from(e.target.files)
     if (!files.length) return
     const remaining = 5 - photos.length
-    const compressed = await Promise.all(files.slice(0, remaining).map(f => compressImage(f)))
-    setPhotos(prev => [...prev, ...compressed])
+    const toProcess = files.slice(0, remaining)
     e.target.value = ''
+    try {
+      const urls = await Promise.all(toProcess.map(f => uploadImage(f)))
+      setPhotos(prev => [...prev, ...urls])
+    } catch (e2) {
+      setErr('사진 업로드 실패: ' + e2.message)
+    }
   }
 
   function removePhoto(i) {
@@ -525,7 +513,7 @@ function EditModal({ feed, onSave, onClose }) {
   )
 }
 
-function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onDelete, onStatusChange }) {
+function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onDelete }) {
   const sc = SPORT_COLOR[f.sport_type] || C.accent
   const isOpen = openComments === f.id
   const navigate = useNavigate()
@@ -533,21 +521,10 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
   const [commentText, setCommentText] = useState('')
   const [loadingC, setLoadingC] = useState(false)
   const [replyingTo, setReplyingTo] = useState(null)
-  const [approving, setApproving] = useState(false)
   const [likeList, setLikeList] = useState(null)
   const [loadingLikes, setLoadingLikes] = useState(false)
   const vis = VIS_MAP[f.visibility || 'public']
   const status = f.status || 'approved'
-  const canApprove = user?.role === 'admin' || user?.can_approve
-
-  async function handleApprove(newStatus) {
-    setApproving(true)
-    try {
-      await api.setWorkoutStatus(f.id, newStatus)
-      onStatusChange(f.id, newStatus)
-    } catch (e) { alert(e.message) }
-    finally { setApproving(false) }
-  }
 
   async function loadComments() {
     setLoadingC(true)
@@ -604,12 +581,6 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
               <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
                 {STATUS_LABEL[status]}
               </span>
-              {status === 'pending' && canApprove && !approving && (
-                <>
-                  <button onClick={() => handleApprove('approved')} style={{ background: C.successBg, border: 'none', borderRadius: 6, color: C.success, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>✓</button>
-                  <button onClick={() => handleApprove('rejected')} style={{ background: C.errorBg, border: 'none', borderRadius: 6, color: C.error, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>✕</button>
-                </>
-              )}
               {(f.user_id === myId || user?.role === 'admin') && (
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
