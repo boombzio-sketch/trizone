@@ -19,6 +19,10 @@ async function req(path, opts = {}) {
   return data
 }
 
+// 탭별 피드 캐시 (모듈 레벨 — 페이지 이동 후 돌아와도 유지).
+// 한 번 불러온 탭은 즉시 보여주고 백그라운드에서 갱신(stale-while-revalidate).
+const feedCache = new Map()
+
 const STATUS_LABEL = { pending: '승인대기', approved: '승인', rejected: '반려' }
 const STATUS_COLOR = { pending: C.warn, approved: C.success, rejected: C.error }
 const STATUS_BG    = { pending: C.warnBg, approved: C.successBg, rejected: C.errorBg }
@@ -52,6 +56,7 @@ export default function FeedPage() {
   const [tab, setTab] = useState('club')
   const [feeds, setFeeds] = useState([])
   const [loading, setLoading] = useState(true)
+  const reqSeq = useRef(0)
   const [searchQ, setSearchQ] = useState('')
   const [searchRes, setSearchRes] = useState([])
   const [showSearch, setShowSearch] = useState(false)
@@ -62,23 +67,44 @@ export default function FeedPage() {
   const searchTimer = useRef(null)
 
   useEffect(() => {
-    api.getMyClubs().then(setMyClubs).catch(() => {})
+    if (feedCache.has('__myClubs')) setMyClubs(feedCache.get('__myClubs'))   // 캐시 즉시 표시
+    api.getMyClubs().then(c => { setMyClubs(c); feedCache.set('__myClubs', c) }).catch(() => {})
   }, [])
 
   useEffect(() => { loadFeed() }, [tab, selectedClubId])
 
-  async function loadFeed() {
-    setLoading(true)
-    try {
-      let path
-      if (tab === 'following') path = '/social/feed'
-      else if (tab === 'club')  path = `/social/feed/club${selectedClubId ? `?club_id=${selectedClubId}` : ''}`
-      else if (tab === 'mine')  path = '/social/feed/mine'
-      else                      path = '/social/feed/all'
-      const rows = await req(path)
-      setFeeds(rows)
-    } finally { setLoading(false) }
+  function feedPath() {
+    if (tab === 'following') return '/social/feed'
+    if (tab === 'club')      return `/social/feed/club${selectedClubId ? `?club_id=${selectedClubId}` : ''}`
+    if (tab === 'mine')      return '/social/feed/mine'
+    return '/social/feed/all'
   }
+
+  async function loadFeed() {
+    const path = feedPath()
+    const cached = feedCache.get(path)
+    const seq = ++reqSeq.current
+    if (cached) {
+      // 캐시 즉시 표시 → 화면 깜빡임 없음. 백그라운드에서 갱신.
+      setFeeds(cached)
+      setLoading(false)
+    } else {
+      setFeeds([])
+      setLoading(true)
+    }
+    try {
+      const rows = await req(path)
+      feedCache.set(path, rows)
+      if (seq === reqSeq.current) setFeeds(rows)   // 마지막 요청만 반영 (탭 빠른 전환 경합 방지)
+    } finally {
+      if (seq === reqSeq.current) setLoading(false)
+    }
+  }
+
+  // 좋아요/수정/삭제 등으로 feeds가 바뀌면 현재 탭 캐시도 갱신 (복귀 시 stale 방지)
+  useEffect(() => {
+    if (!loading) feedCache.set(feedPath(), feeds)
+  }, [feeds])
 
   useEffect(() => {
     clearTimeout(searchTimer.current)

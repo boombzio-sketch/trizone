@@ -2,10 +2,15 @@ require('dotenv').config();
 require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const { initDb, pool } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// gzip 압축 — 피드 응답엔 base64 커버 이미지가 섞여 있어 무압축 시 수 MB.
+// base64는 텍스트라 gzip으로 크게 줄어든다 (전송 시간 단축).
+app.use(compression());
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
