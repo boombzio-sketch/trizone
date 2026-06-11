@@ -183,7 +183,34 @@ async function initDb() {
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
+    -- 포인트 원장: amount는 음수(차감/조정)도 허용. type = auto(자동적립) | manual(관리자 지급/조정)
+    CREATE TABLE IF NOT EXISTS point_transactions (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'auto',
+      sport_type TEXT DEFAULT NULL,
+      earned_date DATE NOT NULL,
+      workout_id INTEGER DEFAULT NULL,
+      memo TEXT DEFAULT '',
+      created_by INTEGER DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+    -- 포인트 자동지급 설정 (단일 행, id=1)
+    CREATE TABLE IF NOT EXISTS point_settings (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      auto_enabled BOOLEAN DEFAULT TRUE,
+      period_start DATE DEFAULT NULL,
+      period_end DATE DEFAULT NULL,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // 포인트 설정 단일 행 시드
+  const psCheck = await pool.query('SELECT id FROM point_settings WHERE id=1');
+  if (psCheck.rowCount === 0) {
+    await pool.query('INSERT INTO point_settings (id, auto_enabled) VALUES (1, TRUE)');
+  }
 
   // Seed default club_info row
   const clubCheck = await pool.query('SELECT id FROM club_info LIMIT 1');
@@ -243,6 +270,8 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_club_memberships_club      ON club_memberships(club_id, status);
     CREATE INDEX IF NOT EXISTS idx_club_trainings_club_date   ON club_trainings(club_id, train_date DESC);
     CREATE INDEX IF NOT EXISTS idx_users_nickname_lower       ON users(LOWER(nickname));
+    CREATE INDEX IF NOT EXISTS idx_point_tx_user              ON point_transactions(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_point_tx_auto_dedupe       ON point_transactions(user_id, type, sport_type, earned_date);
   `);
 
   const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM users');

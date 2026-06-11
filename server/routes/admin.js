@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const { prepare } = require('../db');
+const { MONTHLY_CAP } = require('../points');
 const { authMiddleware, adminMiddleware, canApproveMiddleware } = require('../middleware');
 
 const adminOnly   = [authMiddleware, adminMiddleware];
@@ -84,6 +85,7 @@ router.delete('/members/:id', ...adminOnly, async (req, res) => {
   await prepare('DELETE FROM club_memberships WHERE user_id = ?').run(uid);
   await prepare('DELETE FROM club_leader_applications WHERE user_id = ?').run(uid);
   await prepare('DELETE FROM club_training_participants WHERE user_id = ?').run(uid);
+  await prepare('DELETE FROM point_transactions WHERE user_id = ?').run(uid);
   await prepare('DELETE FROM users WHERE id = ?').run(uid);
 
   const check = await prepare('SELECT id FROM users WHERE id = ?').get(uid);
@@ -253,6 +255,93 @@ router.put('/workouts/:id/edit', ...editOnly, async (req, res) => {
   `).run(newDist, newDur, newMemo, newDate, newBrick, newPace, newScore, id);
 
   res.json(await prepare('SELECT * FROM workout_logs WHERE id=?').get(id));
+});
+
+// ── 포인트 관리 (관리자 전용) ──────────────────────────────
+
+// 자동지급 설정 조회
+router.get('/points/settings', ...adminOnly, async (req, res) => {
+  const s = await prepare('SELECT auto_enabled, period_start, period_end FROM point_settings WHERE id=1').get();
+  res.json({ ...(s || { auto_enabled: true, period_start: null, period_end: null }), monthly_cap: MONTHLY_CAP });
+});
+
+// 자동지급 설정 변경 (기간 설정 / 자동지급 on·off)
+router.put('/points/settings', ...adminOnly, async (req, res) => {
+  const { auto_enabled, period_start, period_end } = req.body;
+  await prepare(
+    `UPDATE point_settings
+     SET auto_enabled=?, period_start=?, period_end=?, updated_at=CURRENT_TIMESTAMP
+     WHERE id=1`
+  ).run(!!auto_enabled, period_start || null, period_end || null);
+  const s = await prepare('SELECT auto_enabled, period_start, period_end FROM point_settings WHERE id=1').get();
+  res.json({ ...s, monthly_cap: MONTHLY_CAP });
+});
+
+// 회원별 포인트 현황 (잔액 + 이번달 자동적립)
+router.get('/points/members', ...adminOnly, async (req, res) => {
+  const month = new Date().toISOString().slice(0, 7);
+  const rows = await prepare(`
+    SELECT u.id, u.nickname, u.avatar_color, u.avatar_image,
+           COALESCE(SUM(pt.amount), 0) AS balance,
+           COALESCE(SUM(CASE WHEN pt.type='auto' AND to_char(pt.earned_date,'YYYY-MM')=? THEN pt.amount ELSE 0 END), 0) AS month_accrued
+    FROM users u
+    LEFT JOIN point_transactions pt ON pt.user_id = u.id
+    GROUP BY u.id
+    ORDER BY balance DESC, u.nickname ASC
+  `).all(month);
+  res.json(rows);
+});
+
+// 특정 회원 적립 내역
+router.get('/points/:userId/transactions', ...adminOnly, async (req, res) => {
+  const rows = await prepare(`
+    SELECT id, amount, type, sport_type, earned_date, memo, created_by, created_at
+    FROM point_transactions WHERE user_id=?
+    ORDER BY created_at DESC LIMIT 200
+  `).all(Number(req.params.userId));
+  res.json(rows);
+});
+
+// 수동 지급 (양수) / 차감 (음수)
+router.post('/points/:userId/grant', ...adminOnly, async (req, res) => {
+  const userId = Number(req.params.userId);
+  const amount = Math.trunc(Number(req.body.amount));
+  const memo = (req.body.memo || '').toString().slice(0, 200);
+  if (!Number.isFinite(amount) || amount === 0)
+    return res.status(400).json({ error: '0이 아닌 포인트를 입력하세요.' });
+  const user = await prepare('SELECT id FROM users WHERE id=?').get(userId);
+  if (!user) return res.status(404).json({ error: '존재하지 않는 회원입니다.' });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const result = await prepare(
+    `INSERT INTO point_transactions (user_id, amount, type, earned_date, memo, created_by)
+     VALUES (?, ?, 'manual', ?, ?, ?)`
+  ).run(userId, amount, today, memo, req.user.id);
+  res.json(await prepare('SELECT * FROM point_transactions WHERE id=?').get(result.lastInsertRowid));
+});
+
+// 적립 내역 수정 (금액/메모)
+router.put('/points/tx/:id', ...adminOnly, async (req, res) => {
+  const id = Number(req.params.id);
+  const row = await prepare('SELECT * FROM point_transactions WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: '내역을 찾을 수 없습니다.' });
+
+  const amount = req.body.amount !== undefined ? Math.trunc(Number(req.body.amount)) : row.amount;
+  if (!Number.isFinite(amount) || amount === 0)
+    return res.status(400).json({ error: '0이 아닌 포인트를 입력하세요.' });
+  const memo = req.body.memo !== undefined ? req.body.memo.toString().slice(0, 200) : row.memo;
+
+  await prepare('UPDATE point_transactions SET amount=?, memo=? WHERE id=?').run(amount, memo, id);
+  res.json(await prepare('SELECT * FROM point_transactions WHERE id=?').get(id));
+});
+
+// 적립 내역 삭제
+router.delete('/points/tx/:id', ...adminOnly, async (req, res) => {
+  const id = Number(req.params.id);
+  const row = await prepare('SELECT id FROM point_transactions WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: '내역을 찾을 수 없습니다.' });
+  await prepare('DELETE FROM point_transactions WHERE id=?').run(id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

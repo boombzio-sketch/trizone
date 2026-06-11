@@ -47,6 +47,7 @@ export default function MyPage() {
     finally { setEditSaving(false) }
   }
   const [profile, setProfile] = useState(null)
+  const [points, setPoints] = useState(null)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [showFollowers, setShowFollowers] = useState(false)
   const [showFollowing, setShowFollowing] = useState(false)
@@ -54,7 +55,10 @@ export default function MyPage() {
   const [followingList, setFollowingList] = useState([])
 
   useEffect(() => {
-    if (user?.id) req('/social/profile/' + user.id).then(setProfile)
+    if (user?.id) {
+      req('/social/profile/' + user.id).then(setProfile)
+      api.getMyPoints().then(setPoints).catch(() => {})
+    }
   }, [user])
 
   async function openFollowers() {
@@ -200,6 +204,9 @@ export default function MyPage() {
         </div>
       </div>
 
+      {/* 포인트 */}
+      <PointsCard points={points} />
+
       {/* 최근 훈련 */}
       {profile?.recentWorkouts?.length > 0 && (<>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>최근 훈련</div>
@@ -235,6 +242,79 @@ export default function MyPage() {
       )}
       {showFollowers && <FollowModal title="팔로워" list={followerList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowers(false)} />}
       {showFollowing && <FollowModal title="팔로잉" list={followingList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowing(false)} />}
+    </div>
+  )
+}
+
+const PT_SPORT_LABEL = { swim: '수영', bike: '사이클', run: '런', brick: '브릭' }
+
+function PointsCard({ points }) {
+  const [open, setOpen] = useState(false)
+  if (!points) return null
+
+  const { balance = 0, month_accrued = 0, monthly_cap = 10000, payout_active, transactions = [] } = points
+  const pct = monthly_cap > 0 ? Math.min(100, Math.round((month_accrued / monthly_cap) * 100)) : 0
+
+  return (
+    <div style={{ background: 'linear-gradient(160deg, #1A1330 0%, #0E0A1C 100%)', borderRadius: 20, padding: 18, border: `1px solid ${C.goldBorder}`, marginBottom: 12, boxShadow: '0 4px 32px rgba(0,0,0,0.5)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.gold }}>💎 포인트</span>
+          <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 6, padding: '2px 8px',
+            background: payout_active ? C.successBg : C.surfaceAlt,
+            color: payout_active ? C.success : C.text2 }}>
+            {payout_active ? '🟢 포인트 지급중' : '⏸ 포인트 지급기간이 아닙니다.'}
+          </span>
+        </div>
+      </div>
+
+      {/* 잔액 */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }}>
+        <span style={{ fontSize: 34, fontWeight: 900, color: C.gold, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
+          {balance.toLocaleString()}
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: C.text2 }}>pt</span>
+      </div>
+
+      {/* 이번달 적립 현황 */}
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.text2, marginBottom: 6 }}>
+          <span>이번달 적립</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+            <strong style={{ color: C.gold }}>{month_accrued.toLocaleString()}</strong> / {monthly_cap.toLocaleString()} pt
+          </span>
+        </div>
+        <div style={{ height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${C.gold}, #FDE68A)`, transition: 'width .4s' }} />
+        </div>
+      </div>
+
+      {/* 적립 내역 토글 */}
+      <button onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', marginTop: 12, padding: '9px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, borderRadius: 10, color: C.text2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+        적립 내역 {open ? '닫기 ▲' : `보기 ▼ (${transactions.length})`}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 10, maxHeight: 280, overflowY: 'auto' }}>
+          {transactions.length === 0
+            ? <div style={{ textAlign: 'center', padding: 20, color: C.text2, fontSize: 12 }}>아직 적립 내역이 없습니다.</div>
+            : transactions.map(t => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 2px', borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                    {t.type === 'auto' ? `${PT_SPORT_LABEL[t.sport_type] || '훈련'} 자동 적립` : (t.memo || '관리자 지급')}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>{(t.created_at || t.earned_date)?.slice(0, 10)}</div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: t.amount >= 0 ? C.success : C.error }}>
+                  {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString()}
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      )}
     </div>
   )
 }

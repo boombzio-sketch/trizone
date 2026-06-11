@@ -19,6 +19,7 @@ export default function AdminPage() {
   const tabDefs = [
     { key: 'members',     label: '회원 관리',  badge: badges.members },
     { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
+    { key: 'points',      label: '포인트',     badge: null },
   ]
 
   return (
@@ -49,6 +50,7 @@ export default function AdminPage() {
       </div>
       <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>
       <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>
+      {tab === 'points' && <PointsTab />}
     </div>
   )
 }
@@ -380,5 +382,222 @@ function MembersTab({ user: currentUser, onBadge }) {
     </div>
   )
 }
+
+const PT_SPORT_LABEL = { swim: '수영', bike: '사이클', run: '런', brick: '브릭' }
+
+function PointsTab() {
+  const [settings, setSettings] = useState(null)
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState(null)
+  const [savingSettings, setSavingSettings] = useState(false)
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    try {
+      const [s, m] = await Promise.all([api.getPointSettings(), api.getPointMembers()])
+      setSettings(s); setMembers(m)
+    } catch (e) { alert(e.message) }
+    finally { setLoading(false) }
+  }
+
+  async function saveSettings() {
+    setSavingSettings(true)
+    try {
+      const s = await api.updatePointSettings({
+        auto_enabled: settings.auto_enabled,
+        period_start: settings.period_start || null,
+        period_end: settings.period_end || null,
+      })
+      setSettings(s)
+      alert('저장되었습니다.')
+    } catch (e) { alert(e.message) }
+    finally { setSavingSettings(false) }
+  }
+
+  if (loading || !settings) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
+
+  return (
+    <div style={{ padding: '12px 0' }}>
+      {/* 자동지급 설정 */}
+      <div style={{ margin: '0 12px 14px', background: C.surface, borderRadius: 16, padding: 16, border: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 12 }}>⚙️ 자동지급 설정</div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>포인트 자동지급</div>
+            <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>훈련 기록 시 규칙에 따라 자동 적립</div>
+          </div>
+          <button onClick={() => setSettings(s => ({ ...s, auto_enabled: !s.auto_enabled }))}
+            style={{ width: 52, height: 30, borderRadius: 999, border: 'none', cursor: 'pointer', position: 'relative',
+              background: settings.auto_enabled ? C.success : C.surfaceHigh, transition: 'background .2s' }}>
+            <span style={{ position: 'absolute', top: 3, left: settings.auto_enabled ? 25 : 3, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left .2s' }} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelSt}>지급 시작일</label>
+            <input type="date" value={settings.period_start || ''} onChange={e => setSettings(s => ({ ...s, period_start: e.target.value }))}
+              style={ptInput} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelSt}>지급 종료일</label>
+            <input type="date" value={settings.period_end || ''} onChange={e => setSettings(s => ({ ...s, period_end: e.target.value }))}
+              style={ptInput} />
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: C.text2, marginBottom: 12 }}>
+          기간을 비워두면 무제한. 자동지급이 꺼져 있거나 기간 밖이면 적립되지 않습니다. · 월 상한 {(settings.monthly_cap || 10000).toLocaleString()}pt
+        </div>
+        <button onClick={saveSettings} disabled={savingSettings}
+          style={{ width: '100%', padding: '11px', background: savingSettings ? C.surfaceHigh : C.accent, border: 'none', borderRadius: 12, color: savingSettings ? C.text2 : '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+          {savingSettings ? '저장 중...' : '💾 설정 저장'}
+        </button>
+      </div>
+
+      {/* 회원별 포인트 */}
+      <div style={{ padding: '0 16px 4px', fontSize: 11, color: C.text2 }}>회원별 포인트 · 총 {members.length}명</div>
+      {members.map(m => (
+        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
+          <Avatar nickname={m.nickname} avatar_color={m.avatar_color} avatar_image={m.avatar_image} size={38} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.nickname}</div>
+            <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>이번달 적립 {(m.month_accrued || 0).toLocaleString()}pt</div>
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 900, color: C.gold, fontVariantNumeric: 'tabular-nums' }}>{(m.balance || 0).toLocaleString()}<span style={{ fontSize: 10, color: C.text2, marginLeft: 2 }}>pt</span></div>
+          <button onClick={() => setSelected(m)} style={{ padding: '7px 12px', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700, background: C.accentBg, color: C.accent }}>관리</button>
+        </div>
+      ))}
+
+      {selected && (
+        <MemberPointModal member={selected} onClose={() => setSelected(null)}
+          onChanged={(newBalance, newMonth) => setMembers(prev => prev.map(x => x.id === selected.id ? { ...x, balance: newBalance, month_accrued: newMonth ?? x.month_accrued } : x))} />
+      )}
+    </div>
+  )
+}
+
+function MemberPointModal({ member, onClose, onChanged }) {
+  const [txs, setTxs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [amount, setAmount] = useState('')
+  const [memo, setMemo] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(null) // {id, amount, memo}
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    try { setTxs(await api.getMemberPointTx(member.id)) }
+    catch (e) { alert(e.message) }
+    finally { setLoading(false) }
+  }
+
+  const balance = txs.reduce((a, t) => a + t.amount, 0)
+  function pushBalance(list) { onChanged(list.reduce((a, t) => a + t.amount, 0)) }
+
+  async function grant() {
+    const amt = parseInt(amount, 10)
+    if (!amt) { alert('0이 아닌 포인트를 입력하세요.'); return }
+    setSaving(true)
+    try {
+      const tx = await api.grantPoints(member.id, { amount: amt, memo })
+      const next = [tx, ...txs]
+      setTxs(next); pushBalance(next)
+      setAmount(''); setMemo('')
+    } catch (e) { alert(e.message) }
+    finally { setSaving(false) }
+  }
+
+  async function saveEdit() {
+    const amt = parseInt(editing.amount, 10)
+    if (!amt) { alert('0이 아닌 포인트를 입력하세요.'); return }
+    try {
+      const tx = await api.updatePointTx(editing.id, { amount: amt, memo: editing.memo })
+      const next = txs.map(t => t.id === tx.id ? tx : t)
+      setTxs(next); pushBalance(next); setEditing(null)
+    } catch (e) { alert(e.message) }
+  }
+
+  async function del(id) {
+    if (!confirm('이 내역을 삭제할까요?')) return
+    try {
+      await api.deletePointTx(id)
+      const next = txs.filter(t => t.id !== id)
+      setTxs(next); pushBalance(next)
+    } catch (e) { alert(e.message) }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: C.surface, borderRadius: 20, padding: 20, width: '100%', maxWidth: 380, maxHeight: '85vh', overflowY: 'auto', border: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>💎 {member.nickname}</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.text2, fontSize: 18, cursor: 'pointer' }}>✕</button>
+        </div>
+
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 30, fontWeight: 900, color: C.gold, fontVariantNumeric: 'tabular-nums' }}>{balance.toLocaleString()}<span style={{ fontSize: 13, color: C.text2, marginLeft: 3 }}>pt</span></div>
+          <div style={{ fontSize: 11, color: C.text2 }}>현재 잔액</div>
+        </div>
+
+        {/* 수동 지급/차감 */}
+        <div style={{ background: C.surfaceAlt, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 8 }}>수동 지급 / 차감 (음수 입력 시 차감)</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="예: 500 또는 -200"
+              style={{ ...ptInput, flex: 1 }} />
+          </div>
+          <input value={memo} onChange={e => setMemo(e.target.value)} placeholder="사유 (선택)" maxLength={200}
+            style={{ ...ptInput, marginBottom: 8 }} />
+          <button onClick={grant} disabled={saving}
+            style={{ width: '100%', padding: '10px', background: saving ? C.surfaceHigh : C.gold, border: 'none', borderRadius: 10, color: saving ? C.text2 : '#1A1330', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+            {saving ? '처리 중...' : '지급 / 차감'}
+          </button>
+        </div>
+
+        {/* 내역 */}
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 6 }}>적립 내역</div>
+        {loading ? <div style={{ textAlign: 'center', padding: 20, color: C.text2 }}>⏳</div>
+          : txs.length === 0 ? <div style={{ textAlign: 'center', padding: 20, color: C.text2, fontSize: 12 }}>내역이 없습니다.</div>
+          : txs.map(t => (
+            <div key={t.id} style={{ padding: '9px 2px', borderBottom: `1px solid ${C.border}` }}>
+              {editing?.id === t.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <input type="number" value={editing.amount} onChange={e => setEditing(ed => ({ ...ed, amount: e.target.value }))} style={ptInput} />
+                  <input value={editing.memo} onChange={e => setEditing(ed => ({ ...ed, memo: e.target.value }))} placeholder="사유" style={ptInput} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setEditing(null)} style={{ flex: 1, padding: '7px', background: C.surfaceAlt, border: 'none', borderRadius: 8, color: C.text2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+                    <button onClick={saveEdit} style={{ flex: 1, padding: '7px', background: C.accent, border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>저장</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                      {t.type === 'auto' ? `${PT_SPORT_LABEL[t.sport_type] || '훈련'} 자동 적립` : (t.memo || '관리자 지급')}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>{(t.created_at || t.earned_date)?.slice(0, 10)} · {t.type === 'auto' ? '자동' : '수동'}</div>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: t.amount >= 0 ? C.success : C.error }}>
+                    {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString()}
+                  </div>
+                  <button onClick={() => setEditing({ id: t.id, amount: String(t.amount), memo: t.memo || '' })} style={{ padding: '5px 9px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 10, fontWeight: 700, background: C.surfaceAlt, color: C.text2 }}>수정</button>
+                  <button onClick={() => del(t.id)} style={{ padding: '5px 9px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 10, fontWeight: 700, background: C.errorBg, color: C.error }}>삭제</button>
+                </div>
+              )}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  )
+}
+
+const ptInput = { width: '100%', padding: '10px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }
 
 const labelSt = { display: 'block', fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }

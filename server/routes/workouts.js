@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const { prepare } = require('../db');
+const { accrueForWorkout } = require('../points');
 const { authMiddleware, adminMiddleware } = require('../middleware');
 const adminOnly = [authMiddleware, adminMiddleware];
 const db = { prepare };
@@ -140,7 +141,18 @@ router.post('/', authMiddleware, async (req, res) => {
   );
 
   const row = await db.prepare('SELECT * FROM workout_logs WHERE id = ?').get(result.lastInsertRowid);
-  res.json(row);
+
+  // 포인트 자동 적립 — 실패해도 기록 저장은 성공 처리.
+  let pointsEarned = 0;
+  try {
+    pointsEarned = await accrueForWorkout({
+      userId: req.user.id, sportType: sport_type, loggedAt: logged_at, workoutId: row.id,
+    });
+  } catch (e) {
+    console.error('[points] 자동 적립 실패:', e.message);
+  }
+
+  res.json({ ...row, points_earned: pointsEarned });
 });
 
 // 기록 삭제

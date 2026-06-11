@@ -34,6 +34,7 @@ initDb().then(() => {
   app.use('/api/races',   require('./routes/races'));
   app.use('/api/clubs',    require('./routes/clubs'));
   app.use('/api/notices',  require('./routes/notices'));
+  app.use('/api/points',   require('./routes/points'));
   // 핑 엔드포인트 — Render 서버 + Neon DB 양쪽 모두 워밍.
   // cron-job.org가 10분 간격으로 호출.
   app.get('/api/health', async (req, res) => {
