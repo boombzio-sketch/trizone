@@ -94,6 +94,11 @@ function LogItem({ log, onDelete }) {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
             <Text style={[s.logSport, { color: sc }]}>{SPORT_LABEL[log.sport_type]}</Text>
+            {log.points_earned > 0 && (
+              <View style={s.logPointsBadge}>
+                <Text style={s.logPointsText}>+{log.points_earned}p</Text>
+              </View>
+            )}
             <Text style={s.logDate}>{log.logged_at}</Text>
           </View>
           {segs
@@ -406,6 +411,8 @@ const s = StyleSheet.create({
   logRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
   logIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   logSport: { fontSize: 13, fontWeight: '700' },
+  logPointsBadge: { backgroundColor: C.goldBg, borderWidth: 1, borderColor: C.goldBorder, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
+  logPointsText: { fontSize: 9, fontWeight: '800', color: C.gold },
   logDate: { fontSize: 11, color: C.text2 },
   logSub: { fontSize: 11, color: C.text2, marginTop: 2 },
   logMemo: { fontSize: 11, color: C.text2, marginTop: 3, fontStyle: 'italic' },
