@@ -1,7 +1,29 @@
 import * as SecureStore from 'expo-secure-store'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const BASE = 'https://trizone-server.onrender.com/api'
 const TOKEN_KEY = 'tz_token'
+
+// 콜드스타트 동안 빈 화면 대신 직전 결과를 즉시 보여주기 위한 디스크 캐시.
+// JSON 직렬화 가능한 값만 저장. 실패는 조용히 무시.
+export const cache = {
+  async get(key) {
+    try {
+      const v = await AsyncStorage.getItem('tz_cache_' + key)
+      return v ? JSON.parse(v) : null
+    } catch { return null }
+  },
+  async set(key, value) {
+    try { await AsyncStorage.setItem('tz_cache_' + key, JSON.stringify(value)) } catch {}
+  },
+  async clear() {
+    try {
+      const keys = await AsyncStorage.getAllKeys()
+      const ours = keys.filter(k => k.startsWith('tz_cache_'))
+      if (ours.length) await AsyncStorage.multiRemove(ours)
+    } catch {}
+  },
+}
 
 export async function getToken() {
   return await SecureStore.getItemAsync(TOKEN_KEY)
@@ -15,19 +37,38 @@ export async function removeToken() {
   await SecureStore.deleteItemAsync(TOKEN_KEY)
 }
 
+// 앱 시작 시 서버 + DB를 미리 깨운다 (Render/Neon 무료 티어 콜드스타트 완화).
+// 실패해도 무시 — 어차피 다음 실제 호출이 콜드를 떠안게 됨.
+export function warmup() {
+  fetch(BASE + '/health').catch(() => {})
+}
+
 async function request(path, options = {}) {
   const token = await getToken()
-  const res = await fetch(BASE + path, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-    ...options,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error || '오류가 발생했습니다.')
+  let res
+  try {
+    res = await fetch(BASE + path, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+      ...options,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    })
+  } catch (e) {
+    // 네트워크/타임아웃 등 — status는 없음. 호출부에서 401만 강제 로그아웃 처리.
+    const err = new Error(e?.message || '네트워크 오류')
+    err.network = true
+    throw err
+  }
+  let data = {}
+  try { data = await res.json() } catch {}
+  if (!res.ok) {
+    const err = new Error(data.error || '오류가 발생했습니다.')
+    err.status = res.status
+    throw err
+  }
   return data
 }
 
@@ -89,6 +130,7 @@ export const api = {
   getClubFeed:    () => request('/social/feed/club'),
   getMyFeed:      () => request('/social/feed/mine'),
   getAllFeed:      () => request('/social/feed/all'),
+  getWorkoutPhotos: (id) => request(`/social/workout/${id}/photos`),
 
   // 소셜 - 좋아요/댓글
   likeWorkout:    (id)         => request(`/social/like/${id}`, { method: 'POST' }),
@@ -116,8 +158,6 @@ export const api = {
 
   // 관리자
   issueResetToken:   (id)          => request(`/admin/members/${id}/reset-token`, { method: 'POST' }),
-  getPendingWorkouts: ()           => request('/admin/pending'),
-  setWorkoutStatus:  (id, status)  => request(`/admin/workouts/${id}/status`, { method: 'PUT', body: { status } }),
   getAdminMembers:   ()            => request('/admin/members'),
   updateAdminMember: (id, body)    => request(`/admin/members/${id}`, { method: 'PUT', body }),
   setAdminMemberRole:(id, role)    => request(`/admin/members/${id}/role`, { method: 'PUT', body: { role } }),

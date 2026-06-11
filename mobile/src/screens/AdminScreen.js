@@ -11,18 +11,14 @@ import { api } from '../utils/api'
 import { C } from '../utils/theme'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 
-const TABS = ['훈련 승인', '쪽지', '가입 신청', '회원 관리']
-
 export default function AdminScreen() {
   const { user } = useAuth()
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   const isAdmin = user?.role === 'admin'
-  const canApprove = isAdmin || user?.can_approve
   const [tab, setTab] = useState(0)
 
   const tabs = [
-    '훈련 승인',
     '쪽지',
     ...(isAdmin ? ['가입 신청', '회원 관리'] : []),
   ]
@@ -46,86 +42,10 @@ export default function AdminScreen() {
         </ScrollView>
       </View>
 
-      {tab === 0 && <PendingTab />}
-      {tab === 1 && <MessagesTab />}
-      {isAdmin && tab === 2 && <MembershipsTab />}
-      {isAdmin && tab === 3 && <MembersTab />}
+      {tab === 0 && <MessagesTab />}
+      {isAdmin && tab === 1 && <MembershipsTab />}
+      {isAdmin && tab === 2 && <MembersTab />}
     </View>
-  )
-}
-
-/* ─── 훈련 승인 ─── */
-function PendingTab() {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    try { setItems(await api.getPendingWorkouts()) }
-    catch (e) { Alert.alert('오류', e.message) }
-    finally { setLoading(false) }
-  }
-
-  async function handle(id, status) {
-    try {
-      await api.setWorkoutStatus(id, status)
-      setItems(prev => prev.filter(w => w.id !== id))
-    } catch (e) { Alert.alert('오류', e.message) }
-  }
-
-  if (loading) return <Center><ActivityIndicator color={C.accent} size="large" /></Center>
-  if (items.length === 0) return <Center><Text style={s.emptyText}>✅ 승인 대기 기록이 없습니다</Text></Center>
-
-  return (
-    <FlatList
-      data={items}
-      keyExtractor={w => String(w.id)}
-      contentContainerStyle={{ padding: 12 }}
-      renderItem={({ item: w }) => {
-        const sc = SPORT_COLOR[w.sport_type] || C.accent
-        const segs = w.sport_type === 'brick'
-          ? (() => { try { return JSON.parse(w.brick_segments || '[]') } catch { return [] } })()
-          : null
-        return (
-          <View style={[s.card, { borderLeftColor: sc }]}>
-            <View style={s.cardRow}>
-              <Avatar nickname={w.nickname} avatar_color={w.avatar_color} avatar_image={w.avatar_image} size={36} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardNick}>{w.nickname}</Text>
-                <Text style={s.cardSub}>{w.logged_at} · {SPORT_ICON[w.sport_type]} {SPORT_LABEL[w.sport_type]}</Text>
-              </View>
-              <Text style={[s.cardKm, { color: C.accent }]}>
-                {segs
-                  ? segs.reduce((a, s) => a + (s.distance_km || 0), 0).toFixed(2)
-                  : (w.distance_km || 0).toFixed(2)}km
-              </Text>
-            </View>
-            <View style={s.metricsBox}>
-              {segs
-                ? segs.map((seg, i) => (
-                  <View key={i} style={s.segRow}>
-                    <Text style={s.segLabel}>{SPORT_ICON[seg.sport]} {SPORT_LABEL[seg.sport]}</Text>
-                    <Text style={s.segVal}>{seg.distance_km}km · {formatDuration(seg.duration_sec)}</Text>
-                  </View>
-                ))
-                : <Text style={s.cardDetail}>{(w.distance_km || 0).toFixed(2)}km · {formatDuration(w.duration_sec)}</Text>
-              }
-              {w.memo ? <Text style={s.cardMemo}>{w.memo}</Text> : null}
-            </View>
-            <View style={s.actionRow}>
-              <TouchableOpacity onPress={() => handle(w.id, 'rejected')} style={[s.actionBtn, { backgroundColor: C.errorBg }]}>
-                <Text style={[s.actionBtnText, { color: C.error }]}>✕ 반려</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handle(w.id, 'approved')} style={[s.actionBtn, { flex: 2, backgroundColor: '#10B98120' }]}>
-                <Text style={[s.actionBtnText, { color: '#10B981' }]}>✓ 승인</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )
-      }}
-    />
   )
 }
 
