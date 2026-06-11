@@ -23,9 +23,6 @@ async function req(path, opts = {}) {
 // 한 번 불러온 탭은 즉시 보여주고 백그라운드에서 갱신(stale-while-revalidate).
 const feedCache = new Map()
 
-const STATUS_LABEL = { pending: '승인대기', approved: '승인', rejected: '반려' }
-const STATUS_COLOR = { pending: C.warn, approved: C.success, rejected: C.error }
-const STATUS_BG    = { pending: C.warnBg, approved: C.successBg, rejected: C.errorBg }
 
 const VIS_OPTIONS = [
   { key: 'public',    label: '전체',   icon: '🌍', color: C.success },
@@ -550,7 +547,6 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
   const [likeList, setLikeList] = useState(null)
   const [loadingLikes, setLoadingLikes] = useState(false)
   const vis = VIS_MAP[f.visibility || 'public']
-  const status = f.status || 'approved'
 
   async function loadComments() {
     setLoadingC(true)
@@ -604,9 +600,6 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: sc }}>{SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
-                {STATUS_LABEL[status]}
-              </span>
               {(f.user_id === myId || user?.role === 'admin' || user?.can_approve) && (
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button onClick={onEdit} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 6, color: C.text2, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 7px' }}>수정</button>
