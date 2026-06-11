@@ -131,8 +131,9 @@ export default function WorkoutPage() {
         body.distance_km = segments.reduce((s,b) => s+b.distance_km, 0)
         body.duration_sec = segments.reduce((s,b) => s+b.duration_sec, 0) + parseDuration(t1Time) + parseDuration(t2Time)
       }
-      await api.addWorkout(body)
-      setSuccess('✅ 기록이 저장되었습니다!')
+      const saved = await api.addWorkout(body)
+      const pts = saved?.points_earned || 0
+      setSuccess(pts > 0 ? `✅ 기록 저장 완료!  💎 +${pts}p 적립!` : '✅ 기록이 저장되었습니다!')
       setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
       setBrick([{ sport: 'swim', distance: '', time: '' }, { sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
       setT1Time(''); setT2Time(''); setPhotos([]); setCoverIndex(0); setVisibility('public')
