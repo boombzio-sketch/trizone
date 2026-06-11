@@ -54,4 +54,15 @@ async function accrueForWorkout({ userId, sportType, loggedAt, workoutId }) {
   return award;
 }
 
-module.exports = { SPORT_POINTS, MONTHLY_CAP, getSettings, isPayoutActive, accrueForWorkout };
+// 훈련 기록 삭제 시 그 기록으로 자동 적립된 포인트 회수.
+// (수동 지급분은 workout_id가 없으므로 영향 없음.) 회수한 포인트 합계를 반환.
+async function revokeForWorkout(workoutId) {
+  if (!workoutId) return 0;
+  const row = await prepare(
+    `SELECT COALESCE(SUM(amount),0) AS sum FROM point_transactions WHERE workout_id=? AND type='auto'`
+  ).get(workoutId);
+  await prepare(`DELETE FROM point_transactions WHERE workout_id=? AND type='auto'`).run(workoutId);
+  return row?.sum || 0;
+}
+
+module.exports = { SPORT_POINTS, MONTHLY_CAP, getSettings, isPayoutActive, accrueForWorkout, revokeForWorkout };

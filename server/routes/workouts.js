@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { prepare } = require('../db');
-const { accrueForWorkout } = require('../points');
+const { accrueForWorkout, revokeForWorkout } = require('../points');
 const { authMiddleware, adminMiddleware } = require('../middleware');
 const adminOnly = [authMiddleware, adminMiddleware];
 const db = { prepare };
@@ -163,6 +163,11 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   if (row.user_id !== req.user.id && req.user.role !== 'admin')
     return res.status(403).json({ error: '삭제 권한이 없습니다.' });
   await db.prepare('DELETE FROM workout_logs WHERE id = ?').run(id);
+
+  // 이 기록으로 자동 적립된 포인트 회수 (회수 실패가 삭제를 막지 않도록 격리).
+  try { await revokeForWorkout(id); }
+  catch (e) { console.error('[points] 회수 실패:', e.message); }
+
   res.json({ ok: true });
 });
 
