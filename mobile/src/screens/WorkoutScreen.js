@@ -242,8 +242,9 @@ function AddForm({ onSaved }) {
         body.distance_km = segs.reduce((s, b) => s + b.distance_km, 0)
         body.duration_sec = segs.reduce((s, b) => s + b.duration_sec, 0) + parseDuration(t1) + parseDuration(t2)
       }
-      await api.addWorkout(body)
-      Alert.alert('저장 완료', '기록이 저장되었습니다!', [
+      const saved = await api.addWorkout(body)
+      const pts = saved?.points_earned || 0
+      Alert.alert('저장 완료', pts > 0 ? `기록이 저장되었습니다!\n💎 +${pts}p 적립!` : '기록이 저장되었습니다!', [
         { text: '확인', onPress: onSaved }
       ])
     } catch (e) { setError(e.message) }
