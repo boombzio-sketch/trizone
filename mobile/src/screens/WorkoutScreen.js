@@ -20,7 +20,7 @@ function today() { return new Date().toISOString().slice(0, 10) }
 
 export default function WorkoutScreen() {
   const insets = useSafeAreaInsets()
-  const [tab, setTab] = useState('log')
+  const [tab, setTab] = useState('cal')
   const [logs, setLogs] = useState([])
   const [logsLoading, setLogsLoading] = useState(true)
 
@@ -49,30 +49,17 @@ export default function WorkoutScreen() {
     <View style={s.root}>
       {/* 탭 헤더 */}
       <View style={s.tabHeader}>
-        {[['log','📋 목록'],['cal','📅 달력'],['add','➕ 추가']].map(([k, l]) => (
+        {[['cal','📅 달력'],['add','➕ 추가']].map(([k, l]) => (
           <TouchableOpacity key={k} onPress={() => { setTab(k); if (k !== 'add') loadLogs() }} style={[s.headerTab, tab === k && s.headerTabActive]}>
             <Text style={[s.headerTabText, tab === k && s.headerTabTextActive]}>{l}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {tab === 'log' && (
-        logsLoading
-          ? <View style={s.center}><ActivityIndicator color={C.accent} size="large" /></View>
-          : logs.length === 0
-            ? <View style={s.center}><Text style={s.emptyText}>아직 훈련 기록이 없습니다.{'\n'}"추가" 탭에서 첫 훈련을 입력해보세요!</Text></View>
-            : <FlatList
-                data={logs}
-                keyExtractor={l => String(l.id)}
-                renderItem={({ item }) => <LogItem log={item} onDelete={handleDelete} />}
-                contentContainerStyle={{ padding: 12 }}
-              />
-      )}
-
       {tab === 'cal' && <CalendarTab logs={logs} />}
 
       {tab === 'add' && (
-        <AddForm onSaved={() => { loadLogs(); setTab('log') }} />
+        <AddForm onSaved={() => { loadLogs(); setTab('cal') }} />
       )}
     </View>
   )
@@ -199,6 +186,11 @@ function CalendarTab({ logs }) {
                   <Text style={[s.logSport, { color: SPORT_COLOR[l.sport_type] }]}>{SPORT_LABEL[l.sport_type]}</Text>
                   <Text style={s.logSub}>{(l.distance_km||0).toFixed(2)}km · {formatDuration(l.duration_sec)}</Text>
                 </View>
+                {l.points_earned > 0 && (
+                  <View style={s.logPointsBadge}>
+                    <Text style={s.logPointsText}>+{l.points_earned}p</Text>
+                  </View>
+                )}
               </View>
             ))
           }
