@@ -31,7 +31,7 @@ function toggleVis(current, key) {
 const LIMIT = 20
 
 export default function WorkoutPage() {
-  const [tab, setTab] = useState('log')
+  const [tab, setTab] = useState('cal')
   const [sport, setSport] = useState('swim')
   const [form, setForm] = useState({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: '실외', elevation: '', power: '' })
   const [brick, setBrick] = useState([
@@ -52,7 +52,7 @@ export default function WorkoutPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  useEffect(() => { if (tab === 'log' || tab === 'cal') loadLogs(true) }, [tab])
+  useEffect(() => { if (tab === 'cal') loadLogs(true) }, [tab])
 
   async function loadLogs(reset = false) {
     const currentOffset = reset ? 0 : offset
@@ -135,7 +135,7 @@ export default function WorkoutPage() {
       setBrick([{ sport: 'swim', distance: '', time: '' }, { sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
       setT1Time(''); setT2Time(''); setPhotos([]); setCoverIndex(0); setVisibility('public')
       setForm(f => ({ ...f, course_type: '실외' }))
-      setTimeout(() => { setSuccess(''); setTab('log') }, 2000)
+      setTimeout(() => { setSuccess(''); setTab('cal') }, 2000)
     } catch(err) { setError(err.message) }
     finally { setLoading(false) }
   }
@@ -158,7 +158,7 @@ export default function WorkoutPage() {
   return (
     <div>
       <div style={{ display: 'flex', background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '0 14px' }}>
-        {[['log','📋 목록'],['cal','📅 달력'],['add','➕ 추가']].map(([k,l]) => (
+        {[['cal','📅 달력'],['add','➕ 추가']].map(([k,l]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             flex: 1, padding: '14px 0', border: 'none',
             borderBottom: tab===k ? `2px solid ${C.accent}` : '2px solid transparent',
@@ -170,7 +170,7 @@ export default function WorkoutPage() {
 
       {editingLog && <LogEditModal log={editingLog} onSave={handleEditSave} onClose={() => setEditingLog(null)} />}
 
-      {tab === 'log' ? (
+      {tab === 'cal' ? (
         <div>
           {logs.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 14px 2px' }}>
@@ -179,12 +179,7 @@ export default function WorkoutPage() {
               </button>
             </div>
           )}
-          {logs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 48, color: C.text2, fontSize: 14 }}>
-              아직 훈련 기록이 없습니다.<br />"추가" 탭에서 첫 훈련을 입력해보세요!
-            </div>
-          ) : logs.map(log => <LogItem key={log.id} log={log} onDelete={handleDelete} onEdit={setEditingLog} />)}
-
+          <CalendarTab logs={logs} />
           {hasMore && (
             <div style={{ textAlign: 'center', padding: '12px 0 24px' }}>
               <button onClick={() => loadLogs(false)} disabled={loadingMore} style={{
@@ -192,13 +187,11 @@ export default function WorkoutPage() {
                 border: `1px solid ${C.accentBorder}`, borderRadius: 10,
                 padding: '8px 24px', cursor: loadingMore ? 'default' : 'pointer', fontWeight: 700,
               }}>
-                {loadingMore ? '불러오는 중...' : '더 보기'}
+                {loadingMore ? '불러오는 중...' : '기록 더 불러오기'}
               </button>
             </div>
           )}
         </div>
-      ) : tab === 'cal' ? (
-        <CalendarTab logs={logs} />
       ) : (
         <form onSubmit={handleSubmit} style={{ padding: 16 }}>
           {/* 종목 선택 */}
