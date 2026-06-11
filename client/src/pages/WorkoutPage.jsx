@@ -5,9 +5,6 @@ import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration, parseDuration } f
 import { C } from '../utils/theme'
 
 const SPORTS = ['swim', 'bike', 'run', 'brick']
-const STATUS_LABEL = { pending: '승인대기', approved: '승인', rejected: '반려' }
-const STATUS_COLOR = { pending: C.warn, approved: C.success, rejected: C.error }
-const STATUS_BG    = { pending: C.warnBg, approved: C.successBg, rejected: C.errorBg }
 const VIS_OPTIONS = [
   { key: 'public',    label: '전체',   icon: '🌍', color: C.success },
   { key: 'club',      label: '클럽원', icon: '👥', color: C.accent },
@@ -76,11 +73,11 @@ export default function WorkoutPage() {
   }
 
   function downloadCSV() {
-    const headers = ['날짜','종목','거리(km)','시간','상태','메모']
+    const headers = ['날짜','종목','거리(km)','시간','메모']
     const rows = logs.map(l => [
       l.logged_at, SPORT_LABEL[l.sport_type] || l.sport_type,
       (l.distance_km || 0).toFixed(2), formatDuration(l.duration_sec),
-      l.status, (l.memo || '').replace(/,/g, ' ')
+      (l.memo || '').replace(/,/g, ' ')
     ])
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
@@ -376,7 +373,6 @@ export default function WorkoutPage() {
 function LogItem({ log, onDelete, onEdit }) {
   const sc = SPORT_COLOR[log.sport_type] || C.text2
   const segs = log.sport_type === 'brick' ? JSON.parse(log.brick_segments || '[]') : null
-  const status = log.status || 'approved'
   const vis = VIS_MAP[log.visibility || 'public']
   return (
     <div style={{ margin: '8px 12px', background: C.surface, borderRadius: 14, overflow: 'hidden', borderLeft: `4px solid ${sc}` }}>
@@ -387,9 +383,6 @@ function LogItem({ log, onDelete, onEdit }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: sc }}>{SPORT_LABEL[log.sport_type]}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, borderRadius: 4, padding: '1px 6px', background: STATUS_BG[status], color: STATUS_COLOR[status] }}>
-              {STATUS_LABEL[status]}
-            </span>
             <span style={{ fontSize: 9, color: vis.color }}>{vis.icon}</span>
             <span style={{ fontSize: 11, color: C.text2 }}>{log.logged_at}</span>
           </div>
@@ -495,9 +488,6 @@ function CalendarTab({ logs }) {
                   <div style={{ fontSize: 13, fontWeight: 700, color: SPORT_COLOR[l.sport_type] }}>{SPORT_LABEL[l.sport_type]}</div>
                   <div style={{ fontSize: 11, color: C.text2 }}>{(l.distance_km||0).toFixed(2)}km · {formatDuration(l.duration_sec)}</div>
                 </div>
-                <span style={{ fontSize: 10, color: l.status === 'approved' ? C.success : l.status === 'pending' ? C.warn : C.error, fontWeight: 700 }}>
-                  {l.status === 'approved' ? '승인' : l.status === 'pending' ? '대기' : '반려'}
-                </span>
               </div>
             ))
           }
