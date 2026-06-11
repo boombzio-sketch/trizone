@@ -100,12 +100,10 @@ export const api = {
   setAdminMemberRole: (id, role) => request(`/admin/members/${id}/role`, { method: 'PUT', body: { role } }),
   setApprovePermission: (id, can_approve) => request(`/admin/members/${id}/can-approve`, { method: 'PUT', body: { can_approve } }),
   deleteAdminMember: (id) => request(`/admin/members/${id}`, { method: 'DELETE' }),
-  getPendingWorkouts: () => request('/admin/pending'),
   getAdminWorkouts: (params = '') => request('/admin/all-workouts' + (params ? '?' + params : '')),
   getLikes: (workoutId) => request(`/social/likes/${workoutId}`),
   getUnreadCount: (since) => request(`/social/notifications/unread?since=${encodeURIComponent(since)}`),
 
-  setWorkoutStatus: (id, status) => request(`/admin/workouts/${id}/status`, { method: 'PUT', body: { status } }),
   editAdminWorkout: (id, body) => request(`/admin/workouts/${id}/edit`, { method: 'PUT', body }),
   getPendingMemberships: () => request('/admin/memberships'),
   setMembershipStatus: (clubId, userId, status) => request(`/admin/memberships/${clubId}/${userId}/status`, { method: 'PUT', body: { status } }),

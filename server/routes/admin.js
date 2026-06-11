@@ -3,7 +3,8 @@ const { prepare } = require('../db');
 const { authMiddleware, adminMiddleware, canApproveMiddleware } = require('../middleware');
 
 const adminOnly   = [authMiddleware, adminMiddleware];
-const approveOnly = [authMiddleware, canApproveMiddleware];
+// 기록 수정 권한자(can_approve) 또는 관리자. 과거 '훈련 승인' 권한을 기록 수정 권한으로 재활용.
+const editOnly    = [authMiddleware, canApproveMiddleware];
 
 // 전체 회원 목록
 router.get('/members', ...adminOnly, async (req, res) => {
@@ -182,26 +183,8 @@ router.put('/memberships/:clubId/:userId/status', ...adminOnly, async (req, res)
   res.json({ ok: true });
 });
 
-// 훈련 기록 승인 대기 목록 (구버전 모바일 호환용 — 신규 기록은 자동 승인되므로 보통 비어 있다)
-router.get('/pending', ...approveOnly, async (req, res) => {
-  const rows = await prepare(`
-    SELECT w.id, w.sport_type, w.logged_at, w.distance_km, w.duration_sec,
-           w.memo, w.score, w.brick_segments, w.photo,
-           COALESCE(w.photos, '[]') as photos,
-           COALESCE(w.cover_photo_index, 0) as cover_photo_index,
-           w.pool_type, w.elevation_m, w.course_type, w.avg_power_w,
-           w.status, w.created_at,
-           u.nickname, u.avatar_color
-    FROM workout_logs w
-    JOIN users u ON w.user_id = u.id
-    WHERE w.status = 'pending'
-    ORDER BY w.created_at DESC
-  `).all();
-  res.json(rows);
-});
-
-// 전체 훈련 기록 목록 (승인 폐지 이후 관리자/승인권한자 열람·수정용)
-router.get('/all-workouts', ...approveOnly, async (req, res) => {
+// 전체 훈련 기록 목록 (승인 폐지 이후 관리자/수정권한자 열람·수정용)
+router.get('/all-workouts', ...editOnly, async (req, res) => {
   const limit = Math.min(Number(req.query.limit) || 100, 200);
   const offset = Number(req.query.offset) || 0;
   const rows = await prepare(`
@@ -220,20 +203,8 @@ router.get('/all-workouts', ...approveOnly, async (req, res) => {
   res.json(rows);
 });
 
-// 기록 승인/반려 (승인 권한자 접근 가능)
-router.put('/workouts/:id/status', ...approveOnly, async (req, res) => {
-  const { status } = req.body;
-  if (!['approved', 'rejected'].includes(status))
-    return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
-  const row = await prepare('SELECT status FROM workout_logs WHERE id=?').get(Number(req.params.id));
-  if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
-  if (row.status !== 'pending') return res.status(400).json({ error: '대기 중인 기록만 처리할 수 있습니다.' });
-  await prepare('UPDATE workout_logs SET status = ? WHERE id = ?').run(status, Number(req.params.id));
-  res.json({ ok: true });
-});
-
-// 기록 내용 수정 (승인 권한자 접근 가능)
-router.put('/workouts/:id/edit', ...approveOnly, async (req, res) => {
+// 기록 내용 수정 (수정 권한자 접근 가능)
+router.put('/workouts/:id/edit', ...editOnly, async (req, res) => {
   const id = Number(req.params.id);
   const { distance_km, duration_sec, memo, logged_at, brick_segments } = req.body;
 

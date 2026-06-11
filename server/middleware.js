@@ -37,9 +37,10 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
+// can_approve: 과거 '훈련 승인' 권한 → 현재는 기록 수정 권한으로 재활용 중.
 function canApproveMiddleware(req, res, next) {
   if (req.user?.role === 'admin' || req.user?.can_approve) return next();
-  return res.status(403).json({ error: '훈련 승인 권한이 없습니다.' });
+  return res.status(403).json({ error: '기록 수정 권한이 없습니다.' });
 }
 
 module.exports = { authMiddleware, adminMiddleware, canApproveMiddleware, SECRET };
