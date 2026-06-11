@@ -272,6 +272,7 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_users_nickname_lower       ON users(LOWER(nickname));
     CREATE INDEX IF NOT EXISTS idx_point_tx_user              ON point_transactions(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_point_tx_auto_dedupe       ON point_transactions(user_id, type, sport_type, earned_date);
+    CREATE INDEX IF NOT EXISTS idx_point_tx_workout           ON point_transactions(workout_id);
   `);
 
   const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM users');

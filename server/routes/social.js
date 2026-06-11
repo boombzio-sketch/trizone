@@ -66,7 +66,8 @@ const FEED_COLS = `
            u.nickname, u.avatar_color, u.avatar_image,
       (SELECT COUNT(*) FROM likes WHERE workout_id=w.id) as like_count,
       (SELECT COUNT(*) FROM comments WHERE workout_id=w.id) as comment_count,
-      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like
+      (SELECT id FROM likes WHERE workout_id=w.id AND user_id=?) as my_like,
+      (SELECT COALESCE(SUM(amount),0) FROM point_transactions WHERE workout_id=w.id AND type='auto') as points_earned
     FROM workout_logs w
     JOIN users u ON w.user_id = u.id`
 

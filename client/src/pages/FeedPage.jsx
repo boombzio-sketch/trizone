@@ -598,7 +598,14 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: sc }}>{SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {f.points_earned > 0 && (
+                <span style={{ fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '2px 7px', background: C.goldBg, color: C.gold, border: `1px solid ${C.goldBorder}` }}>
+                  +{f.points_earned}p
+                </span>
+              )}
+              <span style={{ fontSize: 12, fontWeight: 700, color: sc }}>{SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}</span>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               {(f.user_id === myId || user?.role === 'admin' || user?.can_approve) && (
                 <div style={{ display: 'flex', gap: 4 }}>
