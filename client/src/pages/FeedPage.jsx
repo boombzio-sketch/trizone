@@ -162,9 +162,9 @@ export default function FeedPage() {
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button onClick={() => navigate('/workout')} style={{
-            background: C.accent, border: 'none',
-            borderRadius: 10, padding: '7px 14px', color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer', lineHeight: 1,
-          }}>+</button>
+            background: C.accent, border: 'none', whiteSpace: 'nowrap',
+            borderRadius: 10, padding: '7px 12px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', lineHeight: 1,
+          }}>＋ 기록추가</button>
           <button onClick={() => setShowSearch(s => !s)} style={{
             background: showSearch ? C.accentBg : C.surfaceAlt,
             border: `1px solid ${showSearch ? C.accentBorder : C.border}`,
