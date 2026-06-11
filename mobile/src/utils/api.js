@@ -168,4 +168,14 @@ export const api = {
   getPendingMemberships: ()        => request('/admin/memberships'),
   setMembershipStatus: (clubId, userId, status) =>
     request(`/admin/memberships/${clubId}/${userId}/status`, { method: 'PUT', body: { status } }),
+
+  // 포인트
+  getMyPoints:         ()            => request('/points/me'),
+  getPointSettings:    ()            => request('/admin/points/settings'),
+  updatePointSettings: (body)        => request('/admin/points/settings', { method: 'PUT', body }),
+  getPointMembers:     ()            => request('/admin/points/members'),
+  getMemberPointTx:    (userId)      => request(`/admin/points/${userId}/transactions`),
+  grantPoints:         (userId, body)=> request(`/admin/points/${userId}/grant`, { method: 'POST', body }),
+  updatePointTx:       (id, body)    => request(`/admin/points/tx/${id}`, { method: 'PUT', body }),
+  deletePointTx:       (id)          => request(`/admin/points/tx/${id}`, { method: 'DELETE' }),
 }

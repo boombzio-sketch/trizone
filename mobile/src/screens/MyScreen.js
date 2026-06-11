@@ -9,12 +9,15 @@ import { C } from '../utils/theme'
 import { SPORT_COLOR, SPORT_ICON, SPORT_LABEL, formatDuration } from '../utils/helpers'
 
 const AVATAR_COLORS = ['#4DB8FF','#00DC82','#FFA000','#CC64FF','#FF5080','#00BFFF','#FF8C42','#A8FF3E','#4F9CF9','#EF4444','#F59E0B','#10B981']
+const PT_SPORT_LABEL = { swim: '수영', bike: '사이클', run: '런', brick: '브릭' }
 
 export default function MyScreen() {
   const { user, logout, refreshUser } = useAuth()
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   const [profile, setProfile] = useState(null)
+  const [points, setPoints] = useState(null)
+  const [ptOpen, setPtOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [editOpen, setEditOpen] = useState(false)
   const [editForm, setEditForm] = useState({ nickname: '', email: '', password: '', avatar_color: '' })
@@ -31,6 +34,7 @@ export default function MyScreen() {
     if (!user?.id) return
     api.getProfile(user.id).then(setProfile).catch(() => {})
     api.getMyMessages().then(setMessages).catch(() => {})
+    api.getMyPoints().then(setPoints).catch(() => {})
   }, [user])
 
   async function openFollowers() {
@@ -138,6 +142,55 @@ export default function MyScreen() {
             ))}
           </View>
         </View>
+
+        {/* 포인트 */}
+        {points && (
+          <View style={s.ptCard}>
+            <View style={s.ptHeaderRow}>
+              <Text style={s.ptTitle}>💎 포인트</Text>
+              <View style={[s.ptBadge, { backgroundColor: points.payout_active ? '#10B98122' : 'rgba(255,255,255,0.06)' }]}>
+                <Text style={[s.ptBadgeText, { color: points.payout_active ? '#10B981' : C.text2 }]}>
+                  {points.payout_active ? '🟢 포인트 지급중' : '⏸ 포인트 지급기간이 아닙니다.'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, marginBottom: 14 }}>
+              <Text style={s.ptBalance}>{(points.balance || 0).toLocaleString()}</Text>
+              <Text style={s.ptUnit}>pt</Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text style={s.ptSub}>이번달 적립</Text>
+              <Text style={s.ptSub}>
+                <Text style={{ color: C.gold, fontWeight: '800' }}>{(points.month_accrued || 0).toLocaleString()}</Text> / {(points.monthly_cap || 10000).toLocaleString()} pt
+              </Text>
+            </View>
+            <View style={s.ptBarTrack}>
+              <View style={[s.ptBarFill, { width: `${points.monthly_cap > 0 ? Math.min(100, Math.round((points.month_accrued / points.monthly_cap) * 100)) : 0}%` }]} />
+            </View>
+
+            <TouchableOpacity onPress={() => setPtOpen(o => !o)} style={s.ptToggle}>
+              <Text style={s.ptToggleText}>적립 내역 {ptOpen ? '닫기 ▲' : `보기 ▼ (${points.transactions?.length || 0})`}</Text>
+            </TouchableOpacity>
+
+            {ptOpen && (
+              (points.transactions?.length || 0) === 0
+                ? <Text style={[s.emptyText, { paddingVertical: 14 }]}>아직 적립 내역이 없습니다.</Text>
+                : points.transactions.map(t => (
+                  <View key={t.id} style={s.ptTxRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.ptTxLabel}>{t.type === 'auto' ? `${PT_SPORT_LABEL[t.sport_type] || '훈련'} 자동 적립` : (t.memo || '관리자 지급')}</Text>
+                      <Text style={s.ptTxDate}>{(t.created_at || t.earned_date)?.slice(0, 10)}</Text>
+                    </View>
+                    <Text style={[s.ptTxAmount, { color: t.amount >= 0 ? '#10B981' : C.error }]}>
+                      {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString()}
+                    </Text>
+                  </View>
+                ))
+            )}
+          </View>
+        )}
 
         {/* 최근 훈련 */}
         {profile?.recentWorkouts?.length > 0 && (
@@ -346,6 +399,23 @@ const s = StyleSheet.create({
   statItem: { flex: 1, alignItems: 'center' },
   statVal: { fontSize: 26, fontWeight: '900', color: C.accent, letterSpacing: -1 },
   statLabel: { fontSize: 10, color: C.text2, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
+
+  ptCard: { backgroundColor: '#1A1330', borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.goldBorder, marginBottom: 12 },
+  ptHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
+  ptTitle: { fontSize: 13, fontWeight: '800', color: C.gold },
+  ptBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  ptBadgeText: { fontSize: 10, fontWeight: '700' },
+  ptBalance: { fontSize: 32, fontWeight: '900', color: C.gold, letterSpacing: -1 },
+  ptUnit: { fontSize: 14, fontWeight: '700', color: C.text2 },
+  ptSub: { fontSize: 11, color: C.text2 },
+  ptBarTrack: { height: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
+  ptBarFill: { height: '100%', borderRadius: 999, backgroundColor: C.gold },
+  ptToggle: { marginTop: 12, paddingVertical: 9, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: C.border, borderRadius: 10, alignItems: 'center' },
+  ptToggleText: { fontSize: 12, fontWeight: '700', color: C.text2 },
+  ptTxRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: C.border },
+  ptTxLabel: { fontSize: 12, fontWeight: '700', color: C.text },
+  ptTxDate: { fontSize: 10, color: C.text2, marginTop: 2 },
+  ptTxAmount: { fontSize: 13, fontWeight: '900' },
 
   sectionTitle: { fontSize: 12, fontWeight: '700', color: C.text2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
