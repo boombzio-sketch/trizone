@@ -289,9 +289,16 @@ function FeedCard({ feed: f, myId, user, onLike, onDelete, openComments, setOpen
           <Text style={[s.date, { marginTop: 2 }]}>{f.logged_at}</Text>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <Text style={[s.sportBadge, { color: sc }]}>
-            {SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            {f.points_earned > 0 && (
+              <View style={s.pointsBadge}>
+                <Text style={s.pointsBadgeText}>+{f.points_earned}p</Text>
+              </View>
+            )}
+            <Text style={[s.sportBadge, { color: sc }]}>
+              {SPORT_ICON[f.sport_type]} {SPORT_LABEL[f.sport_type]}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -458,6 +465,8 @@ const s = StyleSheet.create({
   meBadgeText: { fontSize: 9, color: C.accent, fontWeight: '800' },
   date: { fontSize: 10, color: C.text2, marginTop: 2 },
   sportBadge: { fontSize: 12, fontWeight: '700' },
+  pointsBadge: { backgroundColor: C.goldBg, borderWidth: 1, borderColor: C.goldBorder, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
+  pointsBadgeText: { fontSize: 10, fontWeight: '800', color: C.gold },
 
   photoRow: { marginHorizontal: 14, marginBottom: 10 },
   photo: { width: 200, height: 140, borderRadius: 10, marginRight: 6 },
