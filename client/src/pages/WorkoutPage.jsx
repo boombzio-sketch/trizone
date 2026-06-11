@@ -383,6 +383,11 @@ function LogItem({ log, onDelete, onEdit }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: sc }}>{SPORT_LABEL[log.sport_type]}</span>
+            {log.points_earned > 0 && (
+              <span style={{ fontSize: 9, fontWeight: 800, borderRadius: 4, padding: '1px 6px', background: C.goldBg, color: C.gold, border: `1px solid ${C.goldBorder}` }}>
+                +{log.points_earned}p
+              </span>
+            )}
             <span style={{ fontSize: 9, color: vis.color }}>{vis.icon}</span>
             <span style={{ fontSize: 11, color: C.text2 }}>{log.logged_at}</span>
           </div>

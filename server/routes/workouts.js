@@ -37,7 +37,8 @@ function calcPace(sport_type, distance_km, duration_sec) {
 router.get('/', authMiddleware, async (req, res) => {
   const { limit = 30, offset = 0 } = req.query;
   const rows = await db.prepare(`
-    SELECT w.*, u.nickname, u.avatar_color
+    SELECT w.*, u.nickname, u.avatar_color,
+      (SELECT COALESCE(SUM(amount),0) FROM point_transactions WHERE workout_id=w.id AND type='auto') as points_earned
     FROM workout_logs w
     JOIN users u ON w.user_id = u.id
     WHERE w.user_id = ?
