@@ -139,7 +139,7 @@ export default function FeedScreen() {
         </ScrollView>
         <View style={s.headerBtns}>
           <TouchableOpacity onPress={() => navigation.navigate('Workout')} style={s.addBtn}>
-            <Text style={s.addBtnText}>+</Text>
+            <Text style={s.addBtnText}>＋ 기록추가</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => { setShowSearch(v => !v); setSearchQ(''); setSearchRes([]) }}
             style={[s.searchBtn, showSearch && { backgroundColor: C.accent + '22', borderColor: C.border }]}>
@@ -431,7 +431,7 @@ const s = StyleSheet.create({
   tabRow: { flexDirection: 'row', padding: 10, gap: 6 },
   headerBtns: { flexDirection: 'row', gap: 6, paddingRight: 10 },
   addBtn: { backgroundColor: C.accent, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
-  addBtnText: { color: '#fff', fontSize: 20, fontWeight: '700', lineHeight: 22 },
+  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   searchBtn: { backgroundColor: C.surfaceAlt, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
   searchPanel: { backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border, padding: 12 },
   searchInput: { backgroundColor: C.surfaceAlt, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, color: C.text, fontSize: 13, marginBottom: 8 },
