@@ -118,7 +118,7 @@ export default function MyScreen() {
               <Text style={s.nickname}>{user?.nickname}</Text>
               <View style={s.badgeRow}>
                 {user?.role === 'admin' && <View style={[s.badge, { backgroundColor: '#854D0E22' }]}><Text style={[s.badgeText, { color: '#F59E0B' }]}>👑 관리자</Text></View>}
-                {user?.can_approve && user?.role !== 'admin' && <View style={[s.badge, { backgroundColor: '#10B98122' }]}><Text style={[s.badgeText, { color: '#10B981' }]}>✅ 승인관리자</Text></View>}
+                {user?.can_approve && user?.role !== 'admin' && <View style={[s.badge, { backgroundColor: '#10B98122' }]}><Text style={[s.badgeText, { color: '#10B981' }]}>✅ 기록관리자</Text></View>}
                 {user?.is_club_leader && <View style={[s.badge, { backgroundColor: C.accent + '22' }]}><Text style={[s.badgeText, { color: C.accent }]}>🏆 클럽관리자</Text></View>}
               </View>
             </View>

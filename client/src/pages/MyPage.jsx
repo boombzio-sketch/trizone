@@ -172,7 +172,7 @@ export default function MyPage() {
             <div style={{ fontSize: 20, fontWeight: 900, color: C.text, letterSpacing: '-0.02em' }}>{user?.nickname}</div>
             <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
               {user?.role === 'admin' && <span style={{ fontSize: 10, background: C.goldBg, color: C.gold, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>👑 관리자</span>}
-              {user?.can_approve && user?.role !== 'admin' && <span style={{ fontSize: 10, background: 'rgba(16,240,144,0.12)', color: C.success, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>✅ 승인관리자</span>}
+              {user?.can_approve && user?.role !== 'admin' && <span style={{ fontSize: 10, background: 'rgba(16,240,144,0.12)', color: C.success, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>✅ 기록관리자</span>}
               {user?.is_club_leader && <span style={{ fontSize: 10, background: C.accentBg, color: C.accent, borderRadius: 6, padding: '2px 8px', fontWeight: 700 }}>🏆 클럽관리자</span>}
             </div>
           </div>

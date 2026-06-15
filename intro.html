@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRIZONE 소개서</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --accent: #f97316;
+      --swim: #06b6d4;
+      --cycle: #f97316;
+      --run: #22c55e;
+      --brick: #a855f7;
+      --dark: #0f172a;
+      --dark2: #1e293b;
+      --dark3: #334155;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── 공통 ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+    .section { padding: 100px 0; }
+    .section-label {
+      font-size: .75rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 2.4rem;
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 1.05rem;
+      color: var(--text2);
+      max-width: 560px;
+      line-height: 1.8;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(59,130,246,.18) 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 40% at 30% 70%, rgba(249,115,22,.1) 0%, transparent 60%),
+                  var(--dark);
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,.04) 1px, transparent 0);
+      background-size: 40px 40px;
+    }
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-logo {
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: 4px;
+      color: var(--primary);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-size: 3.6rem;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    .hero-title .accent { color: var(--primary); }
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--text2);
+      line-height: 1.8;
+      margin-bottom: 40px;
+    }
+    .hero-badges {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sport-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: .82rem;
+      font-weight: 700;
+      border: 1px solid;
+    }
+    .sb-swim  { background: rgba(6,182,212,.12);  color: #67e8f9; border-color: rgba(6,182,212,.3); }
+    .sb-cycle { background: rgba(249,115,22,.12); color: #fdba74; border-color: rgba(249,115,22,.3); }
+    .sb-run   { background: rgba(34,197,94,.12);  color: #86efac; border-color: rgba(34,197,94,.3); }
+    .sb-brick { background: rgba(168,85,247,.12); color: #d8b4fe; border-color: rgba(168,85,247,.3); }
+
+    /* ── Phone mockup ── */
+    .phone {
+      width: 260px;
+      height: 520px;
+      background: var(--dark2);
+      border-radius: 36px;
+      border: 2px solid var(--dark3);
+      box-shadow: 0 40px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .phone-notch {
+      width: 90px;
+      height: 22px;
+      background: var(--dark);
+      border-radius: 0 0 14px 14px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+    .phone-screen {
+      height: calc(100% - 22px);
+      overflow: hidden;
+      background: var(--dark2);
+    }
+
+    /* 두 폰을 나란히 */
+    .phone-pair {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .phone.offset { margin-top: 40px; }
+
+    /* ── Feature row ── */
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+      margin-bottom: 120px;
+    }
+    .feature-row.reverse { direction: rtl; }
+    .feature-row.reverse > * { direction: ltr; }
+    .feature-row:last-child { margin-bottom: 0; }
+
+    .feature-text { }
+    .feature-num {
+      font-size: 5rem;
+      font-weight: 900;
+      color: rgba(59,130,246,.12);
+      line-height: 1;
+      margin-bottom: -20px;
+    }
+    .feature-label {
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .feature-title {
+      font-size: 1.9rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+    .feature-desc {
+      color: var(--text2);
+      line-height: 1.8;
+      margin-bottom: 24px;
+    }
+    ul.flist { list-style: none; }
+    ul.flist li {
+      padding: 6px 0;
+      padding-left: 20px;
+      position: relative;
+      color: var(--text2);
+      font-size: .92rem;
+    }
+    ul.flist li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* ── App screen content ── */
+    .sc { font-family: 'Segoe UI', sans-serif; height: 100%; display: flex; flex-direction: column; }
+    .sc-header {
+      background: var(--dark);
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sc-title { font-size: .78rem; font-weight: 800; }
+    .sc-body { flex: 1; overflow: hidden; padding: 10px 12px; }
+
+    /* Feed screen */
+    .feed-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .feed-tab {
+      flex: 1;
+      text-align: center;
+      padding: 5px 0;
+      font-size: .6rem;
+      font-weight: 600;
+      border-radius: 8px;
+      color: var(--text2);
+      background: var(--dark3);
+    }
+    .feed-tab.active { background: var(--primary); color: #fff; }
+    .feed-card {
+      background: var(--dark);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-top: 3px solid;
+    }
+    .fc-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+    .fc-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .6rem; font-weight: 800; flex-shrink: 0;
+    }
+    .fc-name { font-size: .68rem; font-weight: 700; }
+    .fc-date { font-size: .55rem; color: var(--text2); }
+    .fc-sport { font-size: .6rem; font-weight: 700; margin-left: auto; }
+    .fc-metrics {
+      display: flex;
+      gap: 8px;
+      background: rgba(255,255,255,.04);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin-bottom: 5px;
+    }
+    .fc-metric { text-align: center; }
+    .fc-metric .val { font-size: .72rem; font-weight: 800; }
+    .fc-metric .unit { font-size: .5rem; color: var(--text2); }
+    .fc-actions { display: flex; gap: 10px; }
+    .fc-action { font-size: .6rem; color: var(--text2); }
+
+    /* Workout screen */
+    .sport-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .sport-tab {
+      text-align: center;
+      padding: 6px 4px;
+      border-radius: 8px;
+      font-size: .5rem;
+      font-weight: 700;
+      background: var(--dark3);
+      color: var(--text2);
+      border: 1.5px solid transparent;
+    }
+    .sport-tab.active { border-color: currentColor; background: rgba(255,255,255,.05); }
+    .form-field { margin-bottom: 8px; }
+    .form-label { font-size: .55rem; color: var(--text2); margin-bottom: 3px; }
+    .form-input {
+      background: var(--dark3);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: .65rem;
+      width: 100%;
+      color: var(--text);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .vis-row { display: flex; gap: 4px; margin-top: 8px; }
+    .vis-btn {
+      flex: 1;
+      text-align: center;
+      padding: 4px 2px;
+      border-radius: 6px;
+      font-size: .5rem;
+      background: var(--dark3);
+      color: var(--text2);
+    }
+    .vis-btn.active { background: rgba(59,130,246,.25); color: #93c5fd; }
+    .submit-btn {
+      background: var(--primary);
+      color: #fff;
+      text-align: center;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: .65rem;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    /* Ranking screen */
+    .rank-banner {
+      background: linear-gradient(135deg, var(--primary-dark), var(--dark3));
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .rank-banner .my-rank { font-size: 1.2rem; font-weight: 900; }
+    .rank-banner .my-label { font-size: .55rem; color: var(--text2); }
+    .rank-filters { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+    .rank-filter {
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: .52rem;
+      font-weight: 600;
+      background: var(--dark3);
+      color: var(--text2);
+    }
+    .rank-filter.active { background: var(--primary); color: #fff; }
+    .rank-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: var(--dark);
+      border-radius: 8px;
+      margin-bottom: 5px;
+    }
+    .rank-pos { font-size: .7rem; font-weight: 900; width: 18px; text-align: center; }
+    .rank-name { font-size: .65rem; font-weight: 600; flex: 1; }
+    .rank-dist { font-size: .65rem; font-weight: 700; color: var(--primary); }
+    .rank-top1 { font-size: 1rem; }
+
+    /* Club screen */
+    .club-card {
+      background: var(--dark);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-left: 3px solid var(--primary);
+    }
+    .club-name { font-size: .72rem; font-weight: 800; margin-bottom: 3px; }
+    .club-meta { font-size: .56rem; color: var(--text2); }
+    .club-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: .5rem;
+      font-weight: 700;
+      background: rgba(59,130,246,.2);
+      color: #93c5fd;
+      margin-top: 5px;
+    }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .cal-title { font-size: .68rem; font-weight: 800; }
+    .cal-nav { font-size: .7rem; color: var(--text2); }
+    .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+    .cal-day { font-size: .5rem; color: var(--text2); padding: 2px 0; }
+    .cal-num {
+      font-size: .55rem;
+      padding: 4px 0;
+      text-align: center;
+      border-radius: 5px;
+      position: relative;
+    }
+    .cal-num.today { background: var(--dark3); font-weight: 900; }
+    .cal-num.has-dot::after {
+      content: '';
+      position: absolute;
+      bottom: 1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* Race screen */
+    .race-card {
+      background: var(--dark);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    .race-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+    .race-name { font-size: .68rem; font-weight: 800; flex: 1; }
+    .race-dday {
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: .52rem;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+    .race-dist-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: .52rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .race-info { font-size: .58rem; color: var(--text2); line-height: 1.7; }
+    .race-link {
+      display: inline-block;
+      margin-top: 5px;
+      background: var(--primary);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: .55rem;
+      font-weight: 700;
+    }
+
+    /* My page screen */
+    .my-profile {
+      background: var(--dark);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .my-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      margin: 0 auto 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; font-weight: 900; color: #fff;
+    }
+    .my-nick { font-size: .78rem; font-weight: 800; margin-bottom: 3px; }
+    .my-role {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: .52rem;
+      font-weight: 700;
+      background: rgba(249,115,22,.2);
+      color: #fdba74;
+      margin-bottom: 8px;
+    }
+    .my-stats { display: flex; gap: 0; border-top: 1px solid var(--border); }
+    .my-stat { flex: 1; text-align: center; padding: 7px 4px; border-right: 1px solid var(--border); }
+    .my-stat:last-child { border-right: none; }
+    .my-stat .val { font-size: .72rem; font-weight: 800; }
+    .my-stat .lbl { font-size: .5rem; color: var(--text2); }
+    .my-recent-title { font-size: .62rem; font-weight: 700; margin: 8px 0 5px; }
+    .my-recent-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: var(--dark);
+      border-radius: 7px;
+      margin-bottom: 4px;
+    }
+    .my-recent-icon { font-size: .85rem; }
+    .my-recent-info { flex: 1; }
+    .my-recent-sport { font-size: .6rem; font-weight: 700; }
+    .my-recent-dist { font-size: .55rem; color: var(--text2); }
+
+    /* ── Stats section ── */
+    .stats-section {
+      padding: 80px 0;
+      background: linear-gradient(180deg, var(--dark) 0%, rgba(30,41,59,.6) 50%, var(--dark) 100%);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+    }
+    .stat-card {
+      text-align: center;
+      padding: 36px 24px;
+      background: var(--dark2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+    .stat-num {
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-lbl { font-size: .88rem; color: var(--text2); }
+
+    /* ── Role section ── */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .role-card {
+      background: var(--dark2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      transition: border-color .2s;
+    }
+    .role-card:hover { border-color: var(--primary); }
+    .role-icon { font-size: 2rem; margin-bottom: 12px; }
+    .role-name { font-size: 1rem; font-weight: 800; margin-bottom: 8px; }
+    .role-desc { font-size: .85rem; color: var(--text2); line-height: 1.7; }
+    .role-perms {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .perm {
+      font-size: .75rem;
+      color: var(--text2);
+      padding-left: 14px;
+      position: relative;
+    }
+    .perm::before { content: '✓'; position: absolute; left: 0; color: var(--run); font-weight: 700; }
+
+    /* ── Sport section ── */
+    .sports-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .sport-card {
+      background: var(--dark2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 20px;
+      text-align: center;
+    }
+    .sport-emoji { font-size: 2.4rem; margin-bottom: 12px; }
+    .sport-name { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+    .sport-inputs { margin-top: 12px; }
+    .sport-input-item {
+      font-size: .78rem;
+      color: var(--text2);
+      padding: 4px 0;
+      border-top: 1px solid var(--border);
+    }
+    .sport-input-item:first-child { border-top: none; }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 100px 0;
+      text-align: center;
+      background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(59,130,246,.12) 0%, transparent 70%);
+    }
+    .cta-title { font-size: 3rem; font-weight: 900; margin-bottom: 16px; }
+    .cta-desc { font-size: 1.05rem; color: var(--text2); margin-bottom: 40px; }
+    .cta-btns { display: flex; gap: 16px; justify-content: center; }
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-outline { border: 2px solid var(--border); color: var(--text); }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      text-align: center;
+      color: var(--text2);
+      font-size: .85rem;
+    }
+
+    /* ── 반응형 ── */
+    @media (max-width: 860px) {
+      .container { padding: 0 20px; }
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-title { font-size: 2.6rem; }
+      .hero-right { display: none; }
+      .phone-pair { display: none; }
+      .phone-col  { display: none; }
+      .feature-row { grid-template-columns: 1fr; gap: 40px; margin-bottom: 64px; }
+      .feature-row.reverse { direction: ltr; }
+      .feature-num { font-size: 3.5rem; }
+      .feature-title { font-size: 1.5rem; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .stat-card { padding: 24px 16px; }
+      .stat-num { font-size: 2.2rem; }
+      .roles-grid { grid-template-columns: 1fr; }
+      .sports-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .sport-card { padding: 20px 14px; }
+      .section-title { font-size: 1.8rem; }
+      .section { padding: 64px 0; }
+      .cta-title { font-size: 2rem; }
+      .hero { min-height: auto; padding: 80px 0 60px; }
+    }
+
+    @media print {
+      .feature-row { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- HERO -->
+<!-- ══════════════════════════════════════════ -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <!-- 텍스트 -->
+      <div class="hero-left">
+        <div class="hero-logo">TRIZONE</div>
+        <h1 class="hero-title">
+          트라이애슬론<br>
+          <span class="accent">훈련·기록·소셜</span><br>
+          플랫폼
+        </h1>
+        <p class="hero-desc">
+          수영·사이클·런 세 종목을 아우르는<br>
+          트라이애슬론 전용 훈련 관리 앱.<br>
+          기록하고, 랭킹을 확인하고, 클럽과 함께 성장하세요.
+        </p>
+        <div class="hero-badges">
+          <span class="sport-badge sb-swim">🏊 수영</span>
+          <span class="sport-badge sb-cycle">🚴 사이클</span>
+          <span class="sport-badge sb-run">🏃 런</span>
+          <span class="sport-badge sb-brick">⚡ 브릭</span>
+        </div>
+      </div>
+
+      <!-- 폰 목업 -->
+      <div class="hero-right" style="display:flex; justify-content:center; align-items:flex-start; gap:20px;">
+
+        <!-- 피드 화면 -->
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header">
+                <div class="sc-title">📰 피드</div>
+              </div>
+              <div class="sc-body">
+                <div class="feed-tabs">
+                  <div class="feed-tab">팔로잉</div>
+                  <div class="feed-tab active">클럽</div>
+                  <div class="feed-tab">전체</div>
+                  <div class="feed-tab">내피드</div>
+                </div>
+
+                <!-- 카드 1 -->
+                <div class="feed-card" style="border-top-color:#06b6d4;">
+                  <div class="fc-row">
+                    <div class="fc-avatar" style="background:#06b6d422; color:#67e8f9;">K</div>
+                    <div>
+                      <div class="fc-name">kim_tri</div>
+                      <div class="fc-date">2026-05-14</div>
+                    </div>
+                    <div class="fc-sport" style="color:#67e8f9;">🏊 수영</div>
+                  </div>
+                  <div class="fc-metrics">
+                    <div class="fc-metric"><div class="val">3.2</div><div class="unit">km</div></div>
+                    <div class="fc-metric"><div class="val">1:12:00</div><div class="unit">시간</div></div>
+                  </div>
+                  <div class="fc-actions">
+                    <div class="fc-action">⭐ 4</div>
+                    <div class="fc-action">💬 2</div>
+                  </div>
+                </div>
+
+                <!-- 카드 2 -->
+                <div class="feed-card" style="border-top-color:#f97316;">
+                  <div class="fc-row">
+                    <div class="fc-avatar" style="background:#f9731622; color:#fdba74;">L</div>
+                    <div>
+                      <div class="fc-name">lee_iron</div>
+                      <div class="fc-date">2026-05-13</div>
+                    </div>
+                    <div class="fc-sport" style="color:#fdba74;">🚴 사이클</div>
+                  </div>
+                  <div class="fc-metrics">
+                    <div class="fc-metric"><div class="val">90.5</div><div class="unit">km</div></div>
+                    <div class="fc-metric"><div class="val">3:05:00</div><div class="unit">시간</div></div>
+                  </div>
+                  <div class="fc-actions">
+                    <div class="fc-action">⭐ 9</div>
+                    <div class="fc-action">💬 5</div>
+                  </div>
+                </div>
+
+                <!-- 카드 3 -->
+                <div class="feed-card" style="border-top-color:#22c55e;">
+                  <div class="fc-row">
+                    <div class="fc-avatar" style="background:#22c55e22; color:#86efac;">P</div>
+                    <div>
+                      <div class="fc-name">park_runner</div>
+                      <div class="fc-date">2026-05-12</div>
+                    </div>
+                    <div class="fc-sport" style="color:#86efac;">🏃 런</div>
+                  </div>
+                  <div class="fc-metrics">
+                    <div class="fc-metric"><div class="val">21.1</div><div class="unit">km</div></div>
+                    <div class="fc-metric"><div class="val">1:45:00</div><div class="unit">시간</div></div>
+                    <div class="fc-metric"><div class="val">4'58"</div><div class="unit">페이스</div></div>
+                  </div>
+                  <div class="fc-actions">
+                    <div class="fc-action">⭐ 12</div>
+                    <div class="fc-action">💬 3</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 랭킹 화면 -->
+        <div class="phone offset">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header">
+                <div class="sc-title">🏆 랭킹</div>
+              </div>
+              <div class="sc-body">
+                <div class="rank-banner">
+                  <div style="font-size:.55rem; color:#94a3b8; margin-bottom:4px;">나의 순위 · 클럽 · 월간 · 사이클</div>
+                  <div class="my-rank" style="color:#f97316;">3위</div>
+                  <div class="my-label">1,240.0 km</div>
+                </div>
+                <div class="rank-filters">
+                  <div class="rank-filter">팔로잉</div>
+                  <div class="rank-filter active">클럽</div>
+                  <div class="rank-filter">전체</div>
+                  <div style="width:100%; height:1px; background:var(--border); margin: 2px 0;"></div>
+                  <div class="rank-filter active">🚴 사이클</div>
+                  <div class="rank-filter">🏊 수영</div>
+                  <div class="rank-filter">🏃 런</div>
+                </div>
+                <div class="rank-item" style="background:linear-gradient(90deg,rgba(250,204,21,.08),transparent); border-left:2px solid #fbbf24;">
+                  <div class="rank-pos">🥇</div>
+                  <div class="rank-name">choi_power</div>
+                  <div class="rank-dist" style="color:#fbbf24;">1,580 km</div>
+                </div>
+                <div class="rank-item" style="background:linear-gradient(90deg,rgba(148,163,184,.08),transparent); border-left:2px solid #94a3b8;">
+                  <div class="rank-pos">🥈</div>
+                  <div class="rank-name">jung_cycle</div>
+                  <div class="rank-dist" style="color:#94a3b8;">1,420 km</div>
+                </div>
+                <div class="rank-item" style="background:linear-gradient(90deg,rgba(249,115,22,.08),transparent); border-left:2px solid #f97316;">
+                  <div class="rank-pos">🥉</div>
+                  <div class="rank-name">나 (me)</div>
+                  <div class="rank-dist" style="color:#f97316;">1,240 km</div>
+                </div>
+                <div class="rank-item">
+                  <div class="rank-pos" style="color:var(--text2);">4</div>
+                  <div class="rank-name">oh_trizone</div>
+                  <div class="rank-dist">1,100 km</div>
+                </div>
+                <div class="rank-item">
+                  <div class="rank-pos" style="color:var(--text2);">5</div>
+                  <div class="rank-name">shin_iron</div>
+                  <div class="rank-dist">980 km</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /hero-right -->
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- STATS -->
+<!-- ══════════════════════════════════════════ -->
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num">4</div>
+        <div class="stat-lbl">지원 종목<br>수영 · 사이클 · 런 · 브릭</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">5</div>
+        <div class="stat-lbl">피드 공개 범위 옵션<br>맞춤형 공유 설정</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">6</div>
+        <div class="stat-lbl">주요 화면<br>피드·기록·랭킹·클럽·대회·마이</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">∞</div>
+        <div class="stat-lbl">훈련 기록<br>날짜별 달력으로 무제한 관리</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- FEATURES -->
+<!-- ══════════════════════════════════════════ -->
+<section class="section">
+  <div class="container">
+
+    <!-- Feature 1: 훈련 기록 -->
+    <div class="feature-row">
+      <div class="feature-text">
+        <div class="feature-num">01</div>
+        <div class="feature-label">훈련 기록</div>
+        <h2 class="feature-title">4종목 정밀 기록<br>달력으로 한눈에</h2>
+        <p class="feature-desc">수영·사이클·런·브릭 각 종목에 최적화된 입력 항목으로 훈련을 기록하세요. 월별 달력 뷰에서 훈련 밀도를 시각적으로 파악할 수 있습니다.</p>
+        <ul class="flist">
+          <li>종목별 세부 지표 입력 (고도, 파워, 페이스, 전환시간 등)</li>
+          <li>브릭 훈련 세그먼트별 기록 및 전환 시간(T1·T2)</li>
+          <li>월별 달력으로 훈련 패턴 시각화</li>
+          <li>사진 첨부 (자동 압축, 최대 1024px)</li>
+          <li>공개 범위 설정 (전체 / 클럽원 / 팔로워 / 비공개)</li>
+        </ul>
+      </div>
+
+      <!-- 폰: 훈련 추가 -->
+      <div class="phone-col" style="display:flex; justify-content:center; gap:20px; align-items:flex-start;">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header">
+                <div style="display:flex; gap:0;">
+                  <div style="flex:1; text-align:center; padding:4px 0; font-size:.6rem; color:var(--text2); border-bottom:1px solid var(--border);">📋 목록</div>
+                  <div style="flex:1; text-align:center; padding:4px 0; font-size:.6rem; color:var(--text2); border-bottom:1px solid var(--border);">📅 달력</div>
+                  <div style="flex:1; text-align:center; padding:4px 0; font-size:.6rem; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary);">➕ 추가</div>
+                </div>
+              </div>
+              <div class="sc-body" style="padding-top:8px;">
+                <div class="sport-tabs">
+                  <div class="sport-tab active" style="color:#67e8f9; border-color:#06b6d4;">🏊<br>수영</div>
+                  <div class="sport-tab" style="color:var(--text2);">🚴<br>사이클</div>
+                  <div class="sport-tab" style="color:var(--text2);">🏃<br>런</div>
+                  <div class="sport-tab" style="color:var(--text2);">⚡<br>브릭</div>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">📅 날짜</div>
+                  <div class="form-input">2026-05-14</div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <div class="form-label">거리 (km)</div>
+                    <div class="form-input">3.2</div>
+                  </div>
+                  <div class="form-field">
+                    <div class="form-label">시간</div>
+                    <div class="form-input">1:12:00</div>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">수영장 종류</div>
+                  <div style="display:flex; gap:4px;">
+                    <div class="form-input" style="text-align:center; background:rgba(6,182,212,.2); color:#67e8f9;">야외</div>
+                    <div class="form-input" style="text-align:center;">실내</div>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">메모</div>
+                  <div class="form-input">오픈워터 훈련 오늘도 굿!</div>
+                </div>
+                <div class="vis-row">
+                  <div class="vis-btn active">🌍 전체</div>
+                  <div class="vis-btn">👥 클럽원</div>
+                  <div class="vis-btn">👤 팔로워</div>
+                  <div class="vis-btn">🔒 비공개</div>
+                </div>
+                <div class="submit-btn">🏊 기록하기</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 폰: 달력 탭 -->
+        <div class="phone offset">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header">
+                <div style="display:flex; gap:0;">
+                  <div style="flex:1; text-align:center; padding:4px 0; font-size:.6rem; color:var(--text2); border-bottom:1px solid var(--border);">📋 목록</div>
+                  <div style="flex:1; text-align:center; padding:4px 0; font-size:.6rem; font-weight:700; color:var(--primary); border-bottom:2px solid var(--primary);">📅 달력</div>
+                  <div style="flex:1; text-align:center; padding:4px 0; font-size:.6rem; color:var(--text2); border-bottom:1px solid var(--border);">➕ 추가</div>
+                </div>
+              </div>
+              <div class="sc-body" style="padding-top:8px;">
+                <div class="cal-header">
+                  <div class="cal-nav">‹</div>
+                  <div class="cal-title">2026년 5월</div>
+                  <div class="cal-nav">›</div>
+                </div>
+                <div class="cal-days">
+                  <div class="cal-day" style="color:#ef4444;">일</div>
+                  <div class="cal-day">월</div><div class="cal-day">화</div><div class="cal-day">수</div><div class="cal-day">목</div><div class="cal-day">금</div>
+                  <div class="cal-day" style="color:#f97316;">토</div>
+                </div>
+                <div class="cal-days" style="margin-top:2px;">
+                  <!-- 1주 -->
+                  <div class="cal-num"></div><div class="cal-num"></div><div class="cal-num"></div><div class="cal-num"></div>
+                  <div class="cal-num has-dot">1</div><div class="cal-num has-dot">2</div><div class="cal-num">3</div>
+                  <!-- 2주 -->
+                  <div class="cal-num has-dot">4</div><div class="cal-num">5</div><div class="cal-num has-dot">6</div><div class="cal-num">7</div>
+                  <div class="cal-num has-dot">8</div><div class="cal-num">9</div><div class="cal-num">10</div>
+                  <!-- 3주 -->
+                  <div class="cal-num">11</div><div class="cal-num has-dot">12</div><div class="cal-num has-dot">13</div>
+                  <div class="cal-num today has-dot">14</div>
+                  <div class="cal-num">15</div><div class="cal-num">16</div><div class="cal-num">17</div>
+                  <!-- 4주 -->
+                  <div class="cal-num">18</div><div class="cal-num">19</div><div class="cal-num">20</div><div class="cal-num">21</div>
+                  <div class="cal-num">22</div><div class="cal-num">23</div><div class="cal-num">24</div>
+                  <!-- 5주 -->
+                  <div class="cal-num">25</div><div class="cal-num">26</div><div class="cal-num">27</div><div class="cal-num">28</div>
+                  <div class="cal-num">29</div><div class="cal-num">30</div><div class="cal-num">31</div>
+                </div>
+
+                <!-- 선택된 날짜 기록 -->
+                <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
+                  <div style="font-size:.6rem; font-weight:700; margin-bottom:6px; color:var(--primary);">2026-05-14 기록</div>
+                  <div class="my-recent-item">
+                    <div class="my-recent-icon">🏊</div>
+                    <div class="my-recent-info">
+                      <div class="my-recent-sport" style="color:#67e8f9;">수영</div>
+                      <div class="my-recent-dist">3.2km · 1:12:00</div>
+                    </div>
+                  </div>
+                  <div class="my-recent-item">
+                    <div class="my-recent-icon">🚴</div>
+                    <div class="my-recent-info">
+                      <div class="my-recent-sport" style="color:#fdba74;">사이클</div>
+                      <div class="my-recent-dist">45.0km · 1:30:00</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 2: 랭킹 -->
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="feature-num">02</div>
+        <div class="feature-label">랭킹</div>
+        <h2 class="feature-title">실시간 반영<br>리더보드</h2>
+        <p class="feature-desc">등록한 훈련 기록이 즉시 랭킹에 반영됩니다. 팔로잉·클럽·전체 범위와 종목·기간을 조합해 원하는 비교 구간을 확인할 수 있습니다.</p>
+        <ul class="flist">
+          <li>범위: 팔로잉 / 클럽 / 전체</li>
+          <li>종목: 수영 · 사이클 · 런 개별 순위</li>
+          <li>기간: 주간 / 월간 / 연간 / 직접 선택</li>
+          <li>TOP 3 강조 표시 (🥇🥈🥉)</li>
+          <li>나의 현재 순위 상단 배너 표시</li>
+        </ul>
+      </div>
+      <div class="phone-col" style="display:flex; justify-content:center;">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header">
+                <div class="sc-title">🏆 랭킹</div>
+              </div>
+              <div class="sc-body">
+                <div class="rank-banner">
+                  <div style="font-size:.55rem; color:#94a3b8; margin-bottom:4px;">나의 순위 · 클럽 · 월간 · 런</div>
+                  <div class="my-rank" style="color:#22c55e;">2위</div>
+                  <div class="my-label">430.5 km</div>
+                </div>
+                <div class="rank-filters">
+                  <div class="rank-filter active">클럽</div>
+                  <div class="rank-filter">전체</div>
+                  <div style="width:100%; height:1px; background:var(--border); margin:2px 0;"></div>
+                  <div class="rank-filter">🏊</div>
+                  <div class="rank-filter">🚴</div>
+                  <div class="rank-filter active" style="background:rgba(34,197,94,.2); color:#86efac; border:1px solid rgba(34,197,94,.4);">🏃 런</div>
+                  <div style="width:100%; height:1px; background:var(--border); margin:2px 0;"></div>
+                  <div class="rank-filter">주간</div>
+                  <div class="rank-filter active">월간</div>
+                  <div class="rank-filter">연간</div>
+                </div>
+                <div class="rank-item" style="border-left:2px solid #fbbf24;">
+                  <div class="rank-pos">🥇</div>
+                  <div class="rank-name">choi_runner</div>
+                  <div class="rank-dist" style="color:#fbbf24;">512 km</div>
+                </div>
+                <div class="rank-item" style="border-left:2px solid #22c55e; background:rgba(34,197,94,.06);">
+                  <div class="rank-pos">🥈</div>
+                  <div class="rank-name">나 (me)</div>
+                  <div class="rank-dist" style="color:#22c55e;">430 km</div>
+                </div>
+                <div class="rank-item" style="border-left:2px solid #94a3b8;">
+                  <div class="rank-pos">🥉</div>
+                  <div class="rank-name">jung_sprint</div>
+                  <div class="rank-dist" style="color:#94a3b8;">398 km</div>
+                </div>
+                <div class="rank-item">
+                  <div class="rank-pos" style="color:var(--text2);">4</div>
+                  <div class="rank-name">park_half</div>
+                  <div class="rank-dist">345 km</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 3: 클럽 -->
+    <div class="feature-row">
+      <div class="feature-text">
+        <div class="feature-num">03</div>
+        <div class="feature-label">클럽</div>
+        <h2 class="feature-title">클럽 훈련 일정을<br>달력으로 관리</h2>
+        <p class="feature-desc">지역별 클럽을 탐색하고 가입하세요. 월별 달력으로 클럽 훈련 일정을 한눈에 확인하고, 참가 신청부터 참석 인원 확인까지 한 화면에서 처리됩니다.</p>
+        <ul class="flist">
+          <li>지역별 클럽 필터링 (서울·부산·경기 등)</li>
+          <li>훈련 달력 — 날짜별 훈련 목록 확인</li>
+          <li>훈련 참가 신청 및 인원 현황 확인</li>
+          <li>공지사항 게시판</li>
+          <li>클럽장 직접 만들기 (관리자 승인 후)</li>
+        </ul>
+      </div>
+      <div class="phone-col" style="display:flex; justify-content:center; gap:20px; align-items:flex-start;">
+        <!-- 클럽 목록 -->
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header">
+                <div class="sc-title">👥 클럽</div>
+              </div>
+              <div class="sc-body">
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                  <div style="flex:1; text-align:center; padding:5px; font-size:.6rem; font-weight:700; background:var(--primary); border-radius:8px; color:#fff;">내 클럽</div>
+                  <div style="flex:1; text-align:center; padding:5px; font-size:.6rem; color:var(--text2); background:var(--dark3); border-radius:8px;">전체 클럽</div>
+                </div>
+                <div class="club-card" style="border-left-color:#06b6d4;">
+                  <div class="club-name">서울 철인 트라이클럽</div>
+                  <div class="club-meta">📍 서울 · 회원 34명</div>
+                  <div class="club-badge" style="background:rgba(6,182,212,.2); color:#67e8f9;">내 클럽</div>
+                </div>
+                <div style="font-size:.62rem; font-weight:700; margin:10px 0 6px; color:var(--text2);">이번 달 훈련 일정</div>
+                <!-- 미니 달력 -->
+                <div style="background:var(--dark); border-radius:10px; padding:8px;">
+                  <div class="cal-header" style="margin-bottom:4px;">
+                    <div class="cal-nav">‹</div>
+                    <div class="cal-title" style="font-size:.62rem;">2026년 5월</div>
+                    <div class="cal-nav">›</div>
+                  </div>
+                  <div class="cal-days">
+                    <div class="cal-day" style="color:#ef4444;">일</div>
+                    <div class="cal-day">월</div><div class="cal-day">화</div><div class="cal-day">수</div><div class="cal-day">목</div><div class="cal-day">금</div>
+                    <div class="cal-day" style="color:#f97316;">토</div>
+                  </div>
+                  <div class="cal-days" style="margin-top:2px;">
+                    <div class="cal-num"></div><div class="cal-num"></div><div class="cal-num"></div><div class="cal-num"></div>
+                    <div class="cal-num">1</div><div class="cal-num has-dot">2</div><div class="cal-num has-dot">3</div>
+                    <div class="cal-num">4</div><div class="cal-num has-dot">5</div><div class="cal-num">6</div><div class="cal-num">7</div>
+                    <div class="cal-num">8</div><div class="cal-num has-dot">9</div><div class="cal-num">10</div>
+                    <div class="cal-num">11</div><div class="cal-num">12</div><div class="cal-num">13</div>
+                    <div class="cal-num today">14</div>
+                    <div class="cal-num">15</div><div class="cal-num has-dot">16</div><div class="cal-num">17</div>
+                  </div>
+                </div>
+                <!-- 선택 훈련 -->
+                <div style="margin-top:8px; background:var(--dark); border-radius:8px; padding:8px;">
+                  <div style="font-size:.6rem; font-weight:700; margin-bottom:4px; color:var(--accent);">5월 16일 토요일</div>
+                  <div style="font-size:.62rem; font-weight:700;">한강 사이클 정기 훈련</div>
+                  <div style="font-size:.55rem; color:var(--text2); line-height:1.8;">🕖 06:30 · 📍 잠실한강공원<br>👥 14/20명 신청</div>
+                  <div style="margin-top:5px; background:var(--primary); color:#fff; text-align:center; padding:4px; border-radius:6px; font-size:.58rem; font-weight:700;">참가 신청</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 4: 대회 -->
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="feature-num">04</div>
+        <div class="feature-label">대회 캘린더</div>
+        <h2 class="feature-title">국내 대회 일정<br>한곳에서 확인</h2>
+        <p class="feature-desc">Sprint부터 Full Iron까지 국내 트라이애슬론 대회 일정을 목록 또는 달력 형태로 확인하세요. D-Day 배지로 남은 기간을 직관적으로 파악할 수 있습니다.</p>
+        <ul class="flist">
+          <li>대회 거리 분류: Sprint / Olympic / Half / King</li>
+          <li>D-n 배지로 남은 날 한눈에 확인</li>
+          <li>참가비·접수 기간·모집 인원 정보</li>
+          <li>접수 링크 바로 이동</li>
+          <li>목록 보기 / 달력 보기 전환</li>
+        </ul>
+      </div>
+      <div class="phone-col" style="display:flex; justify-content:center;">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header" style="display:flex; justify-content:space-between; align-items:center; flex-direction:row;">
+                <div>
+                  <div class="sc-title">🏁 대회 일정</div>
+                  <div style="font-size:.5rem; color:var(--text2);">예정 5개 · 종료 12개</div>
+                </div>
+                <div style="display:flex; gap:4px;">
+                  <div style="padding:3px 6px; background:var(--primary); border-radius:4px; font-size:.55rem; font-weight:700;">☰</div>
+                  <div style="padding:3px 6px; background:var(--dark3); border-radius:4px; font-size:.55rem;">📅</div>
+                </div>
+              </div>
+              <div class="sc-body" style="padding-top:8px;">
+                <div style="font-size:.6rem; font-weight:700; color:var(--primary); margin-bottom:6px;">예정 대회</div>
+
+                <div class="race-card">
+                  <div class="race-top">
+                    <div class="race-name">2026 춘천 국제 트라이애슬론</div>
+                    <div class="race-dday">D-18</div>
+                  </div>
+                  <div class="race-dist-badge" style="background:rgba(14,165,233,.2); color:#38bdf8; border:1px solid rgba(14,165,233,.3);">Olympic</div>
+                  <div class="race-info">📅 2026.06.01 · 📍 춘천 의암호<br>💰 85,000원 · 👥 400명 모집</div>
+                  <div class="race-link">접수하기 →</div>
+                </div>
+
+                <div class="race-card">
+                  <div class="race-top">
+                    <div class="race-name">2026 부산 철인3종 대회</div>
+                    <div class="race-dday">D-46</div>
+                  </div>
+                  <div class="race-dist-badge" style="background:rgba(249,115,22,.2); color:#fdba74; border:1px solid rgba(249,115,22,.3);">Half (70.3)</div>
+                  <div class="race-info">📅 2026.06.29 · 📍 해운대 해수욕장<br>💰 150,000원 · 👥 600명 모집</div>
+                  <div class="race-link">접수하기 →</div>
+                </div>
+
+                <div class="race-card">
+                  <div class="race-top">
+                    <div class="race-name">2026 가평 스프린트</div>
+                    <div class="race-dday">D-74</div>
+                  </div>
+                  <div class="race-dist-badge" style="background:rgba(34,197,94,.2); color:#86efac; border:1px solid rgba(34,197,94,.3);">Sprint</div>
+                  <div class="race-info">📅 2026.07.27 · 📍 가평 청평호<br>💰 55,000원 · 👥 200명 모집</div>
+                  <div class="race-link">접수하기 →</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 5: 마이페이지 -->
+    <div class="feature-row">
+      <div class="feature-text">
+        <div class="feature-num">05</div>
+        <div class="feature-label">마이페이지</div>
+        <h2 class="feature-title">나의 기록과<br>커뮤니티를 한곳에</h2>
+        <p class="feature-desc">종목별 훈련 통계, 팔로워·팔로잉 관리, 관리자 문의까지 마이페이지에서 모두 해결하세요. 커스텀 아바타로 나만의 프로필을 완성할 수 있습니다.</p>
+        <ul class="flist">
+          <li>종목별 훈련 횟수·거리 통계</li>
+          <li>팔로워 / 팔로잉 목록 및 팔로우 관리</li>
+          <li>최근 훈련 기록 요약</li>
+          <li>관리자 문의 — 스레드형 답장 확인</li>
+          <li>아바타 색상 12가지 또는 직접 업로드</li>
+        </ul>
+      </div>
+      <div class="phone-col" style="display:flex; justify-content:center;">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="sc">
+              <div class="sc-header">
+                <div class="sc-title">👤 마이페이지</div>
+              </div>
+              <div class="sc-body">
+                <div class="my-profile">
+                  <div class="my-avatar" style="background:#4db8ff;">K</div>
+                  <div class="my-nick">kim_tri</div>
+                  <div class="my-role">🏆 클럽관리자</div>
+                  <div class="my-stats">
+                    <div class="my-stat"><div class="val">48</div><div class="lbl">팔로워</div></div>
+                    <div class="my-stat"><div class="val">21</div><div class="lbl">팔로잉</div></div>
+                    <div class="my-stat"><div class="val">137</div><div class="lbl">훈련</div></div>
+                  </div>
+                </div>
+                <div style="background:var(--dark2); border-radius:10px; padding:10px; margin-bottom:8px;">
+                  <div class="my-recent-title">최근 훈련</div>
+                  <div class="my-recent-item">
+                    <div class="my-recent-icon">🏊</div>
+                    <div class="my-recent-info">
+                      <div class="my-recent-sport" style="color:#67e8f9;">수영</div>
+                      <div class="my-recent-dist">3.2km · 1:12:00</div>
+                    </div>
+                  </div>
+                  <div class="my-recent-item">
+                    <div class="my-recent-icon">🚴</div>
+                    <div class="my-recent-info">
+                      <div class="my-recent-sport" style="color:#fdba74;">사이클</div>
+                      <div class="my-recent-dist">90.5km · 3:05:00</div>
+                    </div>
+                  </div>
+                  <div class="my-recent-item">
+                    <div class="my-recent-icon">🏃</div>
+                    <div class="my-recent-info">
+                      <div class="my-recent-sport" style="color:#86efac;">런</div>
+                      <div class="my-recent-dist">21.1km · 1:45:00</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:var(--dark2); border-radius:10px; padding:10px;">
+                  <div style="font-size:.62rem; font-weight:700; margin-bottom:6px;">📩 관리자 문의</div>
+                  <div style="background:var(--dark); border-radius:7px; padding:7px; margin-bottom:4px; border-left:2px solid var(--primary);">
+                    <div style="font-size:.55rem; color:var(--text2);">2026-05-10</div>
+                    <div style="font-size:.6rem;">클럽장 신청 문의드립니다</div>
+                    <div style="display:inline-block; background:rgba(34,197,94,.2); color:#86efac; padding:1px 5px; border-radius:999px; font-size:.5rem; font-weight:700; margin-top:3px;">답장 완료</div>
+                  </div>
+                  <div style="background:var(--primary); color:#fff; text-align:center; padding:5px; border-radius:7px; font-size:.58rem; font-weight:700; margin-top:4px;">+ 문의하기</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</section>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 종목 상세 -->
+<!-- ══════════════════════════════════════════ -->
+<section class="section" style="padding-top:0;">
+  <div class="container">
+    <div class="section-label">종목별 기록 항목</div>
+    <h2 class="section-title">4종목 맞춤 입력 항목</h2>
+    <p class="section-sub" style="margin-bottom:48px;">각 종목의 특성에 맞는 세부 지표를 기록할 수 있습니다.</p>
+    <div class="sports-grid">
+      <div class="sport-card" style="border-top:3px solid var(--swim);">
+        <div class="sport-emoji">🏊</div>
+        <div class="sport-name" style="color:var(--swim);">수영</div>
+        <div class="sport-inputs">
+          <div class="sport-input-item">거리 (km)</div>
+          <div class="sport-input-item">시간 (시:분:초)</div>
+          <div class="sport-input-item">수영장 종류 (야외/실내)</div>
+          <div class="sport-input-item">메모</div>
+        </div>
+      </div>
+      <div class="sport-card" style="border-top:3px solid var(--cycle);">
+        <div class="sport-emoji">🚴</div>
+        <div class="sport-name" style="color:var(--cycle);">사이클</div>
+        <div class="sport-inputs">
+          <div class="sport-input-item">거리 (km)</div>
+          <div class="sport-input-item">시간 (시:분:초)</div>
+          <div class="sport-input-item">코스 종류 (실외/실내)</div>
+          <div class="sport-input-item">획득 고도 (m)</div>
+          <div class="sport-input-item">평균 파워 (W)</div>
+        </div>
+      </div>
+      <div class="sport-card" style="border-top:3px solid var(--run);">
+        <div class="sport-emoji">🏃</div>
+        <div class="sport-name" style="color:var(--run);">런</div>
+        <div class="sport-inputs">
+          <div class="sport-input-item">거리 (km)</div>
+          <div class="sport-input-item">시간 (시:분:초)</div>
+          <div class="sport-input-item">페이스 (분/km)</div>
+          <div class="sport-input-item">획득 고도 (m)</div>
+        </div>
+      </div>
+      <div class="sport-card" style="border-top:3px solid var(--brick);">
+        <div class="sport-emoji">⚡</div>
+        <div class="sport-name" style="color:var(--brick);">브릭</div>
+        <div class="sport-inputs">
+          <div class="sport-input-item">수영 구간 거리·시간</div>
+          <div class="sport-input-item">사이클 구간 거리·시간</div>
+          <div class="sport-input-item">런 구간 거리·시간</div>
+          <div class="sport-input-item">전환 시간 T1·T2</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 역할 & 권한 -->
+<!-- ══════════════════════════════════════════ -->
+<section class="section" style="background: linear-gradient(180deg,var(--dark) 0%,rgba(30,41,59,.4) 100%);">
+  <div class="container">
+    <div class="section-label">역할 & 권한</div>
+    <h2 class="section-title">역할별 주요 기능</h2>
+    <p class="section-sub" style="margin-bottom:48px;">다섯 가지 역할로 체계적인 클럽 및 플랫폼 운영을 지원합니다.</p>
+    <div class="roles-grid">
+      <div class="role-card">
+        <div class="role-icon">👤</div>
+        <div class="role-name">일반 회원</div>
+        <div class="role-desc">TRIZONE의 기본 사용자 역할입니다.</div>
+        <div class="role-perms">
+          <div class="perm">훈련 기록 등록·조회</div>
+          <div class="perm">피드 열람·좋아요·댓글</div>
+          <div class="perm">랭킹 확인</div>
+          <div class="perm">클럽 가입 신청</div>
+          <div class="perm">관리자 문의</div>
+        </div>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">🏆</div>
+        <div class="role-name">클럽장 / 부클럽장</div>
+        <div class="role-desc">클럽을 직접 운영하는 역할입니다. 관리자 승인 후 클럽 생성이 가능합니다.</div>
+        <div class="role-perms">
+          <div class="perm">클럽 만들기·수정·삭제</div>
+          <div class="perm">가입 신청 승인·거절</div>
+          <div class="perm">훈련 일정 등록·관리</div>
+          <div class="perm">공지사항 작성</div>
+          <div class="perm">부클럽장 임명 / 회원 강퇴</div>
+        </div>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">⚙️</div>
+        <div class="role-name">관리자 / 기록관리자</div>
+        <div class="role-desc">플랫폼 전체를 관리하는 최상위 역할입니다.</div>
+        <div class="role-perms">
+          <div class="perm">회원 훈련 기록 수정</div>
+          <div class="perm">회원 문의 답장</div>
+          <div class="perm">전체 회원 관리</div>
+          <div class="perm">대회 등록·수정·삭제</div>
+          <div class="perm">비밀번호 재설정 코드 발급</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- 시작하기 (간단 가이드) -->
+<!-- ══════════════════════════════════════════ -->
+<section class="section">
+  <div class="container">
+    <div class="section-label">빠른 시작</div>
+    <h2 class="section-title">3단계로 시작하세요</h2>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:48px;">
+
+      <div style="background:var(--dark2); border:1px solid var(--border); border-radius:20px; padding:36px 28px; position:relative;">
+        <div style="position:absolute; top:-18px; left:28px; width:36px; height:36px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:.9rem; font-weight:900;">1</div>
+        <div style="font-size:2rem; margin-bottom:16px;">📝</div>
+        <div style="font-size:1.05rem; font-weight:800; margin-bottom:10px;">회원가입</div>
+        <div style="font-size:.88rem; color:var(--text2); line-height:1.8;">닉네임·이메일·비밀번호를 입력하고 <strong style="color:var(--text);">가입하기</strong>를 누르면 즉시 사용 가능합니다. 별도 이메일 인증 없이 바로 시작하세요.</div>
+      </div>
+
+      <div style="background:var(--dark2); border:1px solid var(--border); border-radius:20px; padding:36px 28px; position:relative;">
+        <div style="position:absolute; top:-18px; left:28px; width:36px; height:36px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:.9rem; font-weight:900;">2</div>
+        <div style="font-size:2rem; margin-bottom:16px;">🏊</div>
+        <div style="font-size:1.05rem; font-weight:800; margin-bottom:10px;">첫 훈련 기록</div>
+        <div style="font-size:.88rem; color:var(--text2); line-height:1.8;"><strong style="color:var(--text);">훈련 기록 → ➕ 추가</strong> 탭에서 종목을 선택하고 오늘의 훈련을 입력하세요. 기록은 등록 즉시 랭킹에 반영됩니다.</div>
+      </div>
+
+      <div style="background:var(--dark2); border:1px solid var(--border); border-radius:20px; padding:36px 28px; position:relative;">
+        <div style="position:absolute; top:-18px; left:28px; width:36px; height:36px; border-radius:50%; background:var(--run); display:flex; align-items:center; justify-content:center; font-size:.9rem; font-weight:900;">3</div>
+        <div style="font-size:2rem; margin-bottom:16px;">👥</div>
+        <div style="font-size:1.05rem; font-weight:800; margin-bottom:10px;">클럽 가입</div>
+        <div style="font-size:.88rem; color:var(--text2); line-height:1.8;"><strong style="color:var(--text);">클럽 → 전체 클럽</strong>에서 내 지역 클럽을 찾아 가입 신청하세요. 클럽장 승인 후 클럽 훈련과 피드를 함께 즐길 수 있습니다.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- CTA -->
+<!-- ══════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="cta-title">지금 TRIZONE과 함께<br>훈련을 시작하세요</h2>
+    <p class="cta-desc">수영·사이클·런, 세 종목을 하나의 앱에서.</p>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+      <span class="sport-badge sb-swim" style="padding:10px 20px;">🏊 수영</span>
+      <span class="sport-badge sb-cycle" style="padding:10px 20px;">🚴 사이클</span>
+      <span class="sport-badge sb-run" style="padding:10px 20px;">🏃 런</span>
+      <span class="sport-badge sb-brick" style="padding:10px 20px;">⚡ 브릭</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- Footer -->
+<!-- ══════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <strong style="letter-spacing:2px;">TRIZONE</strong> &nbsp;·&nbsp; 트라이애슬론 훈련 기록 & 소셜 커뮤니티 플랫폼 &nbsp;·&nbsp; 2026
+  </div>
+</footer>
+
+</body>
+</html>

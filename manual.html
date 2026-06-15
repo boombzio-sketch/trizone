@@ -347,7 +347,7 @@
 <header>
   <span class="logo">TRIZONE</span>
   <span class="tagline">트라이애슬론 훈련 & 커뮤니티 플랫폼</span>
-  <span class="version">사용자 매뉴얼 v2.1</span>
+  <span class="version">사용자 매뉴얼 v2.2</span>
 </header>
 
 <!-- ── Sidebar Nav ── -->
@@ -360,6 +360,7 @@
   <a href="#feed"><span class="icon">📰</span> 피드</a>
   <a href="#workout"><span class="icon">📋</span> 훈련 기록</a>
   <a href="#ranking"><span class="icon">🏆</span> 랭킹</a>
+  <a href="#points"><span class="icon">💎</span> 포인트</a>
   <a href="#club"><span class="icon">👥</span> 클럽</a>
   <a href="#race"><span class="icon">🏁</span> 대회 캘린더</a>
   <a href="#mypage"><span class="icon">👤</span> 마이페이지</a>
@@ -409,7 +410,7 @@
       <div class="screen-card">
         <div class="icon">📋</div>
         <div class="name">훈련 기록</div>
-        <div class="desc">4종목 기록 입력 · 목록 · 달력</div>
+        <div class="desc">4종목 기록 입력 · 달력</div>
       </div>
       <div class="screen-card">
         <div class="icon">🏆</div>
@@ -486,7 +487,7 @@
       <table>
         <tr><th>탭</th><th>표시 내용</th></tr>
         <tr><td>❤️ 팔로잉</td><td>내가 팔로우한 사람들의 공개 기록</td></tr>
-        <tr><td>🏠 클럽 <span class="tag">기본</span></td><td>내가 속한 클럽 회원들의 승인된 훈련 기록</td></tr>
+        <tr><td>🏠 클럽 <span class="tag">기본</span></td><td>내가 속한 클럽 회원들의 훈련 기록</td></tr>
         <tr><td>🌐 전체</td><td>플랫폼 전체의 공개 기록</td></tr>
         <tr><td>📌 내피드 <span class="tag-new">NEW</span></td><td>내가 올린 훈련 기록만 모아 보기</td></tr>
       </table>
@@ -522,10 +523,13 @@
     <div class="table-wrap">
       <table>
         <tr><th>탭</th><th>내용</th></tr>
-        <tr><td>📋 목록</td><td>내가 올린 훈련 기록을 목록으로 봅니다</td></tr>
-        <tr><td>📅 달력 <span class="tag-new">NEW</span></td><td>월별 달력으로 훈련 기록을 시각적으로 확인합니다</td></tr>
+        <tr><td>📅 달력 <span class="tag">기본</span></td><td>월별 달력으로 내 훈련 기록을 확인하고 날짜별로 펼쳐 봅니다</td></tr>
         <tr><td>➕ 추가</td><td>새로운 훈련을 입력합니다</td></tr>
       </table>
+    </div>
+    <div class="info-box tip">
+      <strong>등록 즉시 반영</strong>
+      훈련 기록은 등록하는 즉시 피드와 랭킹에 반영됩니다. 별도의 승인 절차나 대기 시간이 없습니다. <span class="tag-new">변경됨</span>
     </div>
 
     <h3>훈련 기록 입력 (➕ 추가 탭)</h3>
@@ -593,46 +597,26 @@
     <h3>공개 범위</h3>
     <p>자세한 공개 범위 설명은 <a href="#visibility">공개 범위 안내</a>를 참고하세요.</p>
 
-    <h3>목록 탭 (📋 목록)</h3>
-    <p>내가 등록한 훈련 기록을 날짜순으로 확인합니다. 각 카드에서 종목, 거리, 시간, 메모와 승인 상태를 확인할 수 있습니다.</p>
-    <ul class="feat">
-      <li>기록 카드 우측 🗑️ 버튼으로 기록 삭제 가능</li>
-      <li>승인 상태 표시: 승인대기 / 승인 / 반려</li>
-      <li>브릭 기록은 세그먼트별 거리가 요약 표시됨</li>
-    </ul>
-
-    <h3>달력 탭 (📅 달력) <span class="tag-new">NEW</span></h3>
-    <p>월별 달력 형태로 내 훈련 기록을 시각적으로 확인합니다.</p>
+    <h3>달력 탭 (📅 달력)</h3>
+    <p>훈련 기록 화면의 기본 화면입니다. 월별 달력 형태로 내 훈련 기록을 한눈에 확인하고, 날짜별로 펼쳐 봅니다.</p>
     <ul class="feat">
       <li>훈련을 기록한 날짜에 종목 아이콘(🏊🚴🏃⚡)이 표시됩니다</li>
       <li>오늘 날짜는 배경색으로 강조됩니다</li>
-      <li>날짜를 탭하면 해당 날의 훈련 목록이 하단에 표시됩니다</li>
+      <li>날짜를 탭하면 해당 날의 훈련 목록이 하단에 표시됩니다 (종목·거리·시간·메모)</li>
+      <li>펼쳐진 기록 카드의 🗑️ 버튼으로 기록을 삭제할 수 있습니다</li>
+      <li>브릭 기록은 세그먼트별 거리가 요약 표시됩니다</li>
       <li>좌우 화살표(‹ ›)로 월 이동이 가능합니다</li>
     </ul>
     <div class="info-box tip">
       <strong>Tip</strong>
-      달력 탭에서 날짜를 다시 탭하면 선택이 해제됩니다.
-    </div>
-
-    <h3>훈련 승인 상태</h3>
-    <div class="table-wrap">
-      <table>
-        <tr><th>상태</th><th>의미</th></tr>
-        <tr><td>대기 중</td><td>승인관리자 검토 중</td></tr>
-        <tr><td>승인됨</td><td>피드와 랭킹에 반영됨</td></tr>
-        <tr><td>반려됨</td><td>반려 사유 확인 후 재등록 가능</td></tr>
-      </table>
-    </div>
-    <div class="info-box warn">
-      <strong>주의</strong>
-      랭킹에는 <strong>승인된 기록만</strong> 반영됩니다. 기록 후 승인될 때까지 랭킹에 나타나지 않을 수 있습니다.
+      달력에서 선택한 날짜를 다시 탭하면 선택이 해제됩니다.
     </div>
   </section>
 
   <!-- ──────────────────────────────────────────── -->
   <section id="ranking">
     <h2>🏆 랭킹</h2>
-    <p>승인된 훈련 기록을 바탕으로 거리 기준 순위를 제공합니다.</p>
+    <p>등록된 훈련 기록을 바탕으로 거리 기준 순위를 제공합니다. 기록은 등록 즉시 랭킹에 반영됩니다.</p>
 
     <h3>필터 옵션</h3>
     <div class="table-wrap">
@@ -654,6 +638,34 @@
     <div class="info-box tip">
       <strong>Tip</strong>
       <strong>기간 직접 선택</strong>을 이용하면 대회 준비 기간이나 합숙 기간 등 특정 구간의 훈련량을 비교할 수 있습니다.
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────── -->
+  <section id="points">
+    <h2>💎 포인트 <span class="tag-new">NEW</span></h2>
+    <p>훈련을 기록하면 규칙에 따라 포인트가 자동으로 적립됩니다. 내 포인트는 <strong>마이페이지</strong>의 💎 포인트 카드에서 확인합니다.</p>
+
+    <h3>포인트 카드 구성</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>항목</th><th>설명</th></tr>
+        <tr><td>잔액</td><td>현재 보유한 총 포인트 (pt)</td></tr>
+        <tr><td>이번달 적립</td><td>이번 달 적립한 포인트와 <strong>월 상한</strong>(기본 10,000pt)을 막대그래프로 표시</td></tr>
+        <tr><td>지급 상태</td><td>🟢 <strong>포인트 지급중</strong> / ⏸ <strong>포인트 지급기간이 아닙니다</strong></td></tr>
+        <tr><td>적립 내역</td><td><strong>적립 내역 보기 ▼</strong>를 누르면 자동 적립·관리자 지급 내역을 펼쳐 봅니다</td></tr>
+      </table>
+    </div>
+
+    <h3>포인트 적립 방식</h3>
+    <ul class="feat">
+      <li>훈련 기록 등록 시 종목·규칙에 따라 <strong>자동 적립</strong>됩니다 (내역에 "수영/사이클/런/브릭 자동 적립"으로 표시).</li>
+      <li>관리자가 직접 지급하거나 차감한 포인트도 내역에 함께 표시됩니다.</li>
+      <li>매월 적립에는 <strong>상한</strong>이 있으며, 상한을 넘으면 그 달에는 더 적립되지 않습니다.</li>
+    </ul>
+    <div class="info-box warn">
+      <strong>주의</strong>
+      포인트 자동지급이 꺼져 있거나 <strong>지급 기간이 아닐 때</strong>는 훈련을 기록해도 포인트가 적립되지 않습니다. 지급 여부는 관리자가 설정합니다.
     </div>
   </section>
 
@@ -764,9 +776,10 @@
     <h3>프로필 정보</h3>
     <ul class="feat">
       <li>닉네임, 아바타 이미지</li>
-      <li>역할 배지 <span class="tag-new">NEW</span>: 👑 관리자 / ✅ 승인관리자 / 🏆 클럽관리자</li>
+      <li>역할 배지: 👑 관리자 / ✅ 기록관리자(다른 회원 기록 수정 권한) / 🏆 클럽관리자</li>
       <li>팔로워 수 / 팔로잉 수 / 총 훈련 횟수</li>
-      <li>최근 훈련 목록 <span class="tag-new">NEW</span>: 종목별 거리·시간 요약</li>
+      <li>💎 포인트 카드 <span class="tag-new">NEW</span>: 잔액·이번달 적립·적립 내역 (자세히는 <a href="#points">포인트</a> 참고)</li>
+      <li>최근 훈련 목록: 종목별 거리·시간 요약</li>
     </ul>
 
     <h3>팔로워 / 팔로잉 관리</h3>
@@ -921,58 +934,58 @@
     <h2>⚙️ 관리자 가이드</h2>
     <p>
       <span class="role role-admin">관리자</span>
-      역할 또는
-      <span class="role role-approver">승인관리자</span>
-      권한을 가진 회원을 위한 안내입니다. 관리 화면은 하단 탭의 <strong>⚙️ 관리</strong>에서 접근합니다.
+      역할을 가진 회원을 위한 안내입니다. 관리 화면은 하단 탭의 <strong>⚙️ 관리</strong>에서 접근하며, 관리자만 진입할 수 있습니다.
     </p>
 
     <h3>탭 구성</h3>
     <div class="table-wrap">
       <table>
-        <tr><th>탭</th><th>접근 권한</th><th>내용</th></tr>
-        <tr><td>훈련 승인</td><td>관리자 + 승인관리자</td><td>대기 중인 훈련 기록 승인/반려</td></tr>
-        <tr><td>클럽장 신청</td><td>관리자 전용</td><td>클럽장 신청 승인/거절</td></tr>
-        <tr><td>회원 관리</td><td>관리자 전용</td><td>전체 회원 조회 및 역할 변경</td></tr>
+        <tr><th>탭</th><th>내용</th></tr>
+        <tr><td>회원 관리</td><td>전체 회원 조회, 역할·기록관리 권한 변경, 비밀번호 코드 발급, 회원 정보 수정/삭제</td></tr>
+        <tr><td>클럽장 신청</td><td>클럽장 신청 승인/거절</td></tr>
+        <tr><td>포인트 <span class="tag-new">NEW</span></td><td>포인트 자동지급 설정, 회원별 포인트 지급/차감</td></tr>
       </table>
     </div>
-
-    <h3>훈련 승인 (승인관리자 포함)</h3>
-    <ol class="steps">
-      <li><strong>관리 → 훈련 승인</strong> 탭을 엽니다.</li>
-      <li>대기 중인 훈련 목록을 확인합니다.</li>
-      <li>각 기록의 종목, 거리, 시간, 메모를 검토합니다.</li>
-      <li><strong>✓ 승인</strong> 또는 <strong>✕ 반려</strong>를 선택합니다.</li>
-    </ol>
-
-    <h3>가입 신청 관리</h3>
-    <ol class="steps">
-      <li><strong>관리 → 가입 신청</strong> 탭을 엽니다.</li>
-      <li>가입 신청 목록에서 신청자 정보와 메시지를 확인합니다.</li>
-      <li><strong>✓ 승인</strong> 또는 <strong>✕ 거절</strong>을 처리합니다.</li>
-    </ol>
     <div class="info-box">
-      <strong>참고</strong>
-      클럽장이 있는 클럽은 클럽장이 1차로 처리합니다. 클럽장이 없는 경우 관리자가 처리합니다.
+      <strong>승인 절차 변경 안내</strong> <span class="tag-new">변경됨</span>
+      훈련 기록 승인 절차는 폐지되었습니다. 회원이 올린 기록은 즉시 피드·랭킹에 반영되므로 별도의 <em>훈련 승인</em> 탭이 없습니다.
     </div>
 
     <h3>회원 관리</h3>
     <ol class="steps">
       <li><strong>관리 → 회원 관리</strong> 탭을 엽니다.</li>
-      <li>전체 회원 목록과 각 회원의 이메일, 훈련 횟수를 확인합니다.</li>
+      <li>전체 회원 목록과 각 회원의 이메일, 가입일, 훈련 횟수를 확인합니다.</li>
     </ol>
-    <p>회원 관리에서 할 수 있는 작업:</p>
+    <p>각 회원 행의 버튼으로 다음 작업을 할 수 있습니다:</p>
     <div class="table-wrap">
       <table>
-        <tr><th>기능</th><th>설명</th></tr>
-        <tr><td>관리자 권한 부여</td><td>일반 회원 → 관리자로 역할 변경</td></tr>
-        <tr><td>관리자 권한 해제</td><td>관리자 → 일반 회원으로 역할 변경</td></tr>
-        <tr><td>회원 삭제</td><td>해당 회원의 모든 데이터 영구 삭제 (복구 불가)</td></tr>
+        <tr><th>버튼</th><th>설명</th></tr>
+        <tr><td>수정</td><td>닉네임·이메일·아바타·비밀번호 등 회원 정보 편집</td></tr>
+        <tr><td>기록관리 <span class="tag-new">NEW</span></td><td>해당 회원에게 <strong>다른 회원의 훈련 기록을 수정</strong>할 수 있는 권한 부여/회수 (이 권한이 있으면 프로필에 <span class="role role-approver">기록관리자</span> 배지 표시)</td></tr>
+        <tr><td>관리자 / 해제</td><td>일반 회원 ↔ 관리자 역할 변경</td></tr>
+        <tr><td>삭제</td><td>해당 회원의 모든 데이터 영구 삭제 (복구 불가)</td></tr>
       </table>
     </div>
     <div class="info-box warn">
       <strong>주의</strong>
       회원 삭제는 훈련 기록, 댓글, 팔로우 관계 등 <strong>모든 관련 데이터가 영구 삭제</strong>됩니다. 신중하게 진행하세요.
     </div>
+
+    <h3>포인트 관리 <span class="tag-new">NEW</span></h3>
+    <p><strong>관리 → 포인트</strong> 탭에서 포인트 적립 규칙과 회원별 포인트를 관리합니다.</p>
+    <h4>자동지급 설정</h4>
+    <ul class="feat">
+      <li><strong>포인트 자동지급</strong> 토글: 켜면 회원이 훈련을 기록할 때 규칙에 따라 자동 적립됩니다.</li>
+      <li><strong>지급 시작일 / 종료일</strong>: 기간을 비워두면 무제한. 자동지급이 꺼져 있거나 기간 밖이면 적립되지 않습니다.</li>
+      <li>설정 후 <strong>💾 설정 저장</strong>을 누릅니다.</li>
+    </ul>
+    <h4>회원별 포인트 지급 / 차감</h4>
+    <ol class="steps">
+      <li>회원 목록에서 대상 회원의 <strong>관리</strong> 버튼을 누릅니다.</li>
+      <li>현재 잔액과 적립 내역을 확인합니다.</li>
+      <li>포인트(차감은 음수)와 사유를 입력하고 <strong>지급 / 차감</strong>을 누릅니다.</li>
+      <li>기존 내역은 <strong>수정 / 삭제</strong>할 수 있습니다.</li>
+    </ol>
 
     <h3>비밀번호 재설정 코드 발급 (이메일 미등록 회원)</h3>
     <p>이메일이 등록된 회원은 로그인 화면에서 직접 재설정할 수 있습니다. 이메일이 없는 회원은 관리자가 코드를 발급해 전달해야 합니다.</p>
@@ -1012,7 +1025,7 @@
     </div>
     <div class="info-box tip">
       <strong>Tip</strong>
-      기록 등록 후에도 훈련 기록 목록에서 해당 기록을 삭제하고 다시 원하는 공개 범위로 재등록할 수 있습니다.
+      기록 등록 후에도 훈련 기록 화면(📅 달력)이나 피드에서 해당 기록을 삭제하고 다시 원하는 공개 범위로 재등록할 수 있습니다.
     </div>
   </section>
 
@@ -1026,20 +1039,20 @@
           <th>훈련 기록</th>
           <th>피드·랭킹</th>
           <th>클럽 관리</th>
-          <th>훈련 승인·쪽지</th>
-          <th>회원 관리</th>
+          <th>타인 기록 수정</th>
+          <th>회원·포인트 관리</th>
         </tr>
         <tr>
           <td><span class="role role-member">일반 회원</span></td>
           <td>✓</td><td>✓</td><td>-</td><td>-</td><td>-</td>
         </tr>
         <tr>
-          <td><span class="role role-approver">승인관리자</span></td>
+          <td><span class="role role-approver">기록관리자</span></td>
           <td>✓</td><td>✓</td><td>-</td><td>✓</td><td>-</td>
         </tr>
         <tr>
           <td><span class="role role-sub">부클럽장</span></td>
-          <td>✓</td><td>✓</td><td>훈련·승인</td><td>-</td><td>-</td>
+          <td>✓</td><td>✓</td><td>훈련·가입승인</td><td>-</td><td>-</td>
         </tr>
         <tr>
           <td><span class="role role-leader">클럽장</span></td>
@@ -1051,6 +1064,10 @@
         </tr>
       </table>
     </div>
+    <div class="info-box">
+      <strong>기록관리자란?</strong>
+      과거 '훈련 승인' 권한이 폐지되면서, <span class="role role-approver">기록관리자</span> 배지는 이제 <strong>다른 회원의 훈련 기록을 수정</strong>할 수 있는 권한을 의미합니다. 관리자가 회원 관리에서 <strong>기록관리</strong> 권한을 부여합니다.
+    </div>
   </section>
 
   <!-- ──────────────────────────────────────────── -->
@@ -1058,7 +1075,7 @@
     <h2>❓ 자주 묻는 질문 (FAQ)</h2>
 
     <h3>훈련 기록을 올렸는데 랭킹에 반영이 안 돼요.</h3>
-    <p>훈련 기록은 승인관리자의 검토·승인 후 랭킹에 반영됩니다. <strong>훈련 기록 → 📋 목록</strong> 탭에서 현재 승인 상태를 확인해 주세요.</p>
+    <p>훈련 기록은 등록 즉시 랭킹에 반영됩니다(승인 절차 없음). 만약 보이지 않는다면 랭킹의 <strong>범위(팔로잉/클럽/전체)·종목·기간</strong> 필터가 해당 기록과 맞는지 확인해 주세요. 랭킹은 거리 기준이라 거리 정보가 없는 기록은 집계되지 않을 수 있습니다.</p>
 
     <h3>클럽 가입 신청 후 아무 소식이 없어요.</h3>
     <p>클럽장이 아직 검토 중입니다. 클럽 상세 페이지에서 <em>⏳ 클럽장 승인 대기 중</em> 상태가 표시되면 정상입니다. 오랜 시간이 지나도 처리가 없으면 <strong>마이페이지 → 관리자 문의</strong>를 이용해 문의하세요.</p>
@@ -1067,10 +1084,13 @@
     <p>로그인 화면 하단의 <strong>비밀번호를 잊으셨나요?</strong> 링크를 탭하세요. 이메일을 입력하면 재설정 코드가 자동으로 발송됩니다. 이메일이 계정에 등록되어 있지 않다면 <strong>마이페이지 → 관리자 문의</strong> 또는 관리자에게 직접 연락해 코드 발급을 요청하세요.</p>
 
     <h3>훈련 기록을 삭제하고 싶어요.</h3>
-    <p>두 가지 방법으로 삭제할 수 있습니다. <strong>피드</strong>에서 내 기록 카드 하단의 <strong>삭제</strong> 버튼을 누르거나, <strong>훈련 기록 → 📋 목록</strong> 탭에서 기록 카드 우측 🗑️ 버튼을 누르세요.</p>
+    <p>두 가지 방법으로 삭제할 수 있습니다. <strong>피드</strong>에서 내 기록 카드 하단의 <strong>삭제</strong> 버튼을 누르거나, <strong>훈련 기록 → 📅 달력</strong> 탭에서 해당 날짜를 탭해 펼친 기록 카드의 🗑️ 버튼을 누르세요.</p>
 
     <h3>기록에 올린 사진을 삭제하고 싶어요.</h3>
-    <p>현재 사진 개별 삭제는 지원하지 않습니다. 기록 전체를 삭제한 뒤 사진 없이 다시 등록하는 방법을 이용하세요.</p>
+    <p>이제 기록 전체를 지우지 않고도 사진을 관리할 수 있습니다. <strong>피드</strong>에서 내 기록을 <strong>수정</strong>하면 사진 추가·삭제와 대표 사진 변경이 가능합니다.</p>
+
+    <h3>포인트는 어떻게 쌓이나요?</h3>
+    <p>훈련을 기록하면 규칙에 따라 자동으로 적립되며, <strong>마이페이지</strong>의 💎 포인트 카드에서 잔액과 적립 내역을 확인할 수 있습니다. 단, 관리자가 설정한 <strong>지급 기간</strong>이 아니거나 자동지급이 꺼져 있으면 적립되지 않습니다.</p>
 
     <h3>팔로우를 하면 상대방에게 알림이 가나요?</h3>
     <p>현재 푸시 알림 기능은 제공되지 않습니다.</p>
@@ -1086,7 +1106,7 @@
   </section>
 
   <footer style="margin-top:80px; padding:32px 0; border-top:1px solid var(--border); color:var(--text-muted); font-size:.85rem; text-align:center;">
-    TRIZONE 사용자 매뉴얼 &nbsp;·&nbsp; 최종 수정: 2026년 5월
+    TRIZONE 사용자 매뉴얼 &nbsp;·&nbsp; 최종 수정: 2026년 6월
   </footer>
 
 </main>
