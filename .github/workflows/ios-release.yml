@@ -71,6 +71,12 @@ jobs:
           PODFILE
           cd ios/App
           pod install --repo-update
+      - name: Generate app icons from 1024 source
+        run: |
+          npm install --no-save @capacitor/assets
+          npx @capacitor/assets generate --ios --assetPath assets
+          echo "Generated AppIcon assets:"
+          ls ios/App/App/Assets.xcassets/AppIcon.appiconset/
       - name: Fix AppDelegate.swift
         run: |
           cat > ios/App/App/AppDelegate.swift << 'SWIFT'
@@ -97,12 +103,25 @@ jobs:
               }
           }
           SWIFT
-      - name: Set encryption export compliance (ITSAppUsesNonExemptEncryption=NO)
+      - name: Configure Info.plist (display name, photo/camera permissions, encryption)
         run: |
           PLIST=ios/App/App/Info.plist
+          # Home screen display name
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string TRIZONE" "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName TRIZONE" "$PLIST"
+          # Photo library access (Korean)
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 운동 기록에 사진을 첨부하기 위해 사진 접근 권한이 필요합니다." "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 운동 기록에 사진을 첨부하기 위해 사진 접근 권한이 필요합니다." "$PLIST"
+          # Camera access (Korean)
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다." "$PLIST" \
+            || /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다." "$PLIST"
+          # Export compliance
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" \
             || /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
-          echo "ITSAppUsesNonExemptEncryption = $(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$PLIST")"
+          echo "CFBundleDisplayName             = $(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST")"
+          echo "NSPhotoLibraryUsageDescription = $(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$PLIST")"
+          echo "NSCameraUsageDescription       = $(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$PLIST")"
+          echo "ITSAppUsesNonExemptEncryption  = $(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$PLIST")"
       - name: Write App Store Connect API key
         env:
           APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.trizone.app',
-  appName: 'Trizone',
+  appName: 'TRIZONE',
   webDir: 'dist',
   ios: {
     contentInset: 'always',
