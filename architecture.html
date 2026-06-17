@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRIZONE 운영 시스템 구성도</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
+      padding: 40px 24px 60px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+    }
+    h1 span { color: #3b82f6; }
+    .subtitle { text-align: center; color: #64748b; font-size: .9rem; margin-bottom: 14px; }
+    .updated { text-align: center; color: #475569; font-size: .72rem; margin-bottom: 44px; }
+
+    /* ── 레이아웃 ── */
+    .diagram {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── 레이어 ── */
+    .layer {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      position: relative;
+    }
+    .layer-label {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #475569;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+    }
+    .layer-body {
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      padding: 20px 16px;
+      border-radius: 16px;
+      margin-bottom: 4px;
+    }
+
+    /* 레이어 배경색 */
+    .layer-dev   .layer-body { background: rgba(59,130,246,.07);  border: 1px solid rgba(59,130,246,.2); }
+    .layer-git   .layer-body { background: rgba(249,115,22,.07);  border: 1px solid rgba(249,115,22,.2); }
+    .layer-prod  .layer-body { background: rgba(34,197,94,.07);   border: 1px solid rgba(34,197,94,.2); }
+    .layer-db    .layer-body { background: rgba(168,85,247,.07);  border: 1px solid rgba(168,85,247,.2); }
+    .layer-ops   .layer-body { background: rgba(234,179,8,.07);   border: 1px solid rgba(234,179,8,.25); }
+    .layer-user  .layer-body { background: rgba(14,165,233,.07);  border: 1px solid rgba(14,165,233,.2); }
+
+    /* ── 카드 ── */
+    .card {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 16px 18px;
+      flex: 1;
+      border: 1px solid #334155;
+      position: relative;
+    }
+    .card-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+    .card-title {
+      font-size: .95rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-sub {
+      font-size: .75rem;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .card-tag {
+      display: inline-block;
+      font-size: .65rem;
+      font-weight: 700;
+      border-radius: 99px;
+      padding: 2px 8px;
+      margin-bottom: 6px;
+    }
+    .tag-blue   { background: rgba(59,130,246,.2);  color: #93c5fd; }
+    .tag-orange { background: rgba(249,115,22,.2);  color: #fdba74; }
+    .tag-green  { background: rgba(34,197,94,.2);   color: #86efac; }
+    .tag-purple { background: rgba(168,85,247,.2);  color: #d8b4fe; }
+    .tag-yellow { background: rgba(234,179,8,.2);   color: #fde047; }
+    .tag-sky    { background: rgba(14,165,233,.2);  color: #7dd3fc; }
+    .code { background:#0f172a; padding:1px 5px; border-radius:4px; font-size:.92em; }
+
+    /* ── 흐름 설명 박스 ── */
+    .flow-box {
+      max-width: 1000px;
+      margin: 32px auto 0;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 24px 28px;
+    }
+    .flow-box h2 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #3b82f6;
+      margin-bottom: 18px;
+      letter-spacing: .5px;
+    }
+    .flow-steps { display: flex; flex-direction: column; gap: 0; }
+    .flow-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #243047;
+    }
+    .flow-step:last-child { border-bottom: none; }
+    .step-num {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-content strong { font-size: .9rem; color: #f1f5f9; }
+    .step-content p { font-size: .8rem; color: #94a3b8; margin-top: 2px; line-height: 1.6; }
+
+    /* ── 가입 서비스 인벤토리 테이블 ── */
+    .svc-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .svc-table th, .svc-table td { text-align: left; padding: 10px 10px; border-bottom: 1px solid #243047; vertical-align: top; }
+    .svc-table th { color: #64748b; font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
+    .svc-table td:first-child { font-weight: 800; color: #f1f5f9; white-space: nowrap; }
+    .svc-table .plan-free { color:#86efac; font-weight:700; }
+    .svc-table .plan-paid { color:#fdba74; font-weight:700; }
+    .svc-desc { color:#94a3b8; line-height:1.5; }
+
+    /* ── 기술 스택 ── */
+    .stack-grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .stack-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .stack-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .stack-name { font-size: .85rem; font-weight: 700; color: #f1f5f9; }
+    .stack-desc { font-size: .72rem; color: #64748b; margin-top: 2px; line-height: 1.5; }
+
+    /* 연결선 */
+    .connector { display: flex; justify-content: center; padding: 2px 0; }
+    .connector-line { width: 2px; height: 22px; background: linear-gradient(180deg, #334155, #1e293b); }
+    .connector-arrow { text-align: center; color: #475569; font-size: 1.05rem; line-height: 1.4; }
+
+    @media (max-width: 640px) {
+      .layer-body { flex-direction: column; }
+      .layer-label { writing-mode: horizontal-tb; transform: none; min-width: auto; padding: 8px 0 0; font-size: .65rem; }
+      .layer { flex-direction: column; }
+      .svc-table th:nth-child(2), .svc-table td:nth-child(2) { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TRI<span>ZONE</span> 운영 시스템 구성도</h1>
+  <p class="subtitle">코드 작성부터 사용자 접속까지 — 실제 운영 중인 전체 서비스 흐름</p>
+  <p class="updated">최종 업데이트: 2026-06-17 · 가입·운영 서비스 8종 · 워밍 핑 이중화(UptimeRobot) 검증 완료 ✅</p>
+
+  <div class="diagram">
+
+    <!-- ① 개발 환경 -->
+    <div class="layer layer-dev">
+      <div class="layer-label" style="color:#60a5fa">개발 환경</div>
+      <div class="layer-body">
+        <div class="card">
+          <span class="card-icon">💻</span>
+          <div class="card-title"><span class="card-tag tag-blue">IDE</span>VS Code</div>
+          <div class="card-sub">코드를 작성하는 편집기.<br />파일 탐색·터미널·Git 연동이 한 곳에.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🤖</span>
+          <div class="card-title"><span class="card-tag tag-blue">AI</span>Claude Code</div>
+          <div class="card-sub">대화로 코드 작성·수정·디버깅·배포까지 처리하는 AI 개발 보조.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">📁</span>
+          <div class="card-title"><span class="card-tag tag-blue">로컬</span>C:\trizone</div>
+          <div class="card-sub">내 PC의 프로젝트 폴더.<br /><span class="code">client/</span> (웹) · <span class="code">server/</span> (API) · <span class="code">client/ios</span> (앱).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-arrow">⬇ git push (코드 업로드)</div></div>
+
+    <!-- ② GitHub + CI -->
+    <div class="layer layer-git">
+      <div class="layer-label" style="color:#fb923c">저장소 · CI</div>
+      <div class="layer-body">
+        <div class="card" style="flex:1.4">
+          <span class="card-icon">🐙</span>
+          <div class="card-title"><span class="card-tag tag-orange">Git 저장소</span>GitHub</div>
+          <div class="card-sub">
+            <strong style="color:#f1f5f9">boombzio-sketch/trizone</strong> · 모든 커밋 이력 기록.<br /><br />
+            <strong style="color:#fdba74">역할:</strong> 코드 백업 + push 시 Render 자동 배포 트리거.
+          </div>
+        </div>
+        <div class="card">
+          <span class="card-icon">⚙️</span>
+          <div class="card-title"><span class="card-tag tag-orange">CI</span>GitHub Actions</div>
+          <div class="card-sub">
+            <span class="code">ios-release.yml</span> 워크플로.<br />
+            macOS 러너에서 웹 빌드 → Capacitor 동기화 → <strong style="color:#fdba74">Fastlane</strong>으로
+            iOS 앱을 <strong style="color:#fdba74">TestFlight</strong>에 자동 업로드.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-arrow">⬇ 자동 감지 → 빌드 &amp; 배포</div></div>
+
+    <!-- ③ Render 호스팅 -->
+    <div class="layer layer-prod">
+      <div class="layer-label" style="color:#4ade80">호스팅 · Render</div>
+      <div class="layer-body">
+        <div class="card">
+          <span class="card-icon">🌐</span>
+          <div class="card-title"><span class="card-tag tag-green">Frontend</span>Render — Client</div>
+          <div class="card-sub">
+            <strong style="color:#86efac">trizone-client.onrender.com</strong><br /><br />
+            React + Vite 정적 사이트(PWA). Cloudflare CDN으로 전 세계 서빙.<br />
+            <strong style="color:#86efac">git의 dist를 그대로 배포.</strong>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;color:#475569;font-size:1.2rem;flex-shrink:0">⟷</div>
+        <div class="card">
+          <span class="card-icon">⚙️</span>
+          <div class="card-title"><span class="card-tag tag-green">Backend</span>Render — Server</div>
+          <div class="card-sub">
+            <strong style="color:#86efac">trizone-server.onrender.com</strong><br /><br />
+            Node.js + Express API 서버. 로그인·기록·랭킹·클럽 등 모든 로직 처리.<br />
+            <span style="color:#fca5a5">⚠ 무료 플랜은 15분 미사용 시 슬립</span> → 핑으로 워밍(아래 운영 보조).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-arrow">⬇ SQL 쿼리 · ⬆ 이미지 URL</div></div>
+
+    <!-- ④ 데이터 & 미디어 -->
+    <div class="layer layer-db">
+      <div class="layer-label" style="color:#c084fc">데이터 · 미디어</div>
+      <div class="layer-body">
+        <div class="card">
+          <span class="card-icon">🐘</span>
+          <div class="card-title"><span class="card-tag tag-purple">Cloud DB</span>Neon (PostgreSQL)</div>
+          <div class="card-sub">
+            모든 구조화 데이터 저장: 회원·훈련기록·좋아요·댓글·클럽·대회·공지·포인트.<br /><br />
+            <strong style="color:#d8b4fe">이미지는 URL만 저장</strong> — 실제 파일은 Cloudinary에.
+          </div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🖼️</span>
+          <div class="card-title"><span class="card-tag tag-purple">이미지 저장소</span>Cloudinary</div>
+          <div class="card-sub">
+            <strong style="color:#d8b4fe">cloud: dzjta2k0x</strong> · unsigned 업로드.<br /><br />
+            훈련 사진·아바타를 직접 업로드·서빙. DB엔 <span style="color:#d8b4fe">res.cloudinary.com URL</span>만 보관해
+            응답을 가볍게 유지(과거 base64 → 전량 이전 완료).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-arrow">⬆⬇ 운영 보조 서비스가 서버를 깨워둠 / 도메인 연결</div></div>
+
+    <!-- ⑤ 운영 보조 -->
+    <div class="layer layer-ops">
+      <div class="layer-label" style="color:#facc15">운영 보조</div>
+      <div class="layer-body">
+        <div class="card">
+          <span class="card-icon">⏰</span>
+          <div class="card-title"><span class="card-tag tag-yellow">워밍 핑 ①</span>cron-job.org</div>
+          <div class="card-sub">10분 간격으로 <span class="code">/api/health</span> 호출 → Render 서버 + Neon DB 슬립 방지. <span style="color:#fca5a5">무료라 가끔 핑 누락 → 단독으론 슬립 발생(실측 확인).</span></div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🤖</span>
+          <div class="card-title"><span class="card-tag tag-yellow">워밍 핑 ②</span>UptimeRobot</div>
+          <div class="card-sub"><span class="card-tag tag-green" style="margin:0 0 0 0">검증 완료</span> 5분 간격 핑으로 <strong style="color:#fde047">이중화</strong> → 15분 슬립 창 원천 차단. <strong style="color:#86efac">실측: 28분 방치 후에도 콜드 스타트 0회</strong> (이전 22초 → 0.4~1초대 유지).</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🔗</span>
+          <div class="card-title"><span class="card-tag tag-yellow">도메인</span>trizone.co.kr</div>
+          <div class="card-sub">커스텀 도메인 <strong style="color:#fde047">www.trizone.co.kr</strong> → Render Client 연결. 서버 CORS 허용 목록에 등록.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connector"><div class="connector-arrow">⬆⬇ HTTPS 요청 / 응답</div></div>
+
+    <!-- ⑥ 사용자 채널 -->
+    <div class="layer layer-user">
+      <div class="layer-label" style="color:#38bdf8">접속 채널</div>
+      <div class="layer-body">
+        <div class="card">
+          <span class="card-icon">🌐</span>
+          <div class="card-title"><span class="card-tag tag-sky">웹 · PWA</span>브라우저</div>
+          <div class="card-sub">PC/모바일 Chrome·Safari·Edge로 접속. 홈 화면 추가 시 PWA로 앱처럼 사용.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🍎</span>
+          <div class="card-title"><span class="card-tag tag-sky">iOS 앱</span>App Store / TestFlight</div>
+          <div class="card-sub">
+            Capacitor로 웹을 감싼 네이티브 앱(<span class="code">com.trizone.app</span>).<br />
+            GitHub Actions가 TestFlight로 자동 배포.
+          </div>
+        </div>
+        <div class="card">
+          <span class="card-icon">🤖</span>
+          <div class="card-title"><span class="card-tag tag-sky">Android</span>TWA (준비)</div>
+          <div class="card-sub">
+            Trusted Web Activity 패키지(<span class="code">com.trizone.twa</span>) 빌드 완료.<br />
+            <span style="color:#fca5a5">assetlinks 지문 등록 후 배포 예정.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /diagram -->
+
+  <!-- 가입 서비스 인벤토리 -->
+  <div class="flow-box" style="margin-top:40px">
+    <h2>🗂️ 가입·운영 중인 서비스 한눈에</h2>
+    <table class="svc-table">
+      <thead>
+        <tr><th>서비스</th><th>플랜</th><th>역할</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>GitHub</td><td class="plan-free">무료</td><td class="svc-desc">코드 저장소 · 배포 트리거 · iOS CI(Actions)</td></tr>
+        <tr><td>Render</td><td class="plan-free">무료</td><td class="svc-desc">웹 호스팅 — Client(정적) + Server(Node API) 2개 서비스</td></tr>
+        <tr><td>Neon</td><td class="plan-free">무료</td><td class="svc-desc">PostgreSQL 클라우드 DB — 모든 앱 데이터 영구 저장</td></tr>
+        <tr><td>Cloudinary</td><td class="plan-free">무료</td><td class="svc-desc">이미지 저장·서빙 (cloud: dzjta2k0x) — DB엔 URL만</td></tr>
+        <tr><td>cron-job.org</td><td class="plan-free">무료</td><td class="svc-desc">서버 워밍 핑 10분 간격 — 콜드 스타트 완화</td></tr>
+        <tr><td>UptimeRobot</td><td class="plan-free">무료</td><td class="svc-desc">서버 워밍 핑 5분 간격 — 핑 이중화로 슬립 차단</td></tr>
+        <tr><td>Apple Developer<br />/ App Store Connect</td><td class="plan-paid">유료 ($99/년)</td><td class="svc-desc">iOS 앱 서명·배포(TestFlight) — Fastlane API 키 연동</td></tr>
+        <tr><td>도메인 trizone.co.kr</td><td class="plan-paid">유료 (등록)</td><td class="svc-desc">커스텀 도메인 → Render Client 연결</td></tr>
+      </tbody>
+    </table>
+    <p style="color:#64748b;font-size:.74rem;margin-top:14px;line-height:1.6">
+      💡 호스팅·DB·이미지·모니터링까지 핵심 운영 스택은 <strong style="color:#86efac">전부 무료 플랜</strong>으로 구성.
+      유료는 iOS 배포 필수 요건인 Apple Developer와 도메인 등록비뿐.
+    </p>
+  </div>
+
+  <!-- 배포 흐름 -->
+  <div class="flow-box" style="margin-top:20px">
+    <h2>🔄 코드 수정 → 배포까지 (웹 &amp; 앱)</h2>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content"><strong>VS Code에서 Claude에게 기능 요청</strong>
+          <p>"피드에 삭제 버튼 추가해줘" → Claude가 코드를 직접 수정하고 <span class="code">vite build</span>로 dist 갱신</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong>git commit + git push</strong>
+          <p>소스 + 빌드된 dist가 GitHub에 업로드됨</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong>Render가 push 자동 감지 → 웹 즉시 반영</strong>
+          <p>Client(정적)·Server(API) 재배포. 2~3분 후 새로고침하면 웹에 적용</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content"><strong>(앱 배포 시) GitHub Actions 수동/태그 실행</strong>
+          <p>macOS 러너가 웹 빌드 → Capacitor 동기화 → Fastlane이 TestFlight 업로드</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content"><strong>TestFlight → App Store 심사 → 사용자 업데이트</strong>
+          <p>테스터는 TestFlight로 즉시, 정식 출시는 App Store 심사 후 배포</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 첫 접속 성능 흐름 -->
+  <div class="flow-box" style="margin-top:20px">
+    <h2>⚡ 첫 접속이 빠른 이유 (성능 설계)</h2>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-num" style="background:#22c55e">①</div>
+        <div class="step-content"><strong>워밍 핑으로 서버를 미리 깨움</strong>
+          <p>cron-job.org(10분) + UptimeRobot(5분) 이중 핑 → Render 서버가 항상 깨어 있음. <strong style="color:#86efac">검증 완료:</strong> 이전 콜드 스타트 <strong style="color:#fca5a5">22초</strong> → 핑 이중화 후 28분 방치에도 <strong style="color:#86efac">0.4~1초대 유지</strong></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:#22c55e">②</div>
+        <div class="step-content"><strong>HTML 로드 즉시 서버 워밍 + preconnect</strong>
+          <p>페이지 <span class="code">&lt;head&gt;</span>에서 <span class="code">/api/health</span> 선호출 + API·Cloudinary preconnect로 연결을 번들 다운로드와 병렬화</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:#22c55e">③</div>
+        <div class="step-content"><strong>정적 자산은 CDN + 서비스워커 캐시</strong>
+          <p>Cloudflare CDN 서빙 + PWA 서비스워커가 전 자산 프리캐시 → 재방문은 거의 즉시 로드</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:#22c55e">④</div>
+        <div class="step-content"><strong>코드 분할 + 첫 화면 청크 프리페치</strong>
+          <p>라우트별 lazy 로딩으로 초기 번들 최소화, 유휴 시간에 첫 화면 청크를 미리 받아 라우팅 지연 제거</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 데이터 흐름 -->
+  <div class="flow-box" style="margin-top:20px">
+    <h2>🗄️ 사진이 포함된 기록이 저장되는 방식</h2>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-num" style="background:#a855f7">📱</div>
+        <div class="step-content"><strong>사용자가 훈련 기록 + 사진 입력</strong>
+          <p>브라우저/앱에서 거리·시간·사진 선택 후 저장</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:#a855f7">🖼️</div>
+        <div class="step-content"><strong>사진은 Cloudinary로 직접 업로드</strong>
+          <p>이미지는 서버를 거치지 않고 Cloudinary에 올라가 <span style="color:#d8b4fe">URL</span>을 돌려받음</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:#a855f7">⚙️</div>
+        <div class="step-content"><strong>서버가 기록 + 사진 URL을 DB에 저장</strong>
+          <p>Express가 검증 후 Neon(PostgreSQL)에 INSERT — 무거운 이미지는 URL로만 저장</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:#a855f7">✅</div>
+        <div class="step-content"><strong>피드 응답은 가볍게, 화면 즉시 반영</strong>
+          <p>피드는 URL만 내려주고 이미지는 CDN에서 로드 → 응답 작고 빠름</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기술 스택 -->
+  <div class="flow-box" style="margin-top:20px">
+    <h2>📦 기술 스택 한눈에 보기</h2>
+    <div class="stack-grid" style="margin-top:0">
+      <div class="stack-card"><div class="stack-icon">⚛️</div><div><div class="stack-name">React 18</div><div class="stack-desc">화면(UI) 구성 — 모든 컴포넌트</div></div></div>
+      <div class="stack-card"><div class="stack-icon">⚡</div><div><div class="stack-name">Vite</div><div class="stack-desc">개발 서버 &amp; 빌드 도구</div></div></div>
+      <div class="stack-card"><div class="stack-icon">📲</div><div><div class="stack-name">PWA (Workbox)</div><div class="stack-desc">서비스워커 캐시 · 오프라인 · 홈화면 설치</div></div></div>
+      <div class="stack-card"><div class="stack-icon">🟢</div><div><div class="stack-name">Node.js + Express</div><div class="stack-desc">API 서버 &amp; 비즈니스 로직</div></div></div>
+      <div class="stack-card"><div class="stack-icon">🐘</div><div><div class="stack-name">PostgreSQL (Neon)</div><div class="stack-desc">관계형 DB · 데이터 영구 저장</div></div></div>
+      <div class="stack-card"><div class="stack-icon">🖼️</div><div><div class="stack-name">Cloudinary</div><div class="stack-desc">이미지 저장·변환·CDN 서빙</div></div></div>
+      <div class="stack-card"><div class="stack-icon">🔑</div><div><div class="stack-name">JWT</div><div class="stack-desc">로그인 인증 토큰 (30일 유지)</div></div></div>
+      <div class="stack-card"><div class="stack-icon">📱</div><div><div class="stack-name">Capacitor</div><div class="stack-desc">웹 → iOS/Android 네이티브 앱 래핑</div></div></div>
+      <div class="stack-card"><div class="stack-icon">🚀</div><div><div class="stack-name">Fastlane</div><div class="stack-desc">iOS 빌드·서명·TestFlight 업로드 자동화</div></div></div>
+      <div class="stack-card"><div class="stack-icon">🐙</div><div><div class="stack-name">GitHub + Actions</div><div class="stack-desc">버전 관리 · 배포 트리거 · iOS CI</div></div></div>
+      <div class="stack-card"><div class="stack-icon">🌩️</div><div><div class="stack-name">Render.com</div><div class="stack-desc">웹/서버 호스팅 · 자동 배포</div></div></div>
+      <div class="stack-card"><div class="stack-icon">⏰</div><div><div class="stack-name">cron-job.org · UptimeRobot</div><div class="stack-desc">서버 워밍 핑 (콜드 스타트 방지)</div></div></div>
+    </div>
+  </div>
+
+  <p style="text-align:center;color:#334155;font-size:.75rem;margin-top:40px">TRIZONE Operating System Architecture · 2026-06-17</p>
+
+</body>
+</html>
