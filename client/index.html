@@ -12,6 +12,13 @@
   <link rel="icon" href="/favicon.ico" sizes="48x48" />
   <link rel="icon" href="/logo.svg" sizes="any" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+  <!-- 서버 콜드 스타트를 번들 로드와 병렬로 미리 깨움 (Render 무료 슬립 대응) -->
+  <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
+  <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+  <script>
+    // head에서 가장 이른 시점에 서버 워밍 → 번들 다운로드/로그인 입력과 콜드 스타트가 병렬로 진행됨
+    try { fetch('%VITE_API_URL%/api/health', { cache: 'no-store' }).catch(function () {}); } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
