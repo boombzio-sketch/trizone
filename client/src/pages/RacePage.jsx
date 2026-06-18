@@ -42,12 +42,31 @@ const CATEGORIES = [
 
 const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.key, c]))
 
-const empty = { name: '', date: '', location: '', distance: 'olympic', category: 'triathlon', entry_fee: '', reg_url: '', capacity: '', reg_start: '', reg_end: '' }
+const ETC_COLOR = '#94A3B8'
+
+// distance 컬럼은 원래 단일 키였지만, 이제 복수 종목 + 기타(직접 입력)를 지원하려고
+// JSON 배열 문자열로 저장한다. 과거 단일 문자열("olympic")도 호환 파싱한다.
+function parseDistances(distance) {
+  if (Array.isArray(distance)) return distance
+  if (distance == null || distance === '') return []
+  try {
+    const v = JSON.parse(distance)
+    if (Array.isArray(v)) return v.map(String)
+    return [String(v)]
+  } catch {
+    return [String(distance)]
+  }
+}
+
+const empty = { name: '', date: '', location: '', category: 'triathlon', distances: ['olympic'], etcText: '', entry_fee: '', reg_url: '', capacity: '', reg_start: '', reg_end: '' }
 
 function raceToForm(r) {
+  const all = parseDistances(r.distance)
   return {
-    name: r.name, date: r.date, location: r.location, distance: r.distance,
+    name: r.name, date: r.date, location: r.location,
     category: r.category || 'triathlon',
+    distances: all.filter(k => DIST_MAP[k]),       // 프리셋 종목 키
+    etcText: all.filter(k => !DIST_MAP[k]).join(', '), // 기타(직접 입력) 항목
     entry_fee: r.entry_fee || '', reg_url: r.reg_url || '',
     capacity: r.capacity || '', reg_start: r.reg_start || '', reg_end: r.reg_end || '',
   }
@@ -62,6 +81,7 @@ export default function RacePage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null) // null = 신규, id = 수정
   const [form, setForm] = useState(empty)
+  const [etcOn, setEtcOn] = useState(false) // 기타(직접 입력) 사용 여부
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -75,14 +95,38 @@ export default function RacePage() {
 
   function f(k) { return e => setForm(p => ({ ...p, [k]: e.target.value })) }
 
-  function openNew() { setEditingId(null); setForm(empty); setError(''); setShowForm(true) }
-  function openEdit(race) { setEditingId(race.id); setForm(raceToForm(race)); setError(''); setShowForm(true) }
-  function closeForm() { setShowForm(false); setEditingId(null); setForm(empty); setError('') }
+  // 종목 복수 선택 토글
+  function toggleDistance(key) {
+    setForm(p => ({
+      ...p,
+      distances: p.distances.includes(key) ? p.distances.filter(k => k !== key) : [...p.distances, key],
+    }))
+  }
+  function toggleEtc() {
+    const next = !etcOn
+    setEtcOn(next)
+    if (!next) setForm(p => ({ ...p, etcText: '' }))
+  }
+  // 카테고리 변경: 종목 프리셋은 해당 카테고리 기본 1개로 초기화(기타 입력은 유지)
+  function selectCategory(key) {
+    setForm(p => ({ ...p, category: key, distances: [DISTANCES_BY_CAT[key][0].key] }))
+  }
+
+  function openNew() { setEditingId(null); setForm(empty); setEtcOn(false); setError(''); setShowForm(true) }
+  function openEdit(race) {
+    const fm = raceToForm(race)
+    setEditingId(race.id); setForm(fm); setEtcOn(!!fm.etcText); setError(''); setShowForm(true)
+  }
+  function closeForm() { setShowForm(false); setEditingId(null); setForm(empty); setEtcOn(false); setError('') }
 
   async function handleSubmit(e) {
     e.preventDefault()
+    const etc = etcOn ? form.etcText.trim() : ''
+    const distancesFinal = [...form.distances, ...(etc ? [etc] : [])]
+    if (distancesFinal.length === 0) { setError('종목을 1개 이상 선택하거나 기타에 입력하세요.'); return }
     setSaving(true); setError('')
-    const body = { ...form, entry_fee: parseInt(form.entry_fee) || 0, capacity: parseInt(form.capacity) || 0 }
+    const { distances, etcText, ...rest } = form
+    const body = { ...rest, distance: JSON.stringify(distancesFinal), entry_fee: parseInt(form.entry_fee) || 0, capacity: parseInt(form.capacity) || 0 }
     try {
       if (editingId) {
         const updated = await api.updateRace(editingId, body)
@@ -180,7 +224,7 @@ export default function RacePage() {
           <Field label="카테고리 *">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
               {CATEGORIES.map(c => (
-                <button key={c.key} type="button" onClick={() => setForm(p => ({ ...p, category: c.key, distance: DISTANCES_BY_CAT[c.key][0].key }))} style={{
+                <button key={c.key} type="button" onClick={() => selectCategory(c.key)} style={{
                   padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
                   background: form.category === c.key ? c.color + '20' : C.surfaceAlt,
                   outline: form.category === c.key ? `2px solid ${c.color}` : '2px solid transparent',
@@ -195,22 +239,43 @@ export default function RacePage() {
             </div>
           </Field>
 
-          <Field label="종목 *">
+          <Field label="종목 * (복수 선택 가능)">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
-              {(DISTANCES_BY_CAT[form.category] || DISTANCES_BY_CAT.triathlon).map(d => (
-                <button key={d.key} type="button" onClick={() => setForm(p => ({ ...p, distance: d.key }))} style={{
-                  padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
-                  background: form.distance === d.key ? d.color + '20' : C.surfaceAlt,
-                  outline: form.distance === d.key ? `2px solid ${d.color}` : '2px solid transparent',
-                  color: form.distance === d.key ? d.color : C.text2,
-                  fontSize: 12, fontWeight: 700,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                }}>
-                  <span>{d.label}</span>
-                  <span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>{d.sub}</span>
-                </button>
-              ))}
+              {(DISTANCES_BY_CAT[form.category] || DISTANCES_BY_CAT.triathlon).map(d => {
+                const on = form.distances.includes(d.key)
+                return (
+                  <button key={d.key} type="button" onClick={() => toggleDistance(d.key)} style={{
+                    padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
+                    background: on ? d.color + '20' : C.surfaceAlt,
+                    outline: on ? `2px solid ${d.color}` : '2px solid transparent',
+                    color: on ? d.color : C.text2,
+                    fontSize: 12, fontWeight: 700,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                  }}>
+                    <span>{d.label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>{d.sub}</span>
+                  </button>
+                )
+              })}
+              {/* 기타: 직접 입력 토글 (전 카테고리 공통) */}
+              <button type="button" onClick={toggleEtc} style={{
+                padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
+                background: etcOn ? ETC_COLOR + '20' : C.surfaceAlt,
+                outline: etcOn ? `2px solid ${ETC_COLOR}` : '2px solid transparent',
+                color: etcOn ? ETC_COLOR : C.text2,
+                fontSize: 12, fontWeight: 700,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              }}>
+                <span>기타</span>
+                <span style={{ fontSize: 9, fontWeight: 400, opacity: 0.7 }}>직접 입력</span>
+              </button>
             </div>
+            {etcOn && (
+              <input value={form.etcText} onChange={f('etcText')}
+                placeholder="예: 2.5km / 사이클 120km / 하프+ (여러 개는 쉼표로 구분)"
+                style={{ ...iSt, marginTop: 8 }} />
+            )}
+            <div style={{ fontSize: 11, color: C.text3, marginTop: 6 }}>여러 종목이 있으면 모두 선택하세요. 정확한 거리가 없으면 “기타”에 직접 입력.</div>
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -356,7 +421,9 @@ function CalendarView({ races, isAdmin, onEdit, onDelete }) {
                 color: isToday ? '#fff' : C.text,
               }}>{day}</div>
               {dayRaces.slice(0, 2).map(r => {
-                const dc = DIST_MAP[r.distance]?.color || C.accent
+                const first = parseDistances(r.distance)[0]
+                const dm = DIST_MAP[first]
+                const dc = dm?.color || (CAT_MAP[r.category]?.color) || C.accent
                 return (
                   <div key={r.id} style={{
                     width: '100%', borderRadius: 3, padding: '1px 2px',
@@ -364,7 +431,7 @@ function CalendarView({ races, isAdmin, onEdit, onDelete }) {
                     fontWeight: 700, textAlign: 'center',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
-                    {DIST_MAP[r.distance]?.label}
+                    {dm?.label || first || ''}
                   </div>
                 )
               })}
@@ -393,8 +460,9 @@ function CalendarView({ races, isAdmin, onEdit, onDelete }) {
 }
 
 function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
-  const dist = DIST_MAP[r.distance] || { label: r.distance, color: C.accent, sub: '' }
   const cat = CAT_MAP[r.category || 'triathlon'] || CAT_MAP.triathlon
+  const dists = parseDistances(r.distance).map(k => DIST_MAP[k] || { label: k, color: ETC_COLOR, sub: '' })
+  const accent = isPast ? C.text3 : cat.color
   const regOpen = r.reg_start && r.reg_end
     ? `${r.reg_start} ~ ${r.reg_end}`
     : r.reg_start ? `${r.reg_start}부터`
@@ -407,25 +475,29 @@ function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
     <div style={{
       background: isPast ? C.surfaceAlt : C.surface,
       borderRadius: 16, marginBottom: 10, overflow: 'hidden',
-      borderLeft: `4px solid ${isPast ? C.text3 : dist.color}`,
+      borderLeft: `4px solid ${accent}`,
       opacity: isPast ? 0.7 : 1,
     }}>
       <div style={{ padding: '14px 16px' }}>
-        {/* 종목 배지 + 대회명 */}
+        {/* 카테고리 + 종목 배지(복수) + 대회명 */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
-          <span style={{
-            fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '3px 8px', flexShrink: 0, marginTop: 2,
-            background: dist.color + '20', color: dist.color,
-          }}>{dist.label}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5, flexWrap: 'wrap' }}>
               <span style={{
                 fontSize: 10, fontWeight: 700, borderRadius: 6, padding: '2px 7px',
                 background: cat.color + '18', color: cat.color,
               }}>{cat.icon} {cat.label}</span>
+              {dists.map((d, i) => (
+                <span key={i} style={{
+                  fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '2px 7px',
+                  background: d.color + '20', color: d.color,
+                }}>{d.label}</span>
+              ))}
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, lineHeight: 1.3 }}>{r.name}</div>
-            <div style={{ fontSize: 10, color: dist.color, marginTop: 2 }}>{dist.sub}</div>
+            {dists.length === 1 && dists[0].sub && (
+              <div style={{ fontSize: 10, color: dists[0].color, marginTop: 2 }}>{dists[0].sub}</div>
+            )}
           </div>
           {!isPast && (
             <span style={{
@@ -454,7 +526,7 @@ function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
         {r.reg_url && !isPast && (
           <a href={r.reg_url} target="_blank" rel="noopener noreferrer" style={{
             display: 'block', textAlign: 'center', padding: '11px', borderRadius: 12,
-            background: dist.color, color: '#fff', textDecoration: 'none',
+            background: accent, color: '#fff', textDecoration: 'none',
             fontSize: 13, fontWeight: 700,
           }}>
             신청하기 →
