@@ -3,14 +3,35 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
 import { C } from '../utils/theme'
 
-const DISTANCES = [
-  { key: 'sprint',   label: 'Sprint',   sub: '750m / 20km / 5km',          color: '#22C55E' },
-  { key: 'olympic',  label: 'Olympic',  sub: '1.5km / 40km / 10km',         color: '#0EA5E9' },
-  { key: 'half',     label: 'Half',     sub: '1.9km / 90.1km / 21.1km',       color: '#F97316' },
-  { key: 'king',  label: 'King',  sub: '3.8km / 180.2km / 42.2km',      color: '#EF4444' },
-]
+// 카테고리별 종목(거리) 옵션. key는 전 카테고리에서 유일해야 함 (DIST_MAP 조회용)
+const DISTANCES_BY_CAT = {
+  triathlon: [
+    { key: 'sprint',   label: 'Sprint',   sub: '750m / 20km / 5km',          color: '#22C55E' },
+    { key: 'olympic',  label: 'Olympic',  sub: '1.5km / 40km / 10km',        color: '#0EA5E9' },
+    { key: 'half',     label: 'Half',     sub: '1.9km / 90.1km / 21.1km',    color: '#F97316' },
+    { key: 'king',     label: 'King',     sub: '3.8km / 180.2km / 42.2km',   color: '#EF4444' },
+  ],
+  swim: [
+    { key: 'swim_750',  label: '750m',  sub: '오픈워터 750m',  color: '#22D3EE' },
+    { key: 'swim_1500', label: '1.5km', sub: '오픈워터 1.5km', color: '#06B6D4' },
+    { key: 'swim_3000', label: '3km',   sub: '오픈워터 3km',   color: '#0EA5E9' },
+    { key: 'swim_5000', label: '5km',   sub: '오픈워터 5km',   color: '#6366F1' },
+  ],
+  bike: [
+    { key: 'bike_50',   label: '50km',   sub: '단거리 50km',  color: '#FACC15' },
+    { key: 'bike_100',  label: '100km',  sub: '메디오 100km', color: '#F59E0B' },
+    { key: 'bike_gran', label: '그란폰도', sub: '120km+',      color: '#F97316' },
+    { key: 'bike_200',  label: '200km',  sub: '장거리 200km', color: '#EA580C' },
+  ],
+  run: [
+    { key: 'run_5k',   label: '5km',   sub: '5km',       color: '#34D399' },
+    { key: 'run_10k',  label: '10km',  sub: '10km',      color: '#22C55E' },
+    { key: 'run_half', label: '하프',  sub: '21.1km',    color: '#F97316' },
+    { key: 'run_full', label: '풀코스', sub: '42.195km',  color: '#EF4444' },
+  ],
+}
 
-const DIST_MAP = Object.fromEntries(DISTANCES.map(d => [d.key, d]))
+const DIST_MAP = Object.fromEntries(Object.values(DISTANCES_BY_CAT).flat().map(d => [d.key, d]))
 
 const CATEGORIES = [
   { key: 'triathlon', label: '철인3종', icon: '🏅', color: '#0EA5E9' },
@@ -159,7 +180,7 @@ export default function RacePage() {
           <Field label="카테고리 *">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
               {CATEGORIES.map(c => (
-                <button key={c.key} type="button" onClick={() => setForm(p => ({ ...p, category: c.key }))} style={{
+                <button key={c.key} type="button" onClick={() => setForm(p => ({ ...p, category: c.key, distance: DISTANCES_BY_CAT[c.key][0].key }))} style={{
                   padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
                   background: form.category === c.key ? c.color + '20' : C.surfaceAlt,
                   outline: form.category === c.key ? `2px solid ${c.color}` : '2px solid transparent',
@@ -176,7 +197,7 @@ export default function RacePage() {
 
           <Field label="종목 *">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
-              {DISTANCES.map(d => (
+              {(DISTANCES_BY_CAT[form.category] || DISTANCES_BY_CAT.triathlon).map(d => (
                 <button key={d.key} type="button" onClick={() => setForm(p => ({ ...p, distance: d.key }))} style={{
                   padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
                   background: form.distance === d.key ? d.color + '20' : C.surfaceAlt,
