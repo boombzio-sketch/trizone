@@ -19,26 +19,26 @@ platform :ios do
 
     keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
 
-    # 배포 인증서(.p12)를 CI 키체인에 가져온다.
-    # fastlane `cert`로 매번 새 인증서를 만들면 Apple의 배포 인증서 개수 한도에 부딪혀
-    # "Could not create another Distribution certificate" 로 실패한다.
-    # 따라서 미리 내보낸 .p12를 GitHub Secret(BUILD_CERTIFICATE_BASE64 / P12_PASSWORD)으로
-    # 주입해 동일 인증서를 재사용한다. (워크플로의 "Import signing certificate" 스텝 참고)
-    import_certificate(
-      certificate_path: ENV.fetch("CERTIFICATE_PATH"),
-      certificate_password: ENV["P12_PASSWORD"] || "",
+    # fastlane match: 배포 인증서 + 프로비저닝 프로파일을 git(이 저장소의 match-certs 브랜치)에
+    # AES 암호화 저장하고 재사용한다. fastlane `cert`처럼 매 빌드마다 새 인증서를 만들지 않으므로
+    # Apple 배포 인증서 개수 한도에 다시 걸리지 않는다. (Mac 불필요 — CI에서 생성/재사용)
+    #   첫 실행: 인증서 1개 생성(빈 슬롯 1칸 필요) → git에 저장
+    #   이후 실행: 저장된 인증서/프로파일을 그대로 설치해 재사용
+    # git 접근은 워크플로의 GITHUB_TOKEN 기반 MATCH_GIT_BASIC_AUTHORIZATION 으로 처리(PAT 불필요).
+    match(
+      type: "appstore",
+      api_key: api_key,
+      app_identifier: BUNDLE_ID,
+      storage_mode: "git",
+      git_url: ENV.fetch("MATCH_GIT_URL"),
+      git_branch: ENV["MATCH_GIT_BRANCH"] || "match-certs",
+      readonly: false,
       keychain_name: "fastlane_tmp_keychain",
       keychain_password: keychain_password
     )
 
-    sigh(
-      api_key: api_key,
-      app_identifier: BUNDLE_ID,
-      output_path: "./fastlane/profiles",
-      force: true
-    )
-
-    profile_name = lane_context[SharedValues::SIGH_NAME]
+    # match가 설치한 App Store 프로비저닝 프로파일 이름
+    profile_name = ENV.fetch("sigh_#{BUNDLE_ID}_appstore_profile-name")
 
     update_code_signing_settings(
       use_automatic_signing: false,
