@@ -144,6 +144,7 @@ async function initDb() {
       date DATE NOT NULL,
       location TEXT NOT NULL,
       distance TEXT NOT NULL,
+      category TEXT DEFAULT 'triathlon',
       entry_fee INTEGER DEFAULT 0,
       reg_url TEXT DEFAULT '',
       capacity INTEGER DEFAULT 0,
@@ -236,6 +237,9 @@ async function initDb() {
 
   // Add photos column to notices
   await pool.query(`ALTER TABLE notices ADD COLUMN IF NOT EXISTS photos TEXT DEFAULT '[]'`);
+
+  // Add category column to races (triathlon | swim | bike | run)
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'triathlon'`);
 
   // 승인 시스템 폐지: 과거에 'pending'으로 남아있던 기록들을 일괄 승인 처리.
   // 신규 INSERT는 'approved'로 들어오므로 이건 한 번만 의미가 있다.

@@ -12,11 +12,21 @@ const DISTANCES = [
 
 const DIST_MAP = Object.fromEntries(DISTANCES.map(d => [d.key, d]))
 
-const empty = { name: '', date: '', location: '', distance: 'olympic', entry_fee: '', reg_url: '', capacity: '', reg_start: '', reg_end: '' }
+const CATEGORIES = [
+  { key: 'triathlon', label: '철인3종', icon: '🏅', color: '#0EA5E9' },
+  { key: 'swim',      label: '수영',    icon: '🏊', color: '#06B6D4' },
+  { key: 'bike',      label: '자전거',  icon: '🚴', color: '#F59E0B' },
+  { key: 'run',       label: '달리기',  icon: '🏃', color: '#EF4444' },
+]
+
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.key, c]))
+
+const empty = { name: '', date: '', location: '', distance: 'olympic', category: 'triathlon', entry_fee: '', reg_url: '', capacity: '', reg_start: '', reg_end: '' }
 
 function raceToForm(r) {
   return {
     name: r.name, date: r.date, location: r.location, distance: r.distance,
+    category: r.category || 'triathlon',
     entry_fee: r.entry_fee || '', reg_url: r.reg_url || '',
     capacity: r.capacity || '', reg_start: r.reg_start || '', reg_end: r.reg_end || '',
   }
@@ -27,6 +37,7 @@ export default function RacePage() {
   const [races, setRaces] = useState([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('list') // list | calendar
+  const [catFilter, setCatFilter] = useState('all') // all | triathlon | swim | bike | run
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null) // null = 신규, id = 수정
   const [form, setForm] = useState(empty)
@@ -72,8 +83,9 @@ export default function RacePage() {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const upcoming = races.filter(r => r.date >= today)
-  const past     = races.filter(r => r.date < today)
+  const visible  = catFilter === 'all' ? races : races.filter(r => (r.category || 'triathlon') === catFilter)
+  const upcoming = visible.filter(r => r.date >= today)
+  const past     = visible.filter(r => r.date < today)
 
   return (
     <div>
@@ -110,6 +122,22 @@ export default function RacePage() {
         </div>
       </div>
 
+      {/* 카테고리 필터 탭 */}
+      <div style={{ display: 'flex', gap: 6, padding: '10px 12px', overflowX: 'auto', borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+        {[{ key: 'all', label: '전체', icon: '🏁', color: C.accent }, ...CATEGORIES].map(c => {
+          const active = catFilter === c.key
+          return (
+            <button key={c.key} onClick={() => setCatFilter(c.key)} style={{
+              flexShrink: 0, padding: '7px 14px', borderRadius: 100, cursor: 'pointer',
+              border: active ? `1.5px solid ${c.color}` : `1.5px solid ${C.border}`,
+              background: active ? c.color + '20' : C.surfaceAlt,
+              color: active ? c.color : C.text2,
+              fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+            }}>{c.icon} {c.label}</button>
+          )
+        })}
+      </div>
+
       {/* 등록 폼 */}
       {showForm && (
         <form onSubmit={handleSubmit} style={{ margin: '12px', background: C.surface, borderRadius: 18, padding: 18, border: `1px solid ${C.border}` }}>
@@ -127,6 +155,24 @@ export default function RacePage() {
               <input value={form.location} onChange={f('location')} placeholder="예: 해운대" required style={iSt} />
             </Field>
           </div>
+
+          <Field label="카테고리 *">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+              {CATEGORIES.map(c => (
+                <button key={c.key} type="button" onClick={() => setForm(p => ({ ...p, category: c.key }))} style={{
+                  padding: '10px 4px', border: 'none', borderRadius: 12, cursor: 'pointer',
+                  background: form.category === c.key ? c.color + '20' : C.surfaceAlt,
+                  outline: form.category === c.key ? `2px solid ${c.color}` : '2px solid transparent',
+                  color: form.category === c.key ? c.color : C.text2,
+                  fontSize: 12, fontWeight: 700,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                }}>
+                  <span style={{ fontSize: 16 }}>{c.icon}</span>
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
 
           <Field label="종목 *">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
@@ -184,14 +230,16 @@ export default function RacePage() {
       {/* 대회 목록 / 달력 */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
-      ) : races.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🏁</div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>등록된 대회가 없습니다</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>
+            {catFilter === 'all' ? '등록된 대회가 없습니다' : `${CAT_MAP[catFilter]?.label} 대회가 없습니다`}
+          </div>
           {user?.role === 'admin' && <div style={{ fontSize: 12, marginTop: 6, color: C.text3 }}>위 버튼으로 대회를 등록해보세요.</div>}
         </div>
       ) : viewMode === 'calendar' ? (
-        <CalendarView races={races} isAdmin={user?.role === 'admin'} onEdit={openEdit} onDelete={handleDelete} />
+        <CalendarView races={visible} isAdmin={user?.role === 'admin'} onEdit={openEdit} onDelete={handleDelete} />
       ) : (
         <div style={{ padding: '10px 12px' }}>
           {upcoming.length > 0 && (
@@ -325,6 +373,7 @@ function CalendarView({ races, isAdmin, onEdit, onDelete }) {
 
 function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
   const dist = DIST_MAP[r.distance] || { label: r.distance, color: C.accent, sub: '' }
+  const cat = CAT_MAP[r.category || 'triathlon'] || CAT_MAP.triathlon
   const regOpen = r.reg_start && r.reg_end
     ? `${r.reg_start} ~ ${r.reg_end}`
     : r.reg_start ? `${r.reg_start}부터`
@@ -348,6 +397,12 @@ function RaceCard({ race: r, isAdmin, onEdit, onDelete, isPast }) {
             background: dist.color + '20', color: dist.color,
           }}>{dist.label}</span>
           <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <span style={{
+                fontSize: 10, fontWeight: 700, borderRadius: 6, padding: '2px 7px',
+                background: cat.color + '18', color: cat.color,
+              }}>{cat.icon} {cat.label}</span>
+            </div>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, lineHeight: 1.3 }}>{r.name}</div>
             <div style={{ fontSize: 10, color: dist.color, marginTop: 2 }}>{dist.sub}</div>
           </div>

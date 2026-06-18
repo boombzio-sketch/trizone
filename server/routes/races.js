@@ -15,14 +15,14 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // 대회 등록 (admin)
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
-  const { name, date, location, distance, entry_fee, reg_url, capacity, reg_start, reg_end } = req.body;
+  const { name, date, location, distance, category, entry_fee, reg_url, capacity, reg_start, reg_end } = req.body;
   if (!name || !date || !location || !distance)
     return res.status(400).json({ error: '대회명, 날짜, 장소, 종목은 필수입니다.' });
 
   const result = await prepare(`
-    INSERT INTO races (name, date, location, distance, entry_fee, reg_url, capacity, reg_start, reg_end, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(name, date, location, distance, entry_fee || 0, reg_url || '', capacity || 0, reg_start || null, reg_end || null, req.user.id);
+    INSERT INTO races (name, date, location, distance, category, entry_fee, reg_url, capacity, reg_start, reg_end, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(name, date, location, distance, category || 'triathlon', entry_fee || 0, reg_url || '', capacity || 0, reg_start || null, reg_end || null, req.user.id);
 
   const row = await prepare('SELECT * FROM races WHERE id = ?').get(result.lastInsertRowid);
   res.json(row);
@@ -30,7 +30,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 
 // 대회 수정 (admin)
 router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  const { name, date, location, distance, entry_fee, reg_url, capacity, reg_start, reg_end } = req.body;
+  const { name, date, location, distance, category, entry_fee, reg_url, capacity, reg_start, reg_end } = req.body;
   if (!name || !date || !location || !distance)
     return res.status(400).json({ error: '대회명, 날짜, 장소, 종목은 필수입니다.' });
 
@@ -39,9 +39,9 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   if (!row) return res.status(404).json({ error: '대회를 찾을 수 없습니다.' });
 
   await prepare(`
-    UPDATE races SET name=?, date=?, location=?, distance=?, entry_fee=?, reg_url=?, capacity=?, reg_start=?, reg_end=?
+    UPDATE races SET name=?, date=?, location=?, distance=?, category=?, entry_fee=?, reg_url=?, capacity=?, reg_start=?, reg_end=?
     WHERE id=?
-  `).run(name, date, location, distance, entry_fee || 0, reg_url || '', capacity || 0, reg_start || null, reg_end || null, id);
+  `).run(name, date, location, distance, category || 'triathlon', entry_fee || 0, reg_url || '', capacity || 0, reg_start || null, reg_end || null, id);
 
   res.json(await prepare('SELECT * FROM races WHERE id = ?').get(id));
 });
