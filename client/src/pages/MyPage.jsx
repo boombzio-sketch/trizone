@@ -28,6 +28,21 @@ export default function MyPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
   const [cropUrl, setCropUrl] = useState(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteAck, setDeleteAck] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function handleDeleteAccount() {
+    setDeleting(true); setDeleteError('')
+    try {
+      await api.deleteAccount()
+      logout() // 토큰/캐시 제거 → 로그인 화면으로 이동
+    } catch (e) {
+      setDeleteError(e.message)
+      setDeleting(false)
+    }
+  }
 
   function openEdit() {
     setEditForm({ nickname: user?.nickname || '', email: user?.email || '', password: '', avatar_color: user?.avatar_color || '#4DB8FF', avatar_image: user?.avatar_image || '' })
@@ -229,6 +244,51 @@ export default function MyPage() {
           )
         })}
       </>)}
+
+      {/* 회원 탈퇴 (위험 영역) */}
+      <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+        <button onClick={() => { setDeleteAck(false); setDeleteError(''); setDeleteOpen(true) }}
+          style={{ width: '100%', padding: '12px', background: 'transparent', border: `1px solid ${C.errorBorder}`, borderRadius: 12, color: C.error, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          회원 탈퇴
+        </button>
+        <div style={{ fontSize: 11, color: C.text3, textAlign: 'center', marginTop: 8 }}>
+          탈퇴 시 계정과 모든 데이터가 영구 삭제되며 복구할 수 없습니다.
+        </div>
+      </div>
+
+      {/* 회원 탈퇴 확인 모달 */}
+      {deleteOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 360, border: `1px solid ${C.errorBorder}` }}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: C.error, marginBottom: 12 }}>⚠️ 정말 탈퇴하시겠어요?</div>
+            <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.6, marginBottom: 14 }}>
+              탈퇴하면 아래 데이터가 <strong style={{ color: C.text }}>모두 영구 삭제</strong>되며, <strong style={{ color: C.error }}>되돌릴 수 없습니다.</strong>
+            </div>
+            <ul style={{ margin: '0 0 16px', padding: '0 0 0 18px', fontSize: 12, color: C.text2, lineHeight: 1.8 }}>
+              <li>프로필 · 계정 정보</li>
+              <li>운동 기록 및 사진</li>
+              <li>포인트 · 적립 내역</li>
+              <li>클럽 멤버십 · 팔로우 · 좋아요 · 댓글</li>
+            </ul>
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16, cursor: 'pointer' }}>
+              <input type="checkbox" checked={deleteAck} onChange={e => setDeleteAck(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, accentColor: C.error, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>위 내용을 확인했으며, 되돌릴 수 없음을 이해합니다.</span>
+            </label>
+
+            {deleteError && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 13, color: C.error }}>{deleteError}</div>}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setDeleteOpen(false)} disabled={deleting}
+                style={{ flex: 1, padding: '12px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+              <button onClick={handleDeleteAccount} disabled={!deleteAck || deleting}
+                style={{ flex: 1, padding: '12px', background: (!deleteAck || deleting) ? C.surfaceHigh : C.error, border: 'none', borderRadius: 12, color: (!deleteAck || deleting) ? C.text2 : '#fff', fontSize: 14, fontWeight: 800, cursor: (!deleteAck || deleting) ? 'default' : 'pointer' }}>
+                {deleting ? '삭제 중...' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cropUrl && (
         <AvatarCropModal

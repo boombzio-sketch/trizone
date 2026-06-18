@@ -29,6 +29,21 @@ export default function MyScreen() {
   const [selectedThread, setSelectedThread] = useState(null)
   const [followersModal, setFollowersModal] = useState(null)
   const [followingModal, setFollowingModal] = useState(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteAck, setDeleteAck] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function handleDeleteAccount() {
+    setDeleting(true); setDeleteError('')
+    try {
+      await api.deleteAccount()
+      await logout() // 토큰/캐시 제거 → 로그인 화면으로 이동
+    } catch (e) {
+      setDeleteError(e.message || '탈퇴 처리 중 오류가 발생했습니다.')
+      setDeleting(false)
+    }
+  }
 
   useEffect(() => {
     if (!user?.id) return
@@ -238,8 +253,52 @@ export default function MyScreen() {
             ))
           }
         </View>
+
+        {/* 회원 탈퇴 (위험 영역) */}
+        <View style={s.dangerZone}>
+          <TouchableOpacity onPress={() => { setDeleteAck(false); setDeleteError(''); setDeleteOpen(true) }} style={s.deleteBtn}>
+            <Text style={s.deleteBtnText}>회원 탈퇴</Text>
+          </TouchableOpacity>
+          <Text style={s.dangerHint}>탈퇴 시 계정과 모든 데이터가 영구 삭제되며 복구할 수 없습니다.</Text>
+        </View>
+
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* 회원 탈퇴 확인 모달 */}
+      <Modal visible={deleteOpen} transparent animationType="fade">
+        <View style={s.modalOverlay}>
+          <View style={[s.modalBox, { borderColor: C.errorBorder }]}>
+            <Text style={s.deleteTitle}>⚠️ 정말 탈퇴하시겠어요?</Text>
+            <Text style={s.deleteDesc}>탈퇴하면 아래 데이터가 모두 영구 삭제되며, 되돌릴 수 없습니다.</Text>
+            <View style={{ marginBottom: 14 }}>
+              <Text style={s.deleteItem}>• 프로필 · 계정 정보</Text>
+              <Text style={s.deleteItem}>• 운동 기록 및 사진</Text>
+              <Text style={s.deleteItem}>• 포인트 · 적립 내역</Text>
+              <Text style={s.deleteItem}>• 클럽 멤버십 · 팔로우 · 좋아요 · 댓글</Text>
+            </View>
+
+            <TouchableOpacity onPress={() => setDeleteAck(a => !a)} style={s.ackRow} activeOpacity={0.7}>
+              <View style={[s.checkbox, deleteAck && s.checkboxOn]}>
+                {deleteAck && <Text style={s.checkboxMark}>✓</Text>}
+              </View>
+              <Text style={s.ackText}>위 내용을 확인했으며, 되돌릴 수 없음을 이해합니다.</Text>
+            </TouchableOpacity>
+
+            {deleteError ? <View style={s.errorBox}><Text style={s.errorText}>{deleteError}</Text></View> : null}
+
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+              <TouchableOpacity onPress={() => setDeleteOpen(false)} disabled={deleting} style={s.cancelBtn}>
+                <Text style={s.cancelBtnText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDeleteAccount} disabled={!deleteAck || deleting}
+                style={[s.confirmDeleteBtn, (!deleteAck || deleting) && { backgroundColor: C.surfaceHigh }]}>
+                {deleting ? <ActivityIndicator color="#fff" /> : <Text style={s.confirmDeleteText}>탈퇴하기</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* 프로필 편집 모달 */}
       <Modal visible={editOpen} transparent animationType="slide">
@@ -451,6 +510,21 @@ const s = StyleSheet.create({
   cancelBtnText: { color: C.text2, fontSize: 14, fontWeight: '700' },
   saveBtn: { flex: 2, paddingVertical: 11, backgroundColor: C.accent, borderRadius: 12, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  dangerZone: { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: C.border },
+  deleteBtn: { paddingVertical: 12, borderWidth: 1, borderColor: C.errorBorder, borderRadius: 12, alignItems: 'center' },
+  deleteBtnText: { color: C.error, fontSize: 13, fontWeight: '700' },
+  dangerHint: { fontSize: 11, color: C.text2, textAlign: 'center', marginTop: 8 },
+  deleteTitle: { fontSize: 17, fontWeight: '900', color: C.error, marginBottom: 12 },
+  deleteDesc: { fontSize: 13, color: C.text2, lineHeight: 20, marginBottom: 14 },
+  deleteItem: { fontSize: 12, color: C.text2, lineHeight: 22 },
+  ackRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkboxOn: { backgroundColor: C.error, borderColor: C.error },
+  checkboxMark: { color: '#fff', fontSize: 13, fontWeight: '900' },
+  ackText: { flex: 1, fontSize: 12, color: C.text, lineHeight: 18 },
+  confirmDeleteBtn: { flex: 1, paddingVertical: 12, backgroundColor: C.error, borderRadius: 12, alignItems: 'center' },
+  confirmDeleteText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
   threadMsg: { backgroundColor: C.surfaceAlt, borderRadius: 12, padding: 12, marginBottom: 12 },
   threadReply: { backgroundColor: C.accent + '10', borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 12, marginBottom: 8, marginLeft: 12 },

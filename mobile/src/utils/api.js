@@ -78,6 +78,7 @@ export const api = {
   login:         (body) => request('/auth/login', { method: 'POST', body }),
   me:            ()     => request('/auth/me'),
   updateProfile: (body) => request('/users/me', { method: 'PUT', body }),
+  deleteAccount: ()     => request('/users/me', { method: 'DELETE' }),
 
   // 훈련 기록
   getWorkouts:  (params = '') => request(`/workouts?${params}`),

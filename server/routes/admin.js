@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { prepare } = require('../db');
 const { MONTHLY_CAP } = require('../points');
 const { authMiddleware, adminMiddleware, canApproveMiddleware } = require('../middleware');
+const { deleteUserCascade } = require('../userDelete');
 
 const adminOnly   = [authMiddleware, adminMiddleware];
 // 기록 수정 권한자(can_approve) 또는 관리자. 과거 '훈련 승인' 권한을 기록 수정 권한으로 재활용.
@@ -78,15 +79,7 @@ router.delete('/members/:id', ...adminOnly, async (req, res) => {
   const user = await prepare('SELECT id FROM users WHERE id = ?').get(uid);
   if (!user) return res.status(404).json({ error: '존재하지 않는 회원입니다.' });
 
-  await prepare('DELETE FROM workout_logs WHERE user_id = ?').run(uid);
-  await prepare('DELETE FROM follows WHERE follower_id = ? OR following_id = ?').run(uid, uid);
-  await prepare('DELETE FROM likes WHERE user_id = ?').run(uid);
-  await prepare('DELETE FROM comments WHERE user_id = ?').run(uid);
-  await prepare('DELETE FROM club_memberships WHERE user_id = ?').run(uid);
-  await prepare('DELETE FROM club_leader_applications WHERE user_id = ?').run(uid);
-  await prepare('DELETE FROM club_training_participants WHERE user_id = ?').run(uid);
-  await prepare('DELETE FROM point_transactions WHERE user_id = ?').run(uid);
-  await prepare('DELETE FROM users WHERE id = ?').run(uid);
+  await deleteUserCascade(uid);
 
   const check = await prepare('SELECT id FROM users WHERE id = ?').get(uid);
   if (check) return res.status(500).json({ error: '삭제에 실패했습니다.' });

@@ -2,7 +2,22 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const { prepare } = require('../db');
 const { authMiddleware } = require('../middleware');
+const { deleteUserCascade } = require('../userDelete');
 const db = { prepare };
+
+// 회원 탈퇴 (본인 계정 + 관련 데이터 전체 삭제). 되돌릴 수 없음.
+router.delete('/me', authMiddleware, async (req, res) => {
+  const uid = req.user.id;
+  try {
+    await deleteUserCascade(uid);
+    const check = await db.prepare('SELECT id FROM users WHERE id = ?').get(uid);
+    if (check) return res.status(500).json({ error: '탈퇴 처리에 실패했습니다.' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[account delete error]', e.message);
+    res.status(500).json({ error: '탈퇴 처리 중 오류가 발생했습니다.' });
+  }
+});
 
 // 내 프로필 수정
 router.put('/me', authMiddleware, async (req, res) => {

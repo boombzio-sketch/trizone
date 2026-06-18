@@ -26,6 +26,7 @@ export const api = {
   login: (body) => request('/auth/login', { method: 'POST', body }),
   me: () => request('/auth/me'),
   updateProfile: (body) => request('/users/me', { method: 'PUT', body }),
+  deleteAccount: () => request('/users/me', { method: 'DELETE' }),
   requestReset: (email) => request('/auth/request-reset', { method: 'POST', body: { email } }),
   resetPassword: (body) => request('/auth/reset-password', { method: 'POST', body }),
 
