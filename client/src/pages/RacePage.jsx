@@ -18,10 +18,10 @@ const DISTANCES_BY_CAT = {
     { key: 'swim_5000', label: '5km',   sub: '오픈워터 5km',   color: '#6366F1' },
   ],
   bike: [
-    { key: 'bike_50',   label: '50km',   sub: '단거리 50km',  color: '#FACC15' },
-    { key: 'bike_100',  label: '100km',  sub: '메디오 100km', color: '#F59E0B' },
-    { key: 'bike_gran', label: '그란폰도', sub: '120km+',      color: '#F97316' },
-    { key: 'bike_200',  label: '200km',  sub: '장거리 200km', color: '#EA580C' },
+    { key: 'bike_50',   label: '50km',   sub: '단축 코스',          color: '#FACC15' },
+    { key: 'bike_100',  label: '메디오',  sub: '메디오폰도 100km',   color: '#F59E0B' },
+    { key: 'bike_gran', label: '그란폰도', sub: '그란폰도 200km',     color: '#F97316' },
+    { key: 'bike_200',  label: '200km+', sub: '울트라 장거리',       color: '#EA580C' },
   ],
   run: [
     { key: 'run_5k',   label: '5km',   sub: '5km',       color: '#34D399' },
