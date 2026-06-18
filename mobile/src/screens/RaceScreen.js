@@ -7,13 +7,56 @@ import { useAuth } from '../hooks/useAuth'
 import { api } from '../utils/api'
 import { C } from '../utils/theme'
 
-const DISTANCES = [
-  { key: 'sprint',  label: 'Sprint',  sub: '750m / 20km / 5km',        color: '#22C55E' },
-  { key: 'olympic', label: 'Olympic', sub: '1.5km / 40km / 10km',       color: '#0EA5E9' },
-  { key: 'half',    label: 'Half',    sub: '1.9km / 90.1km / 21.1km',   color: '#F97316' },
-  { key: 'king',    label: 'King',    sub: '3.8km / 180.2km / 42.2km',  color: '#EF4444' },
+const CATEGORIES = [
+  { key: 'triathlon', label: '철인3종', icon: '🏅', color: '#0EA5E9' },
+  { key: 'swim',      label: '수영',    icon: '🏊', color: '#06B6D4' },
+  { key: 'bike',      label: '자전거',  icon: '🚴', color: '#F59E0B' },
+  { key: 'run',       label: '달리기',  icon: '🏃', color: '#EF4444' },
 ]
-const DIST_MAP = Object.fromEntries(DISTANCES.map(d => [d.key, d]))
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.key, c]))
+
+const DISTANCES_BY_CAT = {
+  triathlon: [
+    { key: 'sprint',  label: 'Sprint',  sub: '750m / 20km / 5km',        color: '#22C55E' },
+    { key: 'olympic', label: 'Olympic', sub: '1.5km / 40km / 10km',      color: '#0EA5E9' },
+    { key: 'half',    label: 'Half',    sub: '1.9km / 90.1km / 21.1km',  color: '#F97316' },
+    { key: 'king',    label: 'King',    sub: '3.8km / 180.2km / 42.2km', color: '#EF4444' },
+  ],
+  swim: [
+    { key: 'swim_750',  label: '750m',  sub: '오픈워터 750m',  color: '#22D3EE' },
+    { key: 'swim_1500', label: '1.5km', sub: '오픈워터 1.5km', color: '#06B6D4' },
+    { key: 'swim_3000', label: '3km',   sub: '오픈워터 3km',   color: '#0EA5E9' },
+    { key: 'swim_5000', label: '5km',   sub: '오픈워터 5km',   color: '#6366F1' },
+  ],
+  bike: [
+    { key: 'bike_50',   label: '50km',   sub: '단축 코스',        color: '#FACC15' },
+    { key: 'bike_100',  label: '메디오',  sub: '메디오폰도 100km', color: '#F59E0B' },
+    { key: 'bike_gran', label: '그란폰도', sub: '그란폰도 200km',   color: '#F97316' },
+    { key: 'bike_200',  label: '200km+', sub: '울트라 장거리',     color: '#EA580C' },
+  ],
+  run: [
+    { key: 'run_5k',   label: '5km',   sub: '5km',      color: '#34D399' },
+    { key: 'run_10k',  label: '10km',  sub: '10km',     color: '#22C55E' },
+    { key: 'run_half', label: '하프',  sub: '21.1km',   color: '#F97316' },
+    { key: 'run_full', label: '풀코스', sub: '42.195km', color: '#EF4444' },
+  ],
+}
+const DIST_MAP = Object.fromEntries(Object.values(DISTANCES_BY_CAT).flat().map(d => [d.key, d]))
+const DISTANCES = DISTANCES_BY_CAT.triathlon  // 등록 폼(종목 선택)용 — 기존 동작 유지
+const ETC_COLOR = '#94A3B8'
+
+// distance는 이제 JSON 배열 문자열(복수 종목 + 기타). 과거 단일 문자열도 호환 파싱.
+function parseDistances(distance) {
+  if (Array.isArray(distance)) return distance
+  if (distance == null || distance === '') return []
+  try {
+    const v = JSON.parse(distance)
+    if (Array.isArray(v)) return v.map(String)
+    return [String(v)]
+  } catch {
+    return [String(distance)]
+  }
+}
 
 const EMPTY = { name: '', date: '', location: '', distance: 'olympic', entry_fee: '', reg_url: '', capacity: '', reg_start: '', reg_end: '' }
 
@@ -199,36 +242,40 @@ export default function RaceScreen() {
 }
 
 function RaceCard({ race: r, isAdmin, today, isPast, onEdit, onDelete }) {
-  const dist = DIST_MAP[r.distance] || { label: r.distance, color: C.accent, sub: '' }
+  const cat = CAT_MAP[r.category || 'triathlon'] || CAT_MAP.triathlon
+  const dists = parseDistances(r.distance).map(k => DIST_MAP[k] || { label: k, color: ETC_COLOR, sub: '' })
+  const accent = isPast ? C.text3 : cat.color
   const dDay = Math.ceil((new Date(r.date) - new Date(today)) / 86400000)
-  const regOpen = r.reg_start && r.reg_end
-    ? today >= r.reg_start && today <= r.reg_end
-    : false
 
   return (
-    <View style={[s.card, { borderLeftColor: dist.color }, isPast && { opacity: 0.55 }]}>
+    <View style={[s.card, { borderLeftColor: accent }, isPast && { opacity: 0.55 }]}>
       <View style={s.cardBody}>
-        {/* 상단 */}
-        <View style={s.cardTop}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.cardName}>{r.name}</Text>
-            <Text style={s.cardMeta}>📅 {r.date}</Text>
-            <Text style={s.cardMeta}>📍 {r.location}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end', gap: 4 }}>
-            <View style={[s.distBadge, { backgroundColor: dist.color + '20', borderColor: dist.color + '60' }]}>
-              <Text style={[s.distBadgeText, { color: dist.color }]}>{dist.label}</Text>
+        {/* 배지 행: 카테고리 + 종목(복수) / 우측 D-Day — 웹과 동일하게 윗줄에 배지 */}
+        <View style={s.badgeRow}>
+          <View style={s.badgeWrap}>
+            <View style={[s.catBadge, { backgroundColor: cat.color + '18' }]}>
+              <Text style={[s.catBadgeText, { color: cat.color }]}>{cat.icon} {cat.label}</Text>
             </View>
-            {!isPast && (
-              <Text style={[s.dDay, { color: dDay <= 30 ? '#EF4444' : C.text2 }]}>
-                {dDay === 0 ? 'D-Day' : dDay > 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`}
-              </Text>
-            )}
+            {dists.map((d, i) => (
+              <View key={i} style={[s.distBadge, { backgroundColor: d.color + '20', borderColor: d.color + '60' }]}>
+                <Text style={[s.distBadgeText, { color: d.color }]}>{d.label}</Text>
+              </View>
+            ))}
           </View>
+          {!isPast && (
+            <Text style={[s.dDay, { color: dDay <= 30 ? '#EF4444' : C.text2 }]}>
+              {dDay === 0 ? 'D-Day' : dDay > 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`}
+            </Text>
+          )}
         </View>
 
-        {/* 거리 정보 */}
-        <Text style={s.distInfo}>{dist.sub}</Text>
+        {/* 대회명 — 배지 다음 줄, 전체 너비 */}
+        <Text style={s.cardName}>{r.name}</Text>
+        <Text style={s.cardMeta}>📅 {r.date}</Text>
+        <Text style={s.cardMeta}>📍 {r.location}</Text>
+
+        {/* 단일 종목이면 상세 거리 표시 */}
+        {dists.length === 1 && dists[0].sub ? <Text style={s.distInfo}>{dists[0].sub}</Text> : null}
 
         {/* 하단 정보 - 2열 그리드 */}
         {(r.entry_fee > 0 || r.capacity > 0 || r.reg_start) && (
@@ -258,8 +305,8 @@ function RaceCard({ race: r, isAdmin, today, isPast, onEdit, onDelete }) {
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, alignItems: 'center' }}>
           {r.reg_url ? (
             <TouchableOpacity onPress={() => Linking.openURL(r.reg_url)}
-              style={[s.regBtn, { flex: 1, backgroundColor: dist.color + '20', borderWidth: 1, borderColor: dist.color + '60', alignItems: 'center' }]}>
-              <Text style={[s.regBtnText, { color: dist.color }]}>신청하기</Text>
+              style={[s.regBtn, { flex: 1, backgroundColor: accent + '20', borderWidth: 1, borderColor: accent + '60', alignItems: 'center' }]}>
+              <Text style={[s.regBtnText, { color: accent }]}>신청하기</Text>
             </TouchableOpacity>
           ) : null}
           {isAdmin && (
@@ -345,11 +392,13 @@ function RaceCalendar({ races, isAdmin, onEdit, onDelete }) {
                 !isSel && !isToday && dow===6 && { color:C.accent },
               ]}>{day}</Text>
               {dayRaces.slice(0,2).map(r => {
-                const dc = DIST_MAP[r.distance]?.color || C.accent
+                const first = parseDistances(r.distance)[0]
+                const dm = DIST_MAP[first]
+                const dc = dm?.color || CAT_MAP[r.category]?.color || C.accent
                 return (
                   <View key={r.id} style={[cal.raceDot, { backgroundColor: dc+'30' }]}>
                     <Text style={[cal.raceDotText, { color: dc }]} numberOfLines={1}>
-                      {DIST_MAP[r.distance]?.label}
+                      {dm?.label || first || ''}
                     </Text>
                   </View>
                 )
@@ -433,12 +482,16 @@ const s = StyleSheet.create({
   card: { marginHorizontal: 12, marginBottom: 10, backgroundColor: C.surface, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.border, borderLeftWidth: 4 },
   cardBody: { paddingTop: 12, paddingRight: 12, paddingBottom: 12, paddingLeft: 8 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 6 },
+  badgeRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 },
+  badgeWrap: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  catBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  catBadgeText: { fontSize: 11, fontWeight: '700' },
   cardName: { fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 4 },
   cardMeta: { fontSize: 14, color: C.text2, marginTop: 2 },
   distBadge: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   distBadgeText: { fontSize: 13, fontWeight: '700' },
   dDay: { fontSize: 14, fontWeight: '800' },
-  distInfo: { fontSize: 13, color: C.text2, marginBottom: 8 },
+  distInfo: { fontSize: 13, color: C.text2, marginTop: 6, marginBottom: 8 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   cardInfo: { fontSize: 13, color: C.text2 },
   infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8, backgroundColor: C.surfaceAlt, borderRadius: 10, padding: 10 },
