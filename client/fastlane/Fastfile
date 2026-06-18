@@ -17,15 +17,18 @@ platform :ios do
 
     setup_ci if ENV["CI"]
 
-    keychain_path = File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db")
     keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
 
-    cert(
-      api_key: api_key,
-      keychain_path: keychain_path,
-      keychain_password: keychain_password,
-      output_path: "./fastlane/certs",
-      force: false
+    # 배포 인증서(.p12)를 CI 키체인에 가져온다.
+    # fastlane `cert`로 매번 새 인증서를 만들면 Apple의 배포 인증서 개수 한도에 부딪혀
+    # "Could not create another Distribution certificate" 로 실패한다.
+    # 따라서 미리 내보낸 .p12를 GitHub Secret(BUILD_CERTIFICATE_BASE64 / P12_PASSWORD)으로
+    # 주입해 동일 인증서를 재사용한다. (워크플로의 "Import signing certificate" 스텝 참고)
+    import_certificate(
+      certificate_path: ENV.fetch("CERTIFICATE_PATH"),
+      certificate_password: ENV["P12_PASSWORD"] || "",
+      keychain_name: "fastlane_tmp_keychain",
+      keychain_password: keychain_password
     )
 
     sigh(
