@@ -39,10 +39,12 @@ async function deleteUserCascade(uid) {
   await prepare('DELETE FROM comments WHERE workout_id IN (SELECT id FROM workout_logs WHERE user_id = ?)').run(uid);
   await prepare('DELETE FROM workout_logs WHERE user_id = ?').run(uid);
 
-  // 4) 이 회원이 남긴 좋아요/댓글/팔로우
+  // 4) 이 회원이 남긴 좋아요/댓글/팔로우/차단/신고
   await prepare('DELETE FROM likes WHERE user_id = ?').run(uid);
   await prepare('DELETE FROM comments WHERE user_id = ?').run(uid);
   await prepare('DELETE FROM follows WHERE follower_id = ? OR following_id = ?').run(uid, uid);
+  await prepare('DELETE FROM blocks WHERE blocker_id = ? OR blocked_id = ?').run(uid, uid);
+  await prepare('DELETE FROM reports WHERE reporter_id = ?').run(uid);
 
   // 5) 클럽 멤버십 / 클럽장 신청 / 훈련 참가
   await prepare('DELETE FROM club_memberships WHERE user_id = ?').run(uid);
