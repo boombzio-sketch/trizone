@@ -23,6 +23,12 @@ async function request(path, options = {}) {
 export const api = {
   // 인증
   register: (body) => request('/auth/register', { method: 'POST', body }),
+  reportContent: (body) => request('/social/reports', { method: 'POST', body }),
+  blockUser: (id) => request(`/social/blocks/${id}`, { method: 'POST' }),
+  unblockUser: (id) => request(`/social/blocks/${id}`, { method: 'DELETE' }),
+  getBlockedUsers: () => request('/social/blocks'),
+  getAdminReports: () => request('/admin/reports'),
+  resolveReport: (id, body) => request(`/admin/reports/${id}`, { method: 'PUT', body }),
   login: (body) => request('/auth/login', { method: 'POST', body }),
   me: () => request('/auth/me'),
   updateProfile: (body) => request('/users/me', { method: 'PUT', body }),

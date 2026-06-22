@@ -205,6 +205,26 @@ async function initDb() {
       period_end DATE DEFAULT NULL,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
+    -- 사용자 차단: blocker가 blocked의 콘텐츠를 보지 않도록
+    CREATE TABLE IF NOT EXISTS blocks (
+      id SERIAL PRIMARY KEY,
+      blocker_id INTEGER NOT NULL,
+      blocked_id INTEGER NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(blocker_id, blocked_id)
+    );
+    -- 콘텐츠/사용자 신고
+    CREATE TABLE IF NOT EXISTS reports (
+      id SERIAL PRIMARY KEY,
+      reporter_id INTEGER NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id INTEGER NOT NULL,
+      reason TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending',
+      resolved_by INTEGER DEFAULT NULL,
+      resolved_at TIMESTAMPTZ DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // 포인트 설정 단일 행 시드
@@ -231,6 +251,8 @@ async function initDb() {
   // Add password reset columns
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT DEFAULT NULL`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ DEFAULT NULL`);
+  // 이용약관(UGC 무관용 정책 포함) 동의 시각
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_agreed_at TIMESTAMPTZ DEFAULT NULL`);
 
   // Add club_role column to club_memberships (member | sub_leader)
   await pool.query(`ALTER TABLE club_memberships ADD COLUMN IF NOT EXISTS club_role TEXT DEFAULT 'member'`);
@@ -277,6 +299,9 @@ async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_point_tx_user              ON point_transactions(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_point_tx_auto_dedupe       ON point_transactions(user_id, type, sport_type, earned_date);
     CREATE INDEX IF NOT EXISTS idx_point_tx_workout           ON point_transactions(workout_id);
+    CREATE INDEX IF NOT EXISTS idx_blocks_blocker             ON blocks(blocker_id);
+    CREATE INDEX IF NOT EXISTS idx_blocks_blocked             ON blocks(blocked_id);
+    CREATE INDEX IF NOT EXISTS idx_reports_status             ON reports(status, created_at DESC);
   `);
 
   const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM users');

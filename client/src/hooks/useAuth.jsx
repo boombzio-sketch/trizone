@@ -74,8 +74,8 @@ export function AuthProvider({ children }) {
     return data.user
   }
 
-  async function register(email, nickname, password) {
-    const data = await api.register({ email, nickname, password })
+  async function register(email, nickname, password, termsAgreed) {
+    const data = await api.register({ email, nickname, password, termsAgreed })
     setToken(data.token)
     setCachedUser(data.user)
     setUser(data.user)

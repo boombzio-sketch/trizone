@@ -15,6 +15,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [resetStep, setResetStep] = useState('request') // 'request' | 'confirm'
   const [resetDone, setResetDone] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
   const { login, register } = useAuth()
   const navigate = useNavigate()
 
@@ -25,10 +27,11 @@ export default function LoginPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (mode === 'register' && !termsAgreed) { setError('이용약관에 동의해주세요.'); return }
     setError(''); setLoading(true)
     try {
       if (mode === 'login') await login(email, password)
-      else await register(email, nickname, password)
+      else await register(email, nickname, password, termsAgreed)
       navigate('/')
     } catch (err) {
       setError(err.message)
@@ -185,6 +188,16 @@ export default function LoginPage() {
                 />
               </div>
 
+              {mode === 'register' && (
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 18, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)}
+                    style={{ marginTop: 2, width: 16, height: 16, accentColor: C.accent, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: C.text2, lineHeight: 1.5 }}>
+                    <button type="button" onClick={() => setShowTerms(true)} style={{ background: 'none', border: 'none', padding: 0, color: C.accent, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>이용약관 및 커뮤니티 가이드라인</button>에 동의합니다.
+                  </span>
+                </label>
+              )}
+
               {error && (
                 <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: C.error }}>{error}</div>
               )}
@@ -207,24 +220,38 @@ export default function LoginPage() {
             </form>
           </>
         )}
+      </div>
 
-        {/* 카카오톡 문의 */}
-        <a
-          href="https://open.kakao.com/o/s1Hv4rvi"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            marginTop: 32, padding: '12px 20px',
-            background: '#FEE500', borderRadius: 12, border: 'none',
-            textDecoration: 'none', cursor: 'pointer',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path fillRule="evenodd" clipRule="evenodd" d="M10 2C5.582 2 2 4.91 2 8.5c0 2.28 1.376 4.285 3.46 5.493l-.88 3.25a.25.25 0 0 0 .373.277L9.1 15.18A9.7 9.7 0 0 0 10 15.25c4.418 0 8-2.91 8-6.5S14.418 2 10 2z" fill="#3A1D1D"/>
-          </svg>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#3A1D1D' }}>카카오톡으로 문의하기</span>
-        </a>
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+    </div>
+  )
+}
+
+function TermsModal({ onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 400, maxHeight: '80vh', overflowY: 'auto', border: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 14 }}>이용약관 및 커뮤니티 가이드라인</div>
+        <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.7 }}>
+          <p><strong style={{ color: C.text }}>1. 콘텐츠 책임</strong><br />
+          회원이 게시하는 운동기록, 사진, 댓글 등 모든 콘텐츠에 대한 책임은 작성자 본인에게 있습니다.</p>
+          <p><strong style={{ color: C.text }}>2. 금지 행위 (무관용 정책)</strong><br />
+          아래 행위는 적발 즉시 콘텐츠 삭제 및 계정 정지·삭제 조치됩니다.</p>
+          <ul style={{ paddingLeft: 18, margin: '0 0 12px' }}>
+            <li>음란물, 폭력적이거나 혐오스러운 콘텐츠</li>
+            <li>특정 인물·집단에 대한 비방, 욕설, 괴롭힘</li>
+            <li>불법 행위를 조장하거나 타인에게 해를 끼치는 콘텐츠</li>
+            <li>스팸, 광고, 사기성 게시물</li>
+            <li>타인을 사칭하거나 사생활을 침해하는 행위</li>
+          </ul>
+          <p><strong style={{ color: C.text }}>3. 신고 및 차단</strong><br />
+          부적절한 콘텐츠나 사용자는 신고할 수 있으며, 신고된 콘텐츠는 운영자가 확인 후 삭제 등 조치합니다. 특정 사용자를 차단하면 해당 사용자의 콘텐츠가 더 이상 노출되지 않습니다.</p>
+          <p><strong style={{ color: C.text }}>4. 운영자 권한</strong><br />
+          운영자는 신고 접수 또는 자체 모니터링을 통해 가이드라인 위반 콘텐츠를 사전 통지 없이 삭제할 수 있으며, 반복 위반 시 계정을 정지 또는 삭제할 수 있습니다.</p>
+        </div>
+        <button onClick={onClose} style={{ width: '100%', marginTop: 16, padding: '12px', background: C.accent, border: 'none', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+          확인
+        </button>
       </div>
     </div>
   )

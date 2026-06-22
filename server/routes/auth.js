@@ -9,10 +9,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // 회원가입
 router.post('/register', async (req, res) => {
-  const { email, nickname, password } = req.body;
+  const { email, nickname, password, termsAgreed } = req.body;
 
   if (!email || !nickname || !password)
     return res.status(400).json({ error: '이메일, 닉네임, 비밀번호를 모두 입력하세요.' });
+  if (!termsAgreed)
+    return res.status(400).json({ error: '이용약관에 동의해야 가입할 수 있습니다.' });
   if (!EMAIL_RE.test(email))
     return res.status(400).json({ error: '올바른 이메일 형식이 아닙니다.' });
   if (password.length < 4)
@@ -34,7 +36,7 @@ router.post('/register', async (req, res) => {
   const finalRole = userCount.cnt === 0 ? 'admin' : 'member';
 
   const result = await db.prepare(
-    'INSERT INTO users (email, nickname, password_hash, role, avatar_color) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO users (email, nickname, password_hash, role, avatar_color, terms_agreed_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
   ).run(email.toLowerCase(), nickname, hash, finalRole, color);
 
   const user = { id: result.lastInsertRowid, email: email.toLowerCase(), nickname, role: finalRole, avatar_color: color };

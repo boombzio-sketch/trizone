@@ -68,6 +68,8 @@ export default function MyPage() {
   const [showFollowing, setShowFollowing] = useState(false)
   const [followerList, setFollowerList] = useState([])
   const [followingList, setFollowingList] = useState([])
+  const [showBlocked, setShowBlocked] = useState(false)
+  const [blockedList, setBlockedList] = useState([])
 
   useEffect(() => {
     if (user?.id) {
@@ -89,6 +91,14 @@ export default function MyPage() {
     else await req('/social/follow/' + targetId, { method: 'POST' })
     setFollowingList(prev => prev.map(u => u.id === targetId ? { ...u, i_follow: isFollowing ? 0 : 1 } : u))
     setFollowerList(prev => prev.map(u => u.id === targetId ? { ...u, i_follow: isFollowing ? 0 : 1 } : u))
+  }
+  async function openBlocked() {
+    setBlockedList(await api.getBlockedUsers())
+    setShowBlocked(true)
+  }
+  async function unblock(targetId) {
+    await api.unblockUser(targetId)
+    setBlockedList(prev => prev.filter(u => u.id !== targetId))
   }
 
   const stats = profile?.stats || []
@@ -222,6 +232,11 @@ export default function MyPage() {
       {/* 포인트 */}
       <PointsCard points={points} />
 
+      {/* 차단 관리 */}
+      <button onClick={openBlocked} style={{ width: '100%', padding: '12px 14px', marginBottom: 12, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, color: C.text2, fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
+        🚫 차단한 사용자 관리
+      </button>
+
       {/* 최근 훈련 */}
       {profile?.recentWorkouts?.length > 0 && (<>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>최근 훈련</div>
@@ -302,6 +317,32 @@ export default function MyPage() {
       )}
       {showFollowers && <FollowModal title="팔로워" list={followerList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowers(false)} />}
       {showFollowing && <FollowModal title="팔로잉" list={followingList} myId={user?.id} onToggle={toggleFollow} onClose={() => setShowFollowing(false)} />}
+      {showBlocked && <BlockedModal list={blockedList} onUnblock={unblock} onClose={() => setShowBlocked(false)} />}
+    </div>
+  )
+}
+
+function BlockedModal({ list, onUnblock, onClose }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+      <div style={{ background: C.surface, borderRadius: '22px 22px 0 0', width: '100%', maxHeight: '70vh', overflow: 'auto', border: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>차단한 사용자</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.text2, fontSize: 18, cursor: 'pointer' }}>✕</button>
+        </div>
+        {list.length === 0
+          ? <div style={{ textAlign: 'center', padding: 32, color: C.text2, fontSize: 13 }}>차단한 사용자가 없습니다.</div>
+          : list.map(u => (
+            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
+              <Avatar nickname={u.nickname} avatar_color={u.avatar_color} avatar_image={u.avatar_image} size={38} />
+              <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.text }}>{u.nickname}</div>
+              <button onClick={() => onUnblock(u.id)} style={{ padding: '7px 14px', border: 'none', borderRadius: 100, cursor: 'pointer', fontSize: 12, fontWeight: 700, background: C.surfaceHigh, color: C.text2 }}>
+                차단 해제
+              </button>
+            </div>
+          ))
+        }
+      </div>
     </div>
   )
 }

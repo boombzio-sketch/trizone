@@ -81,8 +81,9 @@ router.get('/feed', authMiddleware, async (req, res) => {
           AND COALESCE(w.visibility,'public') IN ('public','followers','club_followers')
           AND w.status = 'approved')
     )
+    AND w.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=?)
     ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-  `).all(req.user.id, req.user.id, req.user.id, Number(offset))
+  `).all(req.user.id, req.user.id, req.user.id, req.user.id, Number(offset))
   res.json(rows)
 })
 
@@ -122,8 +123,9 @@ router.get('/feed/club', authMiddleware, async (req, res) => {
                 AND cm1.club_id = ?
             ))
       )
+      AND w.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=?)
       ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-    `).all(req.user.id, req.user.id, req.user.id, clubId, Number(offset))
+    `).all(req.user.id, req.user.id, req.user.id, clubId, req.user.id, Number(offset))
   } else {
     // 전체 클럽 합산 (기존 동작)
     rows = await db.prepare(`${FEED_COLS}
@@ -138,8 +140,9 @@ router.get('/feed/club', authMiddleware, async (req, res) => {
                 AND cm2.user_id = ? AND cm2.status = 'approved'
             ))
       )
+      AND w.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=?)
       ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-    `).all(req.user.id, req.user.id, req.user.id, Number(offset))
+    `).all(req.user.id, req.user.id, req.user.id, req.user.id, Number(offset))
   }
 
   res.json(rows)
@@ -166,8 +169,9 @@ router.get('/feed/all', authMiddleware, async (req, res) => {
       `).all(req.user.id, Number(offset))
     : await db.prepare(`${FEED_COLS}
         WHERE COALESCE(w.visibility,'public') = 'public' AND w.status = 'approved'
+        AND w.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=?)
         ORDER BY w.logged_at DESC, w.created_at DESC LIMIT 20 OFFSET ?
-      `).all(req.user.id, Number(offset))
+      `).all(req.user.id, req.user.id, Number(offset))
   res.json(rows)
 })
 
@@ -188,6 +192,10 @@ async function canAccessWorkout(workoutId, userId) {
   if (w.user_id === userId) return true         // 본인
   if (w.status !== 'approved') return false     // 미승인
   if (w.visibility === 'private') return false  // 비공개
+  const blocked = await db.prepare(`
+    SELECT id FROM blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)
+  `).get(userId, w.user_id, w.user_id, userId)
+  if (blocked) return false                     // 차단 관계: 양방향 접근 차단
   return true
 }
 
@@ -226,8 +234,9 @@ router.get('/comments/:workoutId', authMiddleware, async (req, res) => {
   const rows = await db.prepare(`
     SELECT c.*, u.nickname, u.avatar_color
     FROM comments c JOIN users u ON c.user_id=u.id
-    WHERE c.workout_id=? ORDER BY c.created_at ASC
-  `).all(wid)
+    WHERE c.workout_id=? AND c.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id=?)
+    ORDER BY c.created_at ASC
+  `).all(wid, req.user.id)
   res.json(rows)
 })
 
@@ -246,6 +255,38 @@ router.delete('/comments/:commentId', authMiddleware, async (req, res) => {
   if (!c) return res.status(404).json({ error: '댓글이 없습니다.' })
   if (c.user_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: '권한이 없습니다.' })
   await db.prepare('DELETE FROM comments WHERE id=?').run(Number(req.params.commentId))
+  res.json({ ok: true })
+})
+
+// ── 차단 ──────────────────────────────────────────
+router.get('/blocks', authMiddleware, async (req, res) => {
+  const rows = await db.prepare(`
+    SELECT u.id, u.nickname, u.avatar_color, u.avatar_image
+    FROM blocks b JOIN users u ON b.blocked_id = u.id
+    WHERE b.blocker_id=? ORDER BY b.created_at DESC
+  `).all(req.user.id)
+  res.json(rows)
+})
+
+router.post('/blocks/:targetId', authMiddleware, async (req, res) => {
+  const target = Number(req.params.targetId)
+  if (target === req.user.id) return res.status(400).json({ error: '자기 자신은 차단할 수 없습니다.' })
+  await db.prepare('INSERT OR IGNORE INTO blocks (blocker_id, blocked_id) VALUES (?,?)').run(req.user.id, target)
+  res.json({ ok: true, blocked: true })
+})
+
+router.delete('/blocks/:targetId', authMiddleware, async (req, res) => {
+  await db.prepare('DELETE FROM blocks WHERE blocker_id=? AND blocked_id=?').run(req.user.id, Number(req.params.targetId))
+  res.json({ ok: true, blocked: false })
+})
+
+// ── 신고 ──────────────────────────────────────────
+router.post('/reports', authMiddleware, async (req, res) => {
+  const { target_type, target_id, reason } = req.body
+  if (!['workout', 'comment'].includes(target_type)) return res.status(400).json({ error: '유효하지 않은 신고 대상입니다.' })
+  if (!target_id) return res.status(400).json({ error: '신고 대상을 확인하세요.' })
+  await db.prepare('INSERT INTO reports (reporter_id, target_type, target_id, reason) VALUES (?,?,?,?)')
+    .run(req.user.id, target_type, Number(target_id), (reason || '').toString().slice(0, 300))
   res.json({ ok: true })
 })
 

@@ -8,7 +8,7 @@ import Avatar from '../components/Avatar.jsx'
 export default function AdminPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState('members')
-  const [badges, setBadges] = useState({ leaderApps: null, members: null })
+  const [badges, setBadges] = useState({ leaderApps: null, members: null, reports: null })
 
   const isAdmin = user?.role === 'admin'
 
@@ -19,6 +19,7 @@ export default function AdminPage() {
   const tabDefs = [
     { key: 'members',     label: '회원 관리',  badge: badges.members },
     { key: 'leaderApps',  label: '클럽장 신청', badge: badges.leaderApps },
+    { key: 'reports',     label: '신고 관리',  badge: badges.reports },
     { key: 'points',      label: '포인트',     badge: null },
   ]
 
@@ -50,6 +51,7 @@ export default function AdminPage() {
       </div>
       <div style={{ display: tab === 'leaderApps' ? 'block' : 'none' }}><LeaderAppsTab onBadge={c => setBadge('leaderApps', c)} /></div>
       <div style={{ display: tab === 'members' ? 'block' : 'none' }}><MembersTab user={user} onBadge={c => setBadge('members', c)} /></div>
+      <div style={{ display: tab === 'reports' ? 'block' : 'none' }}><ReportsTab onBadge={c => setBadge('reports', c)} /></div>
       {tab === 'points' && <PointsTab />}
     </div>
   )
@@ -102,6 +104,61 @@ function LeaderAppsTab({ onBadge }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => handle(m.user_id, 'rejected')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700 }}>✕ 거절</button>
             <button onClick={() => handle(m.user_id, 'approved')} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.successBg, color: C.success, fontSize: 13, fontWeight: 700 }}>✓ 승인 (클럽장)</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ReportsTab({ onBadge }) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.getAdminReports()
+      .then(data => { setItems(data); onBadge(data.length) })
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handle(id, action) {
+    if (action === 'delete_content' && !confirm('이 콘텐츠를 삭제할까요?')) return
+    await api.resolveReport(id, { action })
+    setItems(prev => {
+      const next = prev.filter(r => r.id !== id)
+      onBadge(next.length)
+      return next
+    })
+  }
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 48, color: C.text2 }}>⏳ 불러오는 중...</div>
+
+  if (items.length === 0) return (
+    <div style={{ textAlign: 'center', padding: 56, color: C.text2 }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>✅</div>
+      <div style={{ fontSize: 14, fontWeight: 600 }}>대기 중인 신고가 없습니다</div>
+    </div>
+  )
+
+  return (
+    <div>
+      <div style={{ padding: '10px 16px 4px', fontSize: 11, color: C.text2 }}>처리 대기 {items.length}건</div>
+      {items.map(r => (
+        <div key={r.id} style={{ margin: '8px 12px', background: C.surface, borderRadius: 16, padding: 14, border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>{r.target_type === 'workout' ? '🏃 운동기록' : '💬 댓글'}</span>
+            <span style={{ fontSize: 10, color: C.text3 }}>{r.created_at?.slice(0, 10)}</span>
+          </div>
+          <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}>
+            신고자 <strong style={{ color: C.text }}>{r.reporter_nickname}</strong> · 작성자 <strong style={{ color: C.text }}>{r.content_author || '(삭제됨)'}</strong>
+          </div>
+          <div style={{ background: C.surfaceAlt, borderRadius: 10, padding: '10px 12px', marginBottom: 8, fontSize: 13, color: C.text }}>
+            {r.content_preview ? `"${r.content_preview}"` : '(콘텐츠가 이미 삭제되었습니다)'}
+          </div>
+          <div style={{ fontSize: 12, color: C.text2, marginBottom: 12 }}>신고 사유: {r.reason || '-'}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => handle(r.id, 'dismiss')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.surfaceAlt, color: C.text2, fontSize: 13, fontWeight: 700 }}>무시</button>
+            <button onClick={() => handle(r.id, 'delete_content')} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, cursor: 'pointer', background: C.errorBg, color: C.error, fontSize: 13, fontWeight: 700 }}>🗑 콘텐츠 삭제</button>
           </div>
         </div>
       ))}

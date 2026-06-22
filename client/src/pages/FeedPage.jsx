@@ -139,6 +139,12 @@ export default function FeedPage() {
     setFeeds(prev => prev.filter(f => f.id !== id))
   }
 
+  async function handleBlock(userId) {
+    if (!confirm('이 사용자를 차단할까요?\n차단하면 이 사용자의 모든 게시물이 피드에서 즉시 사라집니다.')) return
+    await api.blockUser(userId)
+    setFeeds(prev => prev.filter(f => f.user_id !== userId))
+  }
+
   const TABS = [
     { key: 'following', label: '팔로잉' },
     { key: 'club',      label: '클럽' },
@@ -254,6 +260,7 @@ export default function FeedPage() {
             openComments={openComments} setOpenComments={setOpenComments}
             onEdit={() => setEditingFeed(f)}
             onDelete={handleDelete}
+            onBlock={handleBlock}
           />
         ))}
       </div>
@@ -536,7 +543,64 @@ function EditModal({ feed, onSave, onClose }) {
   )
 }
 
-function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onDelete }) {
+const REPORT_REASONS = [
+  { key: 'spam', label: '스팸/광고' },
+  { key: 'abuse', label: '욕설/혐오 표현' },
+  { key: 'inappropriate', label: '부적절한 콘텐츠' },
+  { key: 'other', label: '기타' },
+]
+
+function ReportModal({ target, onClose }) {
+  const [reason, setReason] = useState('inappropriate')
+  const [detail, setDetail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
+
+  async function submit() {
+    setSubmitting(true)
+    try {
+      const label = REPORT_REASONS.find(r => r.key === reason)?.label || reason
+      await api.reportContent({ target_type: target.type, target_id: target.id, reason: detail ? `${label} - ${detail}` : label })
+      setDone(true)
+    } catch (e) { alert(e.message) }
+    finally { setSubmitting(false) }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.surface, borderRadius: 18, padding: 22, width: '100%', maxWidth: 340, border: `1px solid ${C.border}` }}>
+        {done ? (
+          <>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16, lineHeight: 1.5 }}>신고가 접수되었습니다.<br />검토 후 조치하겠습니다.</div>
+            <button onClick={onClose} style={{ width: '100%', padding: '11px', background: C.accent, border: 'none', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>확인</button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 14 }}>🚩 신고하기</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+              {REPORT_REASONS.map(r => (
+                <label key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', background: reason === r.key ? C.accentBg : C.surfaceAlt, border: `1px solid ${reason === r.key ? C.accentBorder : C.border}`, borderRadius: 10, cursor: 'pointer', fontSize: 13, color: reason === r.key ? C.accent : C.text2, fontWeight: 700 }}>
+                  <input type="radio" checked={reason === r.key} onChange={() => setReason(r.key)} style={{ accentColor: C.accent }} />
+                  {r.label}
+                </label>
+              ))}
+            </div>
+            <textarea value={detail} onChange={e => setDetail(e.target.value)} placeholder="추가 설명 (선택)" rows={2}
+              style={{ width: '100%', padding: '9px 12px', background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 10, color: C.text, fontSize: 13, outline: 'none', fontFamily: 'inherit', resize: 'none', marginBottom: 14, boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={onClose} style={{ flex: 1, padding: '11px', background: C.surfaceAlt, border: 'none', borderRadius: 12, color: C.text2, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+              <button onClick={submit} disabled={submitting} style={{ flex: 2, padding: '11px', background: submitting ? C.surfaceHigh : C.error, border: 'none', borderRadius: 12, color: submitting ? C.text2 : '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                {submitting ? '전송 중...' : '신고하기'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, onEdit, onDelete, onBlock }) {
   const sc = SPORT_COLOR[f.sport_type] || C.accent
   const isOpen = openComments === f.id
   const navigate = useNavigate()
@@ -546,6 +610,8 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
   const [replyingTo, setReplyingTo] = useState(null)
   const [likeList, setLikeList] = useState(null)
   const [loadingLikes, setLoadingLikes] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [reportTarget, setReportTarget] = useState(null)
   const vis = VIS_MAP[f.visibility || 'public']
 
   async function loadComments() {
@@ -615,9 +681,25 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
                   )}
                 </div>
               )}
+              {f.user_id !== myId && (
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowMenu(m => !m)} style={{ background: 'none', border: 'none', color: C.text2, cursor: 'pointer', fontSize: 15, padding: '2px 6px', lineHeight: 1 }}>⋯</button>
+                  {showMenu && (
+                    <>
+                      <div onClick={() => setShowMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+                      <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.35)', zIndex: 61, minWidth: 110, overflow: 'hidden' }}>
+                        <button onClick={() => { setShowMenu(false); setReportTarget({ type: 'workout', id: f.id }) }} style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', textAlign: 'left', fontSize: 12, fontWeight: 700, color: C.text2, cursor: 'pointer' }}>🚩 신고</button>
+                        <button onClick={() => { setShowMenu(false); onBlock(f.user_id) }} style={{ display: 'block', width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderTop: `1px solid ${C.border}`, textAlign: 'left', fontSize: 12, fontWeight: 700, color: C.error, cursor: 'pointer' }}>🚫 차단</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {reportTarget && <ReportModal target={reportTarget} onClose={() => setReportTarget(null)} />}
 
         {/* 사진 모달 */}
         {photoModalIdx !== null && (
@@ -763,12 +845,20 @@ function FeedCard({ feed: f, myId, user, onStar, openComments, setOpenComments, 
                   <div style={{ flex: 1 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginRight: 5 }}>{cc.nickname}</span>
                     <span style={{ fontSize: 12, color: C.text2 }}>{cc.body}</span>
-                    {!isReply && (
-                      <button onClick={() => { setReplyingTo({ id: cc.id, nickname: cc.nickname }); setCommentText('') }}
-                        style={{ display: 'block', background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 0', marginTop: 2 }}>
-                        답글
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
+                      {!isReply && (
+                        <button onClick={() => { setReplyingTo({ id: cc.id, nickname: cc.nickname }); setCommentText('') }}
+                          style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 0' }}>
+                          답글
+                        </button>
+                      )}
+                      {cc.user_id !== myId && (
+                        <button onClick={() => setReportTarget({ type: 'comment', id: cc.id })}
+                          style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: '2px 0' }}>
+                          신고
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {cc.user_id === myId && <button onClick={() => deleteComment(cc.id)} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11 }}>✕</button>}
                 </div>

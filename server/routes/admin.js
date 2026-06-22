@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { prepare } = require('../db');
-const { MONTHLY_CAP } = require('../points');
+const { MONTHLY_CAP, handleWorkoutDeletion } = require('../points');
 const { authMiddleware, adminMiddleware, canApproveMiddleware } = require('../middleware');
 const { deleteUserCascade } = require('../userDelete');
 
@@ -175,6 +175,55 @@ router.put('/memberships/:clubId/:userId/status', ...adminOnly, async (req, res)
   await prepare('UPDATE club_memberships SET status=? WHERE club_id=? AND user_id=?').run(
     status, Number(req.params.clubId), Number(req.params.userId)
   );
+  res.json({ ok: true });
+});
+
+// ── 신고 관리 (관리자 전용) ──────────────────────────────
+// 대기 중인 신고 목록 (대상 콘텐츠 미리보기 포함)
+router.get('/reports', ...adminOnly, async (req, res) => {
+  const rows = await prepare(`
+    SELECT r.*, u.nickname as reporter_nickname,
+      CASE WHEN r.target_type='workout' THEN w.memo ELSE c.body END as content_preview,
+      CASE WHEN r.target_type='workout' THEN w.sport_type ELSE NULL END as content_sport_type,
+      CASE WHEN r.target_type='workout' THEN wu.nickname ELSE cu.nickname END as content_author
+    FROM reports r
+    JOIN users u ON r.reporter_id = u.id
+    LEFT JOIN workout_logs w ON r.target_type='workout' AND r.target_id=w.id
+    LEFT JOIN users wu ON w.user_id = wu.id
+    LEFT JOIN comments c ON r.target_type='comment' AND r.target_id=c.id
+    LEFT JOIN users cu ON c.user_id = cu.id
+    WHERE r.status='pending'
+    ORDER BY r.created_at ASC
+  `).all();
+  res.json(rows);
+});
+
+// 신고 처리: 콘텐츠 삭제 또는 무시
+router.put('/reports/:id', ...adminOnly, async (req, res) => {
+  const id = Number(req.params.id);
+  const { action } = req.body;
+  if (!['delete_content', 'dismiss'].includes(action))
+    return res.status(400).json({ error: '유효하지 않은 처리입니다.' });
+
+  const report = await prepare('SELECT * FROM reports WHERE id=?').get(id);
+  if (!report) return res.status(404).json({ error: '신고를 찾을 수 없습니다.' });
+
+  if (action === 'delete_content') {
+    if (report.target_type === 'workout') {
+      const w = await prepare('SELECT * FROM workout_logs WHERE id=?').get(report.target_id);
+      if (w) {
+        await prepare('DELETE FROM workout_logs WHERE id=?').run(report.target_id);
+        try {
+          await handleWorkoutDeletion({ workoutId: w.id, userId: w.user_id, sportType: w.sport_type, loggedAt: w.logged_at });
+        } catch (e) { console.error('[points] 신고 삭제 후 포인트 처리 실패:', e.message); }
+      }
+    } else {
+      await prepare('DELETE FROM comments WHERE id=?').run(report.target_id);
+    }
+  }
+
+  await prepare(`UPDATE reports SET status=?, resolved_by=?, resolved_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .run(action === 'delete_content' ? 'resolved' : 'dismissed', req.user.id, id);
   res.json({ ok: true });
 });
 
