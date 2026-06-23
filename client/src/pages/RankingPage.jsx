@@ -24,7 +24,7 @@ export default function RankingPage() {
   const { user } = useAuth()
   const [scope, setScope] = useState('club')
   const [period, setPeriod] = useState('weekly')
-  const [sport, setSport] = useState('swim')
+  const [sport, setSport] = useState('run')
   const [customFrom, setCustomFrom] = useState(today)
   const [customTo, setCustomTo] = useState(today)
   const [data, setData] = useState(null)
