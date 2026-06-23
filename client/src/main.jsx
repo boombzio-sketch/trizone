@@ -2,6 +2,17 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 
+// 새 배포본의 서비스워커가 활성화되면 즉시 새로고침해, 캐시된 옛 버전이 남아있는 문제를 막음.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+  let refreshing = false
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return
+    refreshing = true
+    window.location.reload()
+  })
+}
+
 // 첫 워밍 ping은 index.html <head>에서 이미 실행됨(번들 로드와 병렬).
 // 여기서는 세션 유지용 주기적 재ping만 담당 (Render 15분 슬립 방지).
 const HEALTH = (import.meta.env.VITE_API_URL || '') + '/api/health'
