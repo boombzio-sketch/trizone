@@ -21,7 +21,7 @@ export default function RankingScreen() {
 
   const [scope, setScope]             = useState('club')
   const [period, setPeriod]           = useState('weekly')
-  const [sport, setSport]             = useState('swim')
+  const [sport, setSport]             = useState('run')
   const [data, setData]               = useState(null)
   const [loading, setLoading]         = useState(true)
   const [myClubs, setMyClubs]         = useState([])
