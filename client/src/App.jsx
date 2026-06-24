@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
+const DeleteAccountPage = lazy(() => import('./pages/DeleteAccountPage.jsx'))
 const FeedPage = lazy(() => import('./pages/FeedPage.jsx'))
 const RankingPage = lazy(() => import('./pages/RankingPage.jsx'))
 const WorkoutPage = lazy(() => import('./pages/WorkoutPage.jsx'))
@@ -33,6 +34,7 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
               <Route index element={<FeedPage />} />
               <Route path="ranking" element={<RankingPage />} />
