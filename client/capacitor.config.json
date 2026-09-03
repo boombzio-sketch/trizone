@@ -1,0 +1,11 @@
+{
+  "appId": "com.trizone.app",
+  "appName": "TRIZONE",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "always"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
