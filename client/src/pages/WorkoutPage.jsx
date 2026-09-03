@@ -29,11 +29,15 @@ function toggleVis(current, key) {
 }
 
 const LIMIT = 20
+const SOURCE_APP_LABEL = { garmin: '가민', strava: '스트라바', apple_watch: '애플워치', galaxy_watch: '갤럭시워치', unknown: '알 수 없음' }
+const CONFIDENCE_LABEL = { high: '높음', medium: '보통', low: '낮음' }
 
 export default function WorkoutPage() {
   const [tab, setTab] = useState('cal')
   const [sport, setSport] = useState('swim')
-  const [form, setForm] = useState({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: '실외', elevation: '', power: '' })
+  const [form, setForm] = useState({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: '실외', elevation: '', power: '', heart_rate: '', calories: '' })
+  const [extracting, setExtracting] = useState(false)
+  const [extractInfo, setExtractInfo] = useState(null)
   const [brick, setBrick] = useState([
     { sport: 'swim', distance: '', time: '' },
     { sport: 'bike', distance: '', time: '' },
@@ -103,6 +107,27 @@ export default function WorkoutPage() {
     }
   }
 
+  async function handleAutoFill() {
+    if (!photos.length || extracting) return
+    setExtracting(true); setError(''); setExtractInfo(null)
+    try {
+      const r = await api.extractWorkoutPhoto(photos[coverIndex] || photos[0])
+      if (r.sport_type) setSport(r.sport_type)
+      setForm(f => ({
+        ...f,
+        distance: r.distance_km != null ? String(r.distance_km) : f.distance,
+        time: r.duration_seconds ? formatDuration(r.duration_seconds) : f.time,
+        heart_rate: r.avg_heart_rate_bpm != null ? String(r.avg_heart_rate_bpm) : f.heart_rate,
+        calories: r.calories != null ? String(r.calories) : f.calories,
+      }))
+      setExtractInfo({ source_app: r.source_app, confidence: r.confidence })
+    } catch (err) {
+      setError('사진 자동 인식 실패: ' + err.message)
+    } finally {
+      setExtracting(false)
+    }
+  }
+
   function removePhoto(index) {
     setPhotos(prev => prev.filter((_, i) => i !== index))
     setCoverIndex(prev => {
@@ -118,7 +143,12 @@ export default function WorkoutPage() {
     try {
       const dur = parseDuration(form.time)
       const dist = parseFloat(form.distance) || 0
-      let body = { sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo, photos, cover_photo_index: coverIndex, visibility }
+      let body = {
+        sport_type: sport, logged_at: form.date, distance_km: dist, duration_sec: dur, memo: form.memo,
+        photos, cover_photo_index: coverIndex, visibility,
+        avg_heart_rate_bpm: form.heart_rate ? parseInt(form.heart_rate) : null,
+        calories: form.calories ? parseInt(form.calories) : null,
+      }
       if (sport === 'swim') body.pool_type = form.pool_type
       else if (sport === 'bike') { body.course_type = form.course_type; body.elevation_m = parseInt(form.elevation)||0; body.avg_power_w = parseInt(form.power)||0 }
       else if (sport === 'run') { body.course_type = form.course_type }
@@ -131,9 +161,9 @@ export default function WorkoutPage() {
       const saved = await api.addWorkout(body)
       const pts = saved?.points_earned || 0
       setSuccess(pts > 0 ? `✅ 기록 저장 완료!  💎 +${pts}p 적립!` : '✅ 기록이 저장되었습니다!')
-      setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '' })
+      setForm({ date: today(), distance: '', time: '', memo: '', pool_type: 'open', course_type: 'road', elevation: '', power: '', heart_rate: '', calories: '' })
       setBrick([{ sport: 'swim', distance: '', time: '' }, { sport: 'bike', distance: '', time: '' }, { sport: 'run', distance: '', time: '' }])
-      setT1Time(''); setT2Time(''); setPhotos([]); setCoverIndex(0); setVisibility('public')
+      setT1Time(''); setT2Time(''); setPhotos([]); setCoverIndex(0); setVisibility('public'); setExtractInfo(null)
       setForm(f => ({ ...f, course_type: '실외' }))
       setTimeout(() => { setSuccess(''); setTab('cal') }, 2000)
     } catch(err) { setError(err.message) }
@@ -292,6 +322,19 @@ export default function WorkoutPage() {
             </>
           )}
 
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <Field label="❤️ 평균 심박수 (선택)">
+                <input type="number" placeholder="예: 152" value={form.heart_rate} onChange={e => setForm({...form, heart_rate: e.target.value})} style={inputSt(sc)} />
+              </Field>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Field label="🔥 칼로리 (선택)">
+                <input type="number" placeholder="예: 480" value={form.calories} onChange={e => setForm({...form, calories: e.target.value})} style={inputSt(sc)} />
+              </Field>
+            </div>
+          </div>
+
           <Field label="📝 메모 (선택)">
             <textarea placeholder="오늘 훈련 소감을 적어보세요" value={form.memo} onChange={e => setForm({...form, memo: e.target.value})} rows={2} style={{ ...inputSt(sc), resize: 'none' }} />
           </Field>
@@ -343,6 +386,28 @@ export default function WorkoutPage() {
                 📷 사진 추가 ({photos.length}/5)
                 <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: 'none' }} />
               </label>
+            )}
+
+            {photos.length > 0 && (
+              <button type="button" onClick={handleAutoFill} disabled={extracting} style={{
+                width: '100%', marginTop: 8, padding: '11px', border: 'none', borderRadius: 12,
+                background: extracting ? C.surfaceHigh : C.accentBg, color: extracting ? C.text2 : C.accent,
+                fontSize: 13, fontWeight: 700, cursor: extracting ? 'default' : 'pointer',
+              }}>
+                {extracting ? '🤖 사진 분석 중...' : '🤖 사진에서 자동 채우기 (가민/스트라바/워치 화면)'}
+              </button>
+            )}
+
+            {extractInfo && (
+              <div style={{
+                marginTop: 8, padding: '9px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5,
+                background: extractInfo.confidence === 'low' ? C.errorBg : C.successBg,
+                border: `1px solid ${extractInfo.confidence === 'low' ? C.errorBorder : C.successBorder}`,
+                color: extractInfo.confidence === 'low' ? C.error : C.success,
+              }}>
+                {SOURCE_APP_LABEL[extractInfo.source_app] || '알 수 없음'}에서 자동 인식됨 · 정확도: {CONFIDENCE_LABEL[extractInfo.confidence] || extractInfo.confidence}
+                {extractInfo.confidence !== 'high' && ' — 값을 확인 후 저장해주세요.'}
+              </div>
             )}
           </Field>
 
@@ -526,6 +591,8 @@ function LogEditModal({ log, onSave, onClose }) {
   const [courseType, setCourseType] = useState(log.course_type || '실외')
   const [elevM, setElevM]         = useState(log.elevation_m || 0)
   const [avgPow, setAvgPow]       = useState(log.avg_power_w || 0)
+  const [heartRate, setHeartRate] = useState(log.avg_heart_rate_bpm ?? '')
+  const [calories, setCalories]   = useState(log.calories ?? '')
   const [memo, setMemo]           = useState(log.memo || '')
   const [visibility, setVisibility] = useState(log.visibility || 'public')
   const [segs, setSegs]           = useState(initSegs ? initSegs.map(s => ({ ...s, dur: secsToDur(s.duration_sec) })) : null)
@@ -568,7 +635,11 @@ function LogEditModal({ log, onSave, onClose }) {
   async function handleSave() {
     setSaving(true); setErr('')
     try {
-      const body = { memo, visibility, logged_at: date }
+      const body = {
+        memo, visibility, logged_at: date,
+        avg_heart_rate_bpm: heartRate !== '' ? Number(heartRate) : null,
+        calories: calories !== '' ? Number(calories) : null,
+      }
       if (isBrick && segs) {
         body.brick_segments = segs.map(s => ({ sport: s.sport, distance_km: Number(s.distance_km), duration_sec: durToSecs(s.dur) }))
       } else {
@@ -664,6 +735,17 @@ function LogEditModal({ log, onSave, onClose }) {
             </div>
           </>
         )}
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lSt}>평균 심박수</label>
+            <input type="number" min={0} value={heartRate} onChange={e => setHeartRate(e.target.value)} style={iSt} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lSt}>칼로리</label>
+            <input type="number" min={0} value={calories} onChange={e => setCalories(e.target.value)} style={iSt} />
+          </div>
+        </div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={lSt}>메모</label>

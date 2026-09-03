@@ -1,9 +1,27 @@
 const router = require('express').Router();
+const Anthropic = require('@anthropic-ai/sdk');
+const { zodOutputFormat } = require('@anthropic-ai/sdk/helpers/zod');
+const { z } = require('zod/v4');
 const { prepare } = require('../db');
 const { accrueForWorkout, handleWorkoutDeletion } = require('../points');
-const { authMiddleware, adminMiddleware } = require('../middleware');
+const { authMiddleware, adminMiddleware, rateLimit } = require('../middleware');
 const adminOnly = [authMiddleware, adminMiddleware];
 const db = { prepare };
+
+const anthropic = new Anthropic(); // ANTHROPIC_API_KEY 환경변수 사용
+
+// 사진 자동 인식 응답 스키마 — 화면에 명확히 보이는 값만, 불확실하면 null/낮은 confidence.
+const WorkoutPhotoSchema = z.object({
+  sport_type: z.enum(['running', 'cycling', 'swimming']),
+  distance_km: z.number(),
+  duration_seconds: z.number(),
+  pace_per_km: z.string(),
+  avg_heart_rate_bpm: z.number().nullable(),
+  calories: z.number().nullable(),
+  source_app: z.enum(['garmin', 'strava', 'apple_watch', 'galaxy_watch', 'unknown']),
+  confidence: z.enum(['high', 'medium', 'low']),
+});
+const PHOTO_SPORT_MAP = { running: 'run', cycling: 'bike', swimming: 'swim' };
 
 function calcScore(sport_type, distance_km, brick_segments) {
   if (sport_type === 'brick') {
@@ -32,6 +50,56 @@ function calcPace(sport_type, distance_km, duration_sec) {
   if (sport_type === 'run') return minutes / distance_km;
   return 0;
 }
+
+// 운동 기록 사진 자동 인식 (가민/스트라바/애플워치/갤럭시워치 요약 화면)
+router.post('/extract-photo', authMiddleware, rateLimit({ windowMs: 60_000, max: 5 }), async (req, res) => {
+  const { image_url } = req.body;
+  if (!image_url || typeof image_url !== 'string')
+    return res.status(400).json({ error: '이미지 URL이 필요합니다.' });
+  if (!/^https:\/\/res\.cloudinary\.com\//.test(image_url))
+    return res.status(400).json({ error: '허용되지 않은 이미지 출처입니다.' });
+
+  let response;
+  try {
+    response = await anthropic.messages.parse({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: `당신은 운동 기록 앱의 사진 인식 도우미입니다. 가민/스트라바/애플워치/갤럭시워치 등 운동 요약 화면 캡처 사진에서 정보를 추출합니다.
+- 화면에 명확히 보이는 값만 사용하세요. 확실하지 않은 값은 null로 두고 confidence를 낮추세요.
+- 운동 요약 화면이 아니거나 값을 읽을 수 없으면 confidence를 "low"로 설정하세요.
+- 절대 값을 추측해서 지어내지 마세요.`,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'url', url: image_url } },
+          { type: 'text', text: '이 운동 기록 스크린샷에서 데이터를 추출해주세요.' },
+        ],
+      }],
+      output_config: { format: zodOutputFormat(WorkoutPhotoSchema) },
+    });
+  } catch (e) {
+    if (e instanceof Anthropic.RateLimitError) {
+      return res.status(429).json({ error: 'AI 분석 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.' });
+    }
+    console.error('[extract-photo] Claude API 오류:', e.message);
+    return res.status(502).json({ error: '사진 분석에 실패했습니다. 직접 입력해주세요.' });
+  }
+
+  if (response.stop_reason === 'refusal' || !response.parsed_output)
+    return res.status(422).json({ error: '사진에서 운동 정보를 인식하지 못했습니다. 직접 입력해주세요.' });
+
+  const p = response.parsed_output;
+  res.json({
+    sport_type: PHOTO_SPORT_MAP[p.sport_type] || null,
+    distance_km: p.distance_km,
+    duration_seconds: p.duration_seconds,
+    pace_per_km: p.pace_per_km,
+    avg_heart_rate_bpm: p.avg_heart_rate_bpm,
+    calories: p.calories,
+    source_app: p.source_app,
+    confidence: p.confidence,
+  });
+});
 
 // 기록 목록 (내 것)
 router.get('/', authMiddleware, async (req, res) => {
@@ -64,7 +132,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
   const id = Number(req.params.id);
   const { memo, visibility, logged_at, distance_km, duration_sec,
           pool_type, elevation_m, course_type, avg_power_w, brick_segments,
-          photos, cover_photo_index } = req.body;
+          photos, cover_photo_index, avg_heart_rate_bpm, calories } = req.body;
 
   const row = await db.prepare('SELECT * FROM workout_logs WHERE id=?').get(id);
   if (!row) return res.status(404).json({ error: '기록을 찾을 수 없습니다.' });
@@ -94,7 +162,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     UPDATE workout_logs
     SET memo=?, visibility=?, logged_at=?, distance_km=?, duration_sec=?,
         pool_type=?, elevation_m=?, course_type=?, avg_power_w=?,
-        brick_segments=?, pace=?, score=?, photos=?, cover_photo_index=?, photo=?
+        brick_segments=?, pace=?, score=?, photos=?, cover_photo_index=?, photo=?,
+        avg_heart_rate_bpm=?, calories=?
     WHERE id=?
   `).run(
     memo      ?? row.memo,
@@ -105,7 +174,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     elevation_m  !== undefined ? elevation_m  : row.elevation_m,
     course_type  !== undefined ? course_type  : row.course_type,
     avg_power_w  !== undefined ? avg_power_w  : row.avg_power_w,
-    newBrick, pace, score, newPhotos, newCoverIdx, newPhoto, id
+    newBrick, pace, score, newPhotos, newCoverIdx, newPhoto,
+    avg_heart_rate_bpm !== undefined ? avg_heart_rate_bpm : row.avg_heart_rate_bpm,
+    calories           !== undefined ? calories           : row.calories,
+    id
   );
   res.json(await db.prepare('SELECT * FROM workout_logs WHERE id=?').get(id));
 });
@@ -115,7 +187,7 @@ router.post('/', authMiddleware, async (req, res) => {
   const {
     sport_type, logged_at, distance_km, duration_sec, memo,
     pool_type, elevation_m, course_type, avg_power_w, brick_segments,
-    photo, photos, cover_photo_index, visibility
+    photo, photos, cover_photo_index, visibility, avg_heart_rate_bpm, calories
   } = req.body;
 
   if (!sport_type || !logged_at) return res.status(400).json({ error: '종목과 날짜는 필수입니다.' });
@@ -127,8 +199,8 @@ router.post('/', authMiddleware, async (req, res) => {
     INSERT INTO workout_logs
     (user_id, sport_type, logged_at, distance_km, duration_sec, memo,
      pool_type, elevation_m, course_type, avg_power_w, brick_segments, pace, score,
-     status, photo, photos, cover_photo_index, visibility)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?)
+     status, photo, photos, cover_photo_index, visibility, avg_heart_rate_bpm, calories)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?, ?, ?, ?, ?)
   `).run(
     req.user.id, sport_type, logged_at,
     distance_km || 0, duration_sec || 0, memo || '',
@@ -138,7 +210,9 @@ router.post('/', authMiddleware, async (req, res) => {
     photos?.[cover_photo_index || 0] || photo || '',
     photos ? JSON.stringify(photos) : '[]',
     cover_photo_index || 0,
-    visibility || 'public'
+    visibility || 'public',
+    avg_heart_rate_bpm ?? null,
+    calories ?? null
   );
 
   const row = await db.prepare('SELECT * FROM workout_logs WHERE id = ?').get(result.lastInsertRowid);

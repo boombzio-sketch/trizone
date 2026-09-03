@@ -263,6 +263,10 @@ async function initDb() {
   // Add category column to races (triathlon | swim | bike | run)
   await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'triathlon'`);
 
+  // 사진 자동 인식(심박수/칼로리) 결과 저장용 컬럼
+  await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS avg_heart_rate_bpm INTEGER DEFAULT NULL`);
+  await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS calories INTEGER DEFAULT NULL`);
+
   // 승인 시스템 폐지: 과거에 'pending'으로 남아있던 기록들을 일괄 승인 처리.
   // 신규 INSERT는 'approved'로 들어오므로 이건 한 번만 의미가 있다.
   await pool.query(`UPDATE workout_logs SET status='approved' WHERE status='pending'`);

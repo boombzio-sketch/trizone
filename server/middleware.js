@@ -43,4 +43,21 @@ function canApproveMiddleware(req, res, next) {
   return res.status(403).json({ error: '기록 수정 권한이 없습니다.' });
 }
 
-module.exports = { authMiddleware, adminMiddleware, canApproveMiddleware, SECRET };
+// 사용자별 분당 N회 제한 (in-memory). 비용이 드는 외부 API 호출 엔드포인트용.
+function rateLimit({ windowMs = 60_000, max = 5 } = {}) {
+  const hits = new Map(); // userId -> timestamps[]
+  return (req, res, next) => {
+    const key = req.user?.id;
+    if (!key) return next();
+    const now = Date.now();
+    const timestamps = (hits.get(key) || []).filter(t => now - t < windowMs);
+    if (timestamps.length >= max) {
+      return res.status(429).json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' });
+    }
+    timestamps.push(now);
+    hits.set(key, timestamps);
+    next();
+  };
+}
+
+module.exports = { authMiddleware, adminMiddleware, canApproveMiddleware, rateLimit, SECRET };
