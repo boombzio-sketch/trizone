@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { api } from '../utils/api'
 import { uploadImage } from '../utils/upload'
@@ -11,8 +12,10 @@ export default function NoticePage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [editing, setEditing] = useState(null) // null | 'new' | notice object
+  const { clearUnreadNotices } = useOutletContext()
 
   useEffect(() => { load() }, [])
+  useEffect(() => { api.markNoticesRead().then(clearUnreadNotices).catch(() => {}) }, [])
 
   async function load() {
     setLoading(true)
@@ -333,6 +336,7 @@ function EditForm({ notice, onSave, onClose }) {
   const [title, setTitle] = useState(notice?.title || '')
   const [body, setBody] = useState(notice?.body || '')
   const [pinned, setPinned] = useState(notice?.pinned || false)
+  const [showPopup, setShowPopup] = useState(notice?.show_popup || false)
   const [photos, setPhotos] = useState(() => {
     try { return JSON.parse(notice?.photos || '[]') } catch { return [] }
   })
@@ -362,7 +366,7 @@ function EditForm({ notice, onSave, onClose }) {
   async function handleSave() {
     if (!title.trim()) { setErr('제목을 입력하세요.'); return }
     setSaving(true); setErr('')
-    try { await onSave({ title: title.trim(), body, pinned, photos }) }
+    try { await onSave({ title: title.trim(), body, pinned, photos, show_popup: showPopup }) }
     catch (e) { setErr(e.message) }
     finally { setSaving(false) }
   }
@@ -412,10 +416,17 @@ function EditForm({ notice, onSave, onClose }) {
         </div>
 
         <button type="button" onClick={() => setPinned(p => !p)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, background: pinned ? C.accentBg : C.surfaceAlt, border: `1px solid ${pinned ? C.accentBorder : C.border}`, borderRadius: 10, padding: '9px 14px', cursor: 'pointer', width: '100%' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, background: pinned ? C.accentBg : C.surfaceAlt, border: `1px solid ${pinned ? C.accentBorder : C.border}`, borderRadius: 10, padding: '9px 14px', cursor: 'pointer', width: '100%' }}>
           <span style={{ fontSize: 16 }}>📌</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: pinned ? C.accent : C.text2 }}>상단 고정</span>
           <span style={{ marginLeft: 'auto', fontSize: 11, color: pinned ? C.accent : C.text3 }}>{pinned ? 'ON' : 'OFF'}</span>
+        </button>
+
+        <button type="button" onClick={() => setShowPopup(p => !p)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, background: showPopup ? C.accentBg : C.surfaceAlt, border: `1px solid ${showPopup ? C.accentBorder : C.border}`, borderRadius: 10, padding: '9px 14px', cursor: 'pointer', width: '100%' }}>
+          <span style={{ fontSize: 16 }}>📢</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: showPopup ? C.accent : C.text2 }}>로그인 시 팝업으로 띄우기</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: showPopup ? C.accent : C.text3 }}>{showPopup ? 'ON' : 'OFF'}</span>
         </button>
 
         {err && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: C.error }}>{err}</div>}

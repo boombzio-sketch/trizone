@@ -260,6 +260,12 @@ async function initDb() {
   // Add photos column to notices
   await pool.query(`ALTER TABLE notices ADD COLUMN IF NOT EXISTS photos TEXT DEFAULT '[]'`);
 
+  // 공지 로그인 팝업 노출 여부 (관리자가 공지별로 선택)
+  await pool.query(`ALTER TABLE notices ADD COLUMN IF NOT EXISTS show_popup BOOLEAN DEFAULT false`);
+
+  // 공지 안읽음 추적용 커서 (이 id 이하의 공지는 읽은 것으로 간주)
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_notice_id INTEGER DEFAULT 0`);
+
   // Add category column to races (triathlon | swim | bike | run)
   await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'triathlon'`);
 
@@ -270,6 +276,13 @@ async function initDb() {
   // 승인 시스템 폐지: 과거에 'pending'으로 남아있던 기록들을 일괄 승인 처리.
   // 신규 INSERT는 'approved'로 들어오므로 이건 한 번만 의미가 있다.
   await pool.query(`UPDATE workout_logs SET status='approved' WHERE status='pending'`);
+
+  // 신규 기능 배포 시점 이전 공지들을 기존 회원에게 소급 "안읽음" 표시하지 않기 위한 백필.
+  // last_seen_notice_id 기본값(0)인 유저만 대상 — 서버 재시작마다 실행돼도 안전.
+  await pool.query(`
+    UPDATE users SET last_seen_notice_id = (SELECT COALESCE(MAX(id), 0) FROM notices)
+    WHERE last_seen_notice_id = 0
+  `);
 
   // Admins → auto-approved leader application
   await pool.query(`

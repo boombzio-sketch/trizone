@@ -132,6 +132,8 @@ export const api = {
   createNotice: (body) => request('/notices', { method: 'POST', body }),
   updateNotice: (id, body) => request(`/notices/${id}`, { method: 'PUT', body }),
   deleteNotice: (id) => request(`/notices/${id}`, { method: 'DELETE' }),
+  getUnreadNotices: () => request('/notices/unread'),
+  markNoticesRead: () => request('/notices/mark-read', { method: 'POST' }),
 }
 
 export function setToken(token) {

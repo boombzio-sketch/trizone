@@ -224,6 +224,53 @@ export default function WorkoutPage() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={{ padding: 16 }}>
+          {/* 사진 업로드 */}
+          <Field label={`📷 사진 (${photos.length}/5) — 대표 사진을 선택하세요`}>
+            {photos.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                {photos.map((p, i) => (
+                  <div key={i} style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+                    <img src={p} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, display: 'block', outline: i === coverIndex ? `3px solid ${C.accent}` : 'none' }} />
+                    {i === coverIndex ? (
+                      <div style={{ position: 'absolute', top: 4, left: 4, background: C.accent, borderRadius: 4, fontSize: 9, fontWeight: 800, color: '#fff', padding: '1px 5px' }}>대표</div>
+                    ) : (
+                      <button type="button" onClick={() => setCoverIndex(i)} style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 9, padding: '2px 5px', fontWeight: 700 }}>대표</button>
+                    )}
+                    <button type="button" onClick={() => removePhoto(i)} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 20, height: 20, color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {photos.length < 5 && (
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', background: C.surfaceAlt, border: `1px dashed ${C.borderLight}`, borderRadius: 12, cursor: 'pointer', color: C.text2, fontSize: 13, fontWeight: 600 }}>
+                📷 사진 추가 ({photos.length}/5)
+                <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: 'none' }} />
+              </label>
+            )}
+
+            {photos.length > 0 && (
+              <button type="button" onClick={handleAutoFill} disabled={extracting} style={{
+                width: '100%', marginTop: 8, padding: '11px', border: 'none', borderRadius: 12,
+                background: extracting ? C.surfaceHigh : C.accentBg, color: extracting ? C.text2 : C.accent,
+                fontSize: 13, fontWeight: 700, cursor: extracting ? 'default' : 'pointer',
+              }}>
+                {extracting ? '🤖 사진 분석 중...' : '🤖 사진에서 자동 채우기 (가민/스트라바/워치 화면)'}
+              </button>
+            )}
+
+            {extractInfo && (
+              <div style={{
+                marginTop: 8, padding: '9px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5,
+                background: extractInfo.confidence === 'low' ? C.errorBg : C.successBg,
+                border: `1px solid ${extractInfo.confidence === 'low' ? C.errorBorder : C.successBorder}`,
+                color: extractInfo.confidence === 'low' ? C.error : C.success,
+              }}>
+                {SOURCE_APP_LABEL[extractInfo.source_app] || '알 수 없음'}에서 자동 인식됨 · 정확도: {CONFIDENCE_LABEL[extractInfo.confidence] || extractInfo.confidence}
+                {extractInfo.confidence !== 'high' && ' — 값을 확인 후 저장해주세요.'}
+              </div>
+            )}
+          </Field>
+
           {/* 종목 선택 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 20 }}>
             {SPORTS.map(s => (
@@ -362,53 +409,6 @@ export default function WorkoutPage() {
                 )
               })}
             </div>
-          </Field>
-
-          {/* 사진 업로드 */}
-          <Field label={`📷 사진 (${photos.length}/5) — 대표 사진을 선택하세요`}>
-            {photos.length > 0 && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                {photos.map((p, i) => (
-                  <div key={i} style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
-                    <img src={p} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, display: 'block', outline: i === coverIndex ? `3px solid ${C.accent}` : 'none' }} />
-                    {i === coverIndex ? (
-                      <div style={{ position: 'absolute', top: 4, left: 4, background: C.accent, borderRadius: 4, fontSize: 9, fontWeight: 800, color: '#fff', padding: '1px 5px' }}>대표</div>
-                    ) : (
-                      <button type="button" onClick={() => setCoverIndex(i)} style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.55)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', fontSize: 9, padding: '2px 5px', fontWeight: 700 }}>대표</button>
-                    )}
-                    <button type="button" onClick={() => removePhoto(i)} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: 20, height: 20, color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {photos.length < 5 && (
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px', background: C.surfaceAlt, border: `1px dashed ${C.borderLight}`, borderRadius: 12, cursor: 'pointer', color: C.text2, fontSize: 13, fontWeight: 600 }}>
-                📷 사진 추가 ({photos.length}/5)
-                <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: 'none' }} />
-              </label>
-            )}
-
-            {photos.length > 0 && (
-              <button type="button" onClick={handleAutoFill} disabled={extracting} style={{
-                width: '100%', marginTop: 8, padding: '11px', border: 'none', borderRadius: 12,
-                background: extracting ? C.surfaceHigh : C.accentBg, color: extracting ? C.text2 : C.accent,
-                fontSize: 13, fontWeight: 700, cursor: extracting ? 'default' : 'pointer',
-              }}>
-                {extracting ? '🤖 사진 분석 중...' : '🤖 사진에서 자동 채우기 (가민/스트라바/워치 화면)'}
-              </button>
-            )}
-
-            {extractInfo && (
-              <div style={{
-                marginTop: 8, padding: '9px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5,
-                background: extractInfo.confidence === 'low' ? C.errorBg : C.successBg,
-                border: `1px solid ${extractInfo.confidence === 'low' ? C.errorBorder : C.successBorder}`,
-                color: extractInfo.confidence === 'low' ? C.error : C.success,
-              }}>
-                {SOURCE_APP_LABEL[extractInfo.source_app] || '알 수 없음'}에서 자동 인식됨 · 정확도: {CONFIDENCE_LABEL[extractInfo.confidence] || extractInfo.confidence}
-                {extractInfo.confidence !== 'high' && ' — 값을 확인 후 저장해주세요.'}
-              </div>
-            )}
           </Field>
 
           {error && <div style={{ background: C.errorBg, border: `1px solid ${C.errorBorder}`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: C.error }}>{error}</div>}

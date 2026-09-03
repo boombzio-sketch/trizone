@@ -2,6 +2,7 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { C } from '../utils/theme'
 import Avatar from './Avatar.jsx'
+import NoticeUnreadModal from './NoticeUnreadModal.jsx'
 import { useState, useEffect } from 'react'
 import { api } from '../utils/api'
 
@@ -18,11 +19,18 @@ export default function Layout() {
   const { user } = useAuth()
   const location = useLocation()
   const [unread, setUnread] = useState(0)
+  const [unreadNotices, setUnreadNotices] = useState([])
+  const clearUnreadNotices = () => setUnreadNotices([])
 
   useEffect(() => {
     if (!user) return
     const since = localStorage.getItem(NOTIF_KEY) || '1970-01-01'
     api.getUnreadCount(since).then(r => setUnread(r.count)).catch(() => {})
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    api.getUnreadNotices().then(setUnreadNotices).catch(() => {})
   }, [user])
 
   useEffect(() => {
@@ -63,6 +71,15 @@ export default function Layout() {
               ⚙️ 관리
             </NavLink>
           )}
+          <NavLink to="/notices" style={{ position: 'relative', display: 'flex', alignItems: 'center', textDecoration: 'none', padding: 6 }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>🔔</span>
+            {unreadNotices.length > 0 && (
+              <span style={{
+                position: 'absolute', top: 2, right: 2, width: 8, height: 8,
+                borderRadius: 99, background: '#ef4444', border: '1.5px solid #0C1E38',
+              }} />
+            )}
+          </NavLink>
           <NavLink to="/my" style={({ isActive }) => ({
             display: 'flex', alignItems: 'center', gap: 7,
             background: isActive
@@ -81,8 +98,10 @@ export default function Layout() {
       </header>
 
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 72 }}>
-        <Outlet />
+        <Outlet context={{ unreadNotices, clearUnreadNotices }} />
       </main>
+
+      <NoticeUnreadModal notices={unreadNotices} onAck={clearUnreadNotices} />
 
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
